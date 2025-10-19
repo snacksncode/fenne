@@ -1,0 +1,79 @@
+import { Text } from '@/components/Text';
+import { BlurView } from 'expo-blur';
+import { Ellipsis } from 'lucide-react-native';
+import { ReactNode } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type Props = {
+  text: string;
+  footerSlot?: ReactNode;
+};
+
+export const RouteTitle = ({ text, footerSlot }: Props) => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={{
+        zIndex: 1,
+        paddingTop: insets.top,
+        left: 0,
+        right: 0,
+        paddingBottom: 10,
+        position: 'absolute',
+        paddingHorizontal: 20,
+        borderBottomColor: '#4A3E36',
+        borderBottomWidth: 1,
+        ...(Platform.OS === 'android' && { backgroundColor: '#FEF7EA' }),
+      }}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>{text}</Text>
+        <View style={styles.button}>
+          <Ellipsis color="#4A3E36" strokeWidth={2} size={24} />
+        </View>
+      </View>
+      {footerSlot}
+      {Platform.OS === 'ios' && (
+        <BlurView
+          style={{
+            position: 'absolute',
+            top: -1 * insets.top,
+            left: -20,
+            right: -20,
+            bottom: 0,
+            zIndex: -1,
+          }}
+          tint="light"
+          intensity={60}
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  title: {
+    fontFamily: 'Satoshi-Black',
+    color: '#4A3E36',
+    fontSize: 32,
+    lineHeight: 32 * 1.5,
+  },
+  container: {
+    height: 48,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  button: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#4A3E36',
+    borderWidth: 1,
+    borderBottomWidth: 2,
+    borderRadius: 999,
+  },
+});

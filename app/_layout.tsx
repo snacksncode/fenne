@@ -1,39 +1,56 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { TabBar } from '@/components/TabBar';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Tabs } from 'expo-router';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BookMarked, Coffee, NotepadText } from 'lucide-react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+export default function Layout() {
+  // do these things static-ly later -- start
+  useFonts({
+    'Satoshi-Black': require('../assets/fonts/Satoshi-Black.otf'),
+    'Satoshi-Bold': require('../assets/fonts/Satoshi-Bold.otf'),
+    'Satoshi-Medium': require('../assets/fonts/Satoshi-Medium.otf'),
+    'Satoshi-Regular': require('../assets/fonts/Satoshi-Regular.otf'),
   });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+  StatusBar.setBarStyle('dark-content');
+  // -- end
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <BottomSheetModalProvider>
+        <SafeAreaProvider>
+          <Tabs tabBar={(props) => <TabBar {...props} />}>
+            <Tabs.Screen
+              name="groceries"
+              options={{
+                title: 'Groceries',
+                headerShown: false,
+                tabBarIcon: (props) => <NotepadText {...props} />,
+              }}
+            />
+            <Tabs.Screen
+              name="index"
+              options={{
+                title: 'Menu',
+                headerShown: false,
+                tabBarIcon: (props) => <Coffee {...props} />,
+              }}
+            />
+            <Tabs.Screen
+              name="recipes"
+              options={{
+                title: 'Recipes',
+                headerShown: false,
+                tabBarIcon: (props) => <BookMarked {...props} />,
+              }}
+            />
+            {/* <StatusBar barStyle="dark-content" /> */}
+          </Tabs>
+        </SafeAreaProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
