@@ -1,51 +1,57 @@
 import { Text } from '@/components/Text';
 import { FunctionComponent } from 'react';
-import { Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { scheduleOnRN } from 'react-native-worklets';
-import * as Haptics from 'expo-haptics';
-import { doNothing, filter, isTruthy } from 'remeda';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { filter, isTruthy } from 'remeda';
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 
 type Props = {
   onPress: () => void;
   text: string;
-  LeftIcon?: FunctionComponent<{ size: number; color: string }>;
+  leftIcon?: {
+    Icon: FunctionComponent<{ size: number; color: string }>;
+    size?: number;
+  };
+  rightIcon?: {
+    Icon: FunctionComponent<{ size: number; color: string }>;
+    size?: number;
+  };
   style?: StyleProp<ViewStyle>;
   size?: 'base' | 'small';
+  variant: 'primary' | 'secondary' | 'outlined';
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-export const Button = ({ onPress, LeftIcon, text, style, size }: Props) => {
-  const scale = useSharedValue(1);
-
-  const scaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const onTapGestureSuccess = () => {
-    const style = Haptics.ImpactFeedbackStyle.Light;
-    Haptics.impactAsync(style).catch(doNothing);
-    onPress();
-  };
-
-  const tap = Gesture.Tap()
-    .onBegin(() => (scale.value = withSpring(0.97)))
-    .onFinalize((_event, success) => {
-      scale.value = withSpring(1);
-      if (success) scheduleOnRN(onTapGestureSuccess);
-    });
-
+export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, size }: Props) => {
   return (
-    <GestureDetector gesture={tap}>
-      <AnimatedPressable
-        style={filter([styles.container, size === 'small' && styles.small, style, scaleStyle], isTruthy)}
-      >
-        {LeftIcon ? <LeftIcon size={24} color="#FEF7EA" /> : null}
-        <Text style={styles.text}>{text}</Text>
-      </AnimatedPressable>
-    </GestureDetector>
+    <PressableWithHaptics
+      onPress={onPress}
+      style={filter(
+        [
+          styles.container,
+          size === 'small' && styles.small,
+          variant === 'primary' && styles.primaryColors,
+          variant === 'secondary' && styles.secondaryColors,
+          variant === 'outlined' && styles.outlinedColors,
+          style,
+        ],
+        isTruthy
+      )}
+    >
+      {leftIcon ? (
+        <leftIcon.Icon
+          {...leftIcon}
+          size={leftIcon.size ?? 24}
+          color={variant === 'outlined' ? '#493D34' : '#FEF7EA'}
+        />
+      ) : null}
+      <Text style={[styles.text, variant === 'outlined' && styles.darkText]}>{text}</Text>
+      {rightIcon ? (
+        <rightIcon.Icon
+          {...rightIcon}
+          size={rightIcon.size ?? 24}
+          color={variant === 'outlined' ? '#493D34' : '#FEF7EA'}
+        />
+      ) : null}
+    </PressableWithHaptics>
   );
 };
 
@@ -58,10 +64,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 48,
     paddingHorizontal: 24,
-    backgroundColor: '#F9954D',
-    borderColor: '#EC8032',
     borderWidth: 1,
     borderBottomWidth: 2,
+  },
+  primaryColors: {
+    backgroundColor: '#F9954D',
+    borderColor: '#EC8032',
+  },
+  secondaryColors: {
+    backgroundColor: '#594B40',
+    borderColor: '#493D34',
+  },
+  outlinedColors: {
+    backgroundColor: 'transparent',
+    borderColor: '#493D34',
   },
   small: {
     height: 36,
@@ -72,5 +88,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Satoshi-Bold',
     fontSize: 14,
     lineHeight: 14 * 1.5,
+  },
+  darkText: {
+    color: '#493D34',
   },
 });

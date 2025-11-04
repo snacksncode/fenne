@@ -1,44 +1,41 @@
 import { Text } from '@/components/Text';
 import { atom, useAtom } from 'jotai';
-import React, { RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  addDays,
   addWeeks,
-  differenceInSeconds,
   eachDayOfInterval,
   endOfWeek,
   format,
-  formatISO,
   getUnixTime,
   isAfter,
   isBefore,
+  isSameDay,
   isToday,
   isTomorrow,
   startOfToday,
   startOfWeek,
 } from 'date-fns';
-import { Pancake } from '@/components/svgs/pancake';
-import { Ham } from 'lucide-react-native';
-import { Salad } from '@/components/svgs/salad';
 import { Soup } from '@/components/svgs/soup';
 
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
-import { scheduleOnRN } from 'react-native-worklets';
-import { doNothing, isEmpty } from 'remeda';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { difference, first, isEmpty } from 'remeda';
 import { Tag } from '@/components/svgs/tag';
-import { TestBottomSheetModal } from '@/components/TestBottomSheetModal';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import { Button } from '@/components/button';
 import { dateToString, parseDateString } from '@/date-tools';
+import { Sheets, useBackToToday } from '@/components/menu/shared';
+import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
+import { Plus } from '@/components/svgs/plus';
+import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
+import { SplashScreen } from 'expo-router';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
-const LOCK_TIMEOUT_SECONDS = 2;
 
 export function getThreeWeekSlice(today: Date) {
   const MONDAY = 1;
@@ -56,29 +53,50 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-export const MealTypeKicker = ({ type }: { type: 'breakfast' | 'lunch' | 'dinner' }) => (
-  <View style={{ gap: 4, flexDirection: 'row', alignItems: 'center' }}>
-    {type === 'breakfast' ? (
-      <Pancake size={16} color="#CF9E7D" />
-    ) : type === 'lunch' ? (
-      <Salad size={16} color="#CF9E7D" />
-    ) : (
-      <Ham size={16} color="#CF9E7D" />
-    )}
-    <Text
-      style={{
-        color: '#CF9E7D',
-        fontFamily: 'Satoshi-Bold',
-        fontSize: 12,
-        lineHeight: 12 * 1.5,
-      }}
-    >
-      {type.toUpperCase()}
-    </Text>
-  </View>
-);
+const Meal = ({ meal, sheets }: { meal: MealDTO; sheets: Sheets }) => {
+  const { gesture, scaleStyle } = useOnPressWithFeedback({
+    onLongPress: () => sheets.editMealSheetRef.current?.present({ meal }),
+    scaleTo: 0.985,
+  });
 
-const MockedFullDay = () => {
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[{ gap: 2 }, scaleStyle]}>
+        <MealTypeKicker type={meal.mealType} />
+        <Text
+          style={{
+            color: '#4A3E36',
+            fontFamily: 'Satoshi-Black',
+            fontSize: 20,
+            lineHeight: 20 * 1.25,
+          }}
+        >
+          {meal.name}
+        </Text>
+      </Animated.View>
+    </GestureDetector>
+  );
+};
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner';
+
+export type MealDTO = {
+  name: string;
+  mealType: MealType;
+};
+
+const MockedFullDay = (props: { meals: MealDTO[]; sheets: Sheets; date: Date }) => {
+  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
+  const onPress = () => {
+    const alreadyAddedMealTypes = props.meals.map((m) => m.mealType);
+    props.sheets.scheduleMealSheetRef.current?.present({
+      dateString: dateToString(props.date),
+      mealType: first(difference(mealTypes, alreadyAddedMealTypes)),
+    });
+  };
+
+  const addAnother = useOnPressWithFeedback({ onPress });
+
   return (
     <View
       style={{
@@ -91,104 +109,61 @@ const MockedFullDay = () => {
         borderBottomWidth: 2,
       }}
     >
-      <View style={{ gap: 2 }}>
-        <MealTypeKicker type="breakfast" />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Black',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-          }}
-        >
-          Oatmeal
-        </Text>
-      </View>
-      <View
-        style={{
-          height: 1,
-          backgroundColor: '#4A3E36',
-          opacity: 0.1,
-          marginVertical: 8,
-        }}
-      />
-      <View style={{ gap: 2 }}>
-        <MealTypeKicker type="lunch" />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Black',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-          }}
-        >
-          Extraordinary Pizza
-        </Text>
-      </View>
-      <View
-        style={{
-          height: 1,
-          backgroundColor: '#4A3E36',
-          opacity: 0.1,
-          marginVertical: 8,
-        }}
-      />
-      <View style={{ gap: 2 }}>
-        <MealTypeKicker type="dinner" />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Black',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-          }}
-        >
-          Cottage Cheese Supreme
-        </Text>
-      </View>
+      {props.meals.map((meal, index) => {
+        return (
+          <View key={index}>
+            <Meal meal={meal} sheets={props.sheets} />
+            {index !== props.meals.length - 1 ? (
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: '#EEDBB9',
+                  marginVertical: 8,
+                }}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+      {props.meals.length !== 3 ? (
+        <GestureDetector gesture={addAnother.gesture}>
+          <View
+            style={{
+              marginHorizontal: -16,
+              marginBottom: -12,
+              marginTop: 16,
+              backgroundColor: '#FEEED2',
+              borderBottomLeftRadius: 8,
+              borderBottomRightRadius: 8,
+              borderStyle: 'dashed',
+              borderColor: '#EEDBB9',
+              borderTopWidth: 1,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Animated.View style={[{ flexDirection: 'row', gap: 4 }, addAnother.scaleStyle]}>
+              <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
+              <Text
+                style={{
+                  color: '#4A3E36',
+                  fontFamily: 'Satoshi-Bold',
+                  fontSize: 14,
+                }}
+              >
+                Another Meal?
+              </Text>
+            </Animated.View>
+          </View>
+        </GestureDetector>
+      ) : null}
     </View>
   );
 };
 
 const MockedEmptyDay = ({ onPress }: { onPress: () => void }) => {
-  const scale = useSharedValue(1);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const vibrate = () => {
-    const style = Haptics.ImpactFeedbackStyle.Light;
-    Haptics.impactAsync(style).catch(doNothing);
-  };
-
-  const onTapGestureSuccess = () => {
-    onPress();
-  };
-
-  const onLongPressGestureSuccess = () => {
-    alert('Long press');
-  };
-
-  const tap = Gesture.Tap()
-    .onBegin(() => (scale.value = withSpring(0.97)))
-    .onEnd((_event, success) => {
-      if (success) {
-        scale.value = withSpring(1);
-        scheduleOnRN(vibrate);
-        scheduleOnRN(onTapGestureSuccess);
-      }
-    });
-
-  const longPress = Gesture.LongPress()
-    .onStart(() => {
-      scale.value = withSpring(0.97);
-      scheduleOnRN(vibrate);
-      scheduleOnRN(onLongPressGestureSuccess);
-    })
-    .onFinalize(() => (scale.value = withSpring(1)));
-
-  const gesture = Gesture.Exclusive(longPress, tap);
+  const { gesture, scaleStyle } = useOnPressWithFeedback({ onPress });
 
   return (
     <GestureDetector gesture={gesture}>
@@ -204,7 +179,7 @@ const MockedEmptyDay = ({ onPress }: { onPress: () => void }) => {
             borderWidth: 1,
             alignItems: 'center',
           },
-          style,
+          scaleStyle,
         ]}
       >
         <Soup size={24} color="#4A3E36" />
@@ -235,28 +210,44 @@ const MockedEmptyDay = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
-const Day = ({ date, sheet }: { date: Date; sheet: RefObject<BottomSheetModal | null> }) => {
-  if (isToday(date)) return <MockedFullDay />;
+const Day = ({ date, sheets }: { date: Date; sheets: Sheets }) => {
+  if (isToday(date)) {
+    return (
+      <MockedFullDay
+        sheets={sheets}
+        date={date}
+        meals={[
+          { mealType: 'breakfast', name: 'Oatmeal' },
+          { mealType: 'lunch', name: 'Extraordinary Pizza' },
+          { mealType: 'dinner', name: 'Cottage Cheese Supreme' },
+        ]}
+      />
+    );
+  }
 
   if (isTomorrow(date)) {
-    return <MockedEmptyDay onPress={() => sheet.current?.present()} />;
+    return (
+      <MockedFullDay
+        sheets={sheets}
+        date={date}
+        meals={[
+          { mealType: 'breakfast', name: 'Oatmeal' },
+          { mealType: 'lunch', name: 'Extraordinary Pizza' },
+        ]}
+      />
+    );
+  }
+
+  if (isSameDay(date, addDays(startOfToday(), 2))) {
+    return <MockedFullDay sheets={sheets} date={date} meals={[{ mealType: 'breakfast', name: 'Oatmeal' }]} />;
   }
 
   return (
-    <View
-      style={{
-        borderRadius: 4,
-        padding: 8,
-        borderWidth: 1,
-        borderColor: 'black',
-      }}
-    >
-      <Text style={{ ...(isToday(date) && { color: 'red' }) }}>{formatISO(date)}</Text>
-    </View>
+    <MockedEmptyDay onPress={() => sheets.scheduleMealSheetRef.current?.present({ dateString: dateToString(date) })} />
   );
 };
 
-const Item = ({ dateString, sheet }: { dateString: string; sheet: RefObject<BottomSheetModal | null> }) => {
+const Item = ({ dateString, sheets }: { dateString: string; sheets: Sheets }) => {
   const date = parseDateString(dateString);
   return (
     <View style={{ gap: 12 }}>
@@ -315,20 +306,18 @@ const Item = ({ dateString, sheet }: { dateString: string; sheet: RefObject<Bott
           </View>
         ) : null}
       </View>
-      <Day date={date} sheet={sheet} />
+      <Day date={date} sheets={sheets} />
     </View>
   );
 };
 
-export const dateRangeAtom = atom({
-  start: dateToString(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
-  end: dateToString(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
-});
-
 export const scrollTargetAtom = atom<{ dateString: string; animated: boolean } | null>(null);
 
 const useDateRange = () => {
-  const [dateRange, setDateRange] = useAtom(dateRangeAtom);
+  const [dateRange, setDateRange] = useState({
+    start: dateToString(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
+    end: dateToString(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
+  });
 
   const expandRange = (dateString: string) => {
     const date = parseDateString(dateString);
@@ -345,7 +334,6 @@ const useDateRange = () => {
   };
 
   const expandWeekIntoPast = () => {
-    // console.log('load more past dates ↑');
     setDateRange((prev) => {
       const newStart = addWeeks(parseDateString(prev.start), -1);
       return { ...prev, start: dateToString(newStart) };
@@ -353,7 +341,6 @@ const useDateRange = () => {
   };
 
   const expandWeekIntoFuture = () => {
-    // console.log('load more future dates ↓');
     setDateRange((prev) => {
       const newEnd = addWeeks(parseDateString(prev.end), 1);
       return { ...prev, end: dateToString(newEnd) };
@@ -369,28 +356,18 @@ const useDateRange = () => {
   };
 };
 
-export const WeeklyScreen = () => {
+type Props = {
+  sheets: Sheets;
+};
+
+export const WeeklyScreen = ({ sheets }: Props) => {
   const weeklyListRef = useRef<FlashListRef<string>>(null);
-  const sheet = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const hasScrolledRef = useRef(false);
   const [hasCommitted, setHasCommitted] = useState(false);
-  const [showBackToToday, setShowBackToToday] = useState({ state: false, lock: Date.now() });
   const [scrollTarget, setScrollTarget] = useAtom(scrollTargetAtom);
   const { dateRange, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
-
-  const backToTodayOpacity = useSharedValue(0);
-  const backToTodayScale = useSharedValue(0.8);
-
-  useEffect(() => {
-    backToTodayOpacity.value = withSpring(showBackToToday.state ? 1 : 0, { duration: 200 });
-    backToTodayScale.value = withSpring(showBackToToday.state ? 1 : 0.8, { duration: 200 });
-  }, [backToTodayOpacity, backToTodayScale, showBackToToday.state]);
-
-  const backToTodayStyle = useAnimatedStyle(() => ({
-    opacity: backToTodayOpacity.value,
-    transform: [{ scale: backToTodayScale.value }],
-  }));
+  const backToToday = useBackToToday();
 
   const days = useMemo(() => {
     const { start, end } = dateRange;
@@ -430,14 +407,15 @@ export const WeeklyScreen = () => {
     if (!weeklyListRef.current || hasScrolledRef.current || !hasCommitted) return;
     scrollToToday({ animated: false });
     hasScrolledRef.current = true;
+    SplashScreen.hide();
   }, [hasCommitted, scrollToToday]);
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<string>[] }) => {
-    if (isEmpty(viewableItems) || !hasCommitted) return;
-    if (showBackToToday.lock && differenceInSeconds(Date.now(), showBackToToday.lock) < LOCK_TIMEOUT_SECONDS) return;
-    const today = dateToString(startOfToday());
-    const todayIsVisible = Boolean(viewableItems.find((i) => i.item === today));
-    setShowBackToToday({ state: !todayIsVisible, lock: 0 });
+    if (isEmpty(viewableItems)) return;
+    backToToday.handleViewableItemsChanged({
+      viewableItems,
+      todayItem: dateToString(startOfToday()),
+    });
   };
 
   return (
@@ -451,14 +429,15 @@ export const WeeklyScreen = () => {
             zIndex: 10,
             top: insets.top + HEADER_SIZE + 16,
           },
-          backToTodayStyle,
+          backToToday.style,
         ]}
       >
         <Button
+          variant="primary"
           text="Back to today"
           size="small"
           onPress={() => {
-            setShowBackToToday({ state: false, lock: Date.now() });
+            backToToday.setShow({ state: false, lock: Date.now() });
             scrollToToday({ animated: true });
           }}
         />
@@ -466,7 +445,7 @@ export const WeeklyScreen = () => {
       <FlashList
         ref={weeklyListRef}
         data={days}
-        renderItem={({ item }) => <Item dateString={item} sheet={sheet} />}
+        renderItem={({ item }) => <Item dateString={item} sheets={sheets} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => getUnixTime(item).toString()}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
@@ -476,11 +455,12 @@ export const WeeklyScreen = () => {
           paddingBottom: insets.bottom + 88,
         }}
         onStartReached={expandWeekIntoPast}
+        onStartReachedThreshold={0.2}
+        onEndReachedThreshold={0.2}
         onEndReached={expandWeekIntoFuture}
         onCommitLayoutEffect={() => setHasCommitted(true)}
         onViewableItemsChanged={handleViewableItemsChanged}
       />
-      <TestBottomSheetModal ref={sheet} onPress={doNothing} />
     </>
   );
 };

@@ -1,0 +1,68 @@
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { Month } from '@/components/menu/month';
+import { Text } from '@/components/Text';
+import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { RefObject, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
+
+type SheetProps = {
+  ref: RefObject<BottomSheetModal | null>;
+  onDaySelect: (data: { dateString: string; isEmpty: boolean }) => void;
+};
+
+export const SelectDateSheet = ({ ref, onDaySelect }: SheetProps) => {
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
+  const leftArrow = useOnPressWithFeedback({
+    onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1))),
+    scaleTo: 0.75,
+  });
+  const rightArrow = useOnPressWithFeedback({
+    onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, 1))),
+    scaleTo: 0.75,
+  });
+
+  return (
+    <BaseSheet ref={ref}>
+      <BaseSheet.Container>
+        <Text style={styles.header}>Select a day</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <GestureDetector gesture={leftArrow.gesture}>
+              <Animated.View style={leftArrow.scaleStyle}>
+                <ChevronLeft size={24} color="#4A3E36" />
+              </Animated.View>
+            </GestureDetector>
+            <GestureDetector gesture={rightArrow.gesture}>
+              <Animated.View style={rightArrow.scaleStyle}>
+                <ChevronRight size={24} color="#4A3E36" />
+              </Animated.View>
+            </GestureDetector>
+          </View>
+        </View>
+        <Month startOfMonthDate={currentMonthDate} onDaySelect={onDaySelect} />
+      </BaseSheet.Container>
+    </BaseSheet>
+  );
+};
+
+const styles = StyleSheet.create({
+  header: {
+    marginBottom: 16,
+    color: '#4A3E36',
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 20,
+    lineHeight: 20 * 1.25,
+  },
+  currentMonth: {
+    color: '#4A3E36',
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 16,
+    lineHeight: 16 * 1.25,
+  },
+});

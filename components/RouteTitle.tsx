@@ -2,15 +2,16 @@ import { Text } from '@/components/Text';
 import { BlurView } from 'expo-blur';
 import { Ellipsis } from 'lucide-react-native';
 import { ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
   text: string;
   footerSlot?: ReactNode;
+  onPress?: () => void;
 };
 
-export const RouteTitle = ({ text, footerSlot }: Props) => {
+export const RouteTitle = ({ text, footerSlot, onPress }: Props) => {
   const insets = useSafeAreaInsets();
 
   return (
@@ -30,9 +31,9 @@ export const RouteTitle = ({ text, footerSlot }: Props) => {
     >
       <View style={styles.container}>
         <Text style={styles.title}>{text}</Text>
-        <View style={styles.button}>
+        <Pressable onPress={onPress} style={styles.button}>
           <Ellipsis color="#4A3E36" strokeWidth={2} size={24} />
-        </View>
+        </Pressable>
       </View>
       {footerSlot}
       {Platform.OS === 'ios' && (

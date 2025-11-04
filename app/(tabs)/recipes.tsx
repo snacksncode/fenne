@@ -1,109 +1,69 @@
 import { Button } from '@/components/button';
+import { MealType } from '@/components/menu/weekly-screen';
+import { Recipe } from '@/components/recipe';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Plus } from '@/components/svgs/plus';
-import { Text } from '@/components/Text';
-import { MealTypeKicker } from '@/components/WeeklyScreen';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FlashList } from '@shopify/flash-list';
+import { useRouter } from 'expo-router';
+import { useRef } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const Recipe = ({
-  recipe: { type, name, ingredients },
-}: {
-  recipe: {
-    type: 'breakfast' | 'lunch' | 'dinner';
-    name: string;
-    ingredients: string;
-  };
-}) => {
-  return (
-    <View
-      style={{
-        backgroundColor: '#FEF2DD',
-        borderColor: '#4A3E36',
-        borderWidth: 1,
-        borderBottomWidth: 2,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 8,
-      }}
-    >
-      <View style={{ gap: 2 }}>
-        <MealTypeKicker type={type} />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Black',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-          }}
-        >
-          {name}
-        </Text>
-        <Text
-          style={{
-            color: '#807468',
-            fontFamily: 'Satoshi-Medium',
-            fontSize: 13,
-            lineHeight: 13 * 1.3,
-            marginTop: 4,
-          }}
-        >
-          Ingredients: {ingredients}
-        </Text>
-      </View>
-    </View>
-  );
+type RecipeDTO = {
+  type: MealType;
+  name: string;
+  ingredients: string;
 };
 
-const recipes = [
+export const recipes: RecipeDTO[] = [
   {
-    type: 'breakfast' as const,
+    type: 'breakfast',
     name: 'Avocado Toast',
     ingredients: 'Bread, Avocado, Salt, Pepper',
   },
   {
-    type: 'breakfast' as const,
+    type: 'breakfast',
     name: 'Scrambled Eggs',
     ingredients: 'Eggs, Butter, Salt, Pepper',
   },
   {
-    type: 'breakfast' as const,
+    type: 'breakfast',
     name: 'Pancakes with Blueberries',
     ingredients: 'Flour, Eggs, Milk, Baking Powder, Blueberries, Maple Syrup',
   },
   {
-    type: 'lunch' as const,
+    type: 'lunch',
     name: 'Caesar Salad',
     ingredients: 'Romaine, Parmesan, Croutons, Caesar Dressing, Chicken',
   },
   {
-    type: 'lunch' as const,
+    type: 'lunch',
     name: 'Grilled Cheese Sandwich',
     ingredients: 'Bread, Cheddar, Butter',
   },
   {
-    type: 'lunch' as const,
+    type: 'lunch',
     name: 'Spaghetti Carbonara',
     ingredients: 'Pasta, Eggs, Pancetta, Parmesan, Black Pepper',
   },
   {
-    type: 'dinner' as const,
+    type: 'dinner',
     name: 'Salmon with Asparagus',
     ingredients: 'Salmon Fillet, Asparagus, Lemon, Olive Oil, Garlic',
   },
   {
-    type: 'dinner' as const,
+    type: 'dinner',
     name: 'Beef Tacos',
     ingredients: 'Ground Beef, Tortillas, Lettuce, Tomato, Cheddar, Sour Cream',
   },
   {
-    type: 'dinner' as const,
+    type: 'dinner',
     name: 'Chicken Stir Fry',
     ingredients: 'Chicken Breast, Bell Peppers, Broccoli, Soy Sauce, Garlic, Rice',
   },
   {
-    type: 'breakfast' as const,
+    type: 'breakfast',
     name: 'Oatmeal with Honey',
     ingredients: 'Oats, Milk, Honey, Almonds, Cinnamon',
   },
@@ -112,11 +72,12 @@ const recipes = [
 const GAP_SIZE = 16;
 
 const Recipes = () => {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
-      <RouteTitle text="Recipes" />
+      <RouteTitle text="Recipes" onPress={() => router.push('/test')} />
       <FlashList
         data={recipes}
         contentContainerStyle={{
@@ -124,13 +85,14 @@ const Recipes = () => {
           paddingBottom: insets.bottom + 152,
           paddingHorizontal: 20,
         }}
-        renderItem={({ item }) => <Recipe recipe={item} />}
+        renderItem={({ item }) => <Recipe recipe={item} onPress={() => alert(item.name)} />}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
       />
       <Button
-        onPress={() => alert('BBB')}
+        variant="primary"
+        onPress={() => router.push('/new-recipe')}
         text="New Recipe"
-        LeftIcon={Plus}
+        leftIcon={{ Icon: Plus }}
         style={{
           position: 'absolute',
           bottom: insets.bottom + 88,

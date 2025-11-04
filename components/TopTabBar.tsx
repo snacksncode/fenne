@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
 
   itemTouch: { flex: 1, height: 34 },
 
-  itemText: { fontFamily: 'Satoshi-Bold', fontSize: 12 },
+  itemText: { fontFamily: 'Satoshi-Bold', fontSize: 14 },
 
   pillMask: {
     position: 'absolute',

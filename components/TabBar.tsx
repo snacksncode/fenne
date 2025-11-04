@@ -1,9 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, View, LayoutChangeEvent, Pressable } from 'react-native';
+import { StyleSheet, View, LayoutChangeEvent } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, { useSharedValue, useDerivedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Text } from '@/components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
+import { NavigationRoute, ParamListBase } from '@react-navigation/native';
+import { GestureDetector } from 'react-native-gesture-handler';
 
 const PILL = '#F9954D';
 const PILL_BORDER = '#EC8032';
@@ -12,6 +15,49 @@ const TEXT = '#FEF7EA';
 const R = 999;
 
 type Props = BottomTabBarProps;
+
+const Tab = ({
+  route,
+  navigation,
+  descriptors,
+}: {
+  route: NavigationRoute<ParamListBase, string>;
+  navigation: BottomTabBarProps['navigation'];
+  descriptors: BottomTabBarProps['descriptors'];
+}) => {
+  const { options } = descriptors[route.key];
+  const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : options.title ?? route.name;
+
+  const onPress = () => {
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (!event.defaultPrevented) {
+      navigation.navigate(route.name, route.params);
+    }
+  };
+
+  const { gesture, scaleStyle } = useOnPressWithFeedback({ onPress, scaleTo: 0.9, feedbackStyle: null });
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <View key={route.key} testID={options.tabBarButtonTestID} style={styles.tab}>
+        <Animated.View style={[styles.tabInner, scaleStyle]}>
+          {options.tabBarIcon
+            ? options.tabBarIcon({
+                focused: false,
+                size: 28,
+                color: TEXT,
+              })
+            : null}
+          <Text style={styles.tabText}>{label}</Text>
+        </Animated.View>
+      </View>
+    </GestureDetector>
+  );
+};
 
 export const TabBar = ({ state, navigation, descriptors }: Props) => {
   const insets = useSafeAreaInsets();
@@ -46,49 +92,9 @@ export const TabBar = ({ state, navigation, descriptors }: Props) => {
     <View style={[styles.wrapper, { bottom: insets.bottom }]} pointerEvents="box-none">
       <View onLayout={onLayout} style={styles.tabBar}>
         {tabWidth > 0 && <Animated.View pointerEvents="none" style={[styles.pill, { width: tabWidth }, pillStyle]} />}
-
-        {routes.map((route) => {
-          const { options } = descriptors[route.key];
-          const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : options.title ?? route.name;
-
-          // const isFocused = state.index === index;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
-
-          const onLongPress = () => {
-            navigation.emit({ type: 'tabLongPress', target: route.key });
-          };
-
-          return (
-            <Pressable
-              key={route.key}
-              testID={options.tabBarButtonTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              style={styles.tab}
-            >
-              <Animated.View style={[styles.tabInner]}>
-                {options.tabBarIcon
-                  ? options.tabBarIcon({
-                      focused: false,
-                      size: 28,
-                      color: TEXT,
-                    })
-                  : null}
-                <Text style={styles.tabText}>{label}</Text>
-              </Animated.View>
-            </Pressable>
-          );
-        })}
+        {routes.map((route) => (
+          <Tab key={route.name} route={route} navigation={navigation} descriptors={descriptors} />
+        ))}
       </View>
     </View>
   );
