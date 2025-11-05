@@ -13,6 +13,7 @@ import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Sheets } from '@/components/menu/shared';
 import { EditMealSheet, EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
+import { EditCalendarDaySheet, EditCalendarDaySheetData } from '@/components/bottomSheets/edit-calendar-day-sheet';
 
 export type TabParamList = {
   Weekly: undefined;
@@ -26,7 +27,13 @@ const Index = () => {
   const scheduleMealSheetRef = useRef<BottomSheetModal<ScheduleMealSheetData>>(null);
   const selectDateSheetRef = useRef<BottomSheetModal>(null);
   const editMealSheetRef = useRef<BottomSheetModal<EditMealSheetData>>(null);
-  const sheets: Sheets = { scheduleMealSheetRef, selectDateSheetRef, editMealSheetRef };
+  const editCalendarDaySheetRef = useRef<BottomSheetModal<EditCalendarDaySheetData>>(null);
+  const sheets: Sheets = {
+    scheduleMealSheetRef,
+    selectDateSheetRef,
+    editMealSheetRef,
+    editCalendarDaySheetRef,
+  };
 
   return (
     <View
@@ -77,6 +84,7 @@ const Index = () => {
         }}
       />
       <EditMealSheet ref={editMealSheetRef} />
+      <EditCalendarDaySheet ref={editCalendarDaySheetRef} />
     </View>
   );
 };

@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react-native';
 import { RefObject, useState } from 'react';
 import { Keyboard, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isEmpty } from 'remeda';
 
 export type SelectCategorySheetData = {
   value: string;
@@ -54,6 +55,7 @@ const Content = (props: { onNext: (value: string) => void }) => {
           variant="primary"
           rightIcon={{ Icon: ArrowRight, size: 16 }}
           onPress={() => {
+            if (isEmpty(value)) return;
             Keyboard.dismiss();
             return props.onNext(value);
           }}

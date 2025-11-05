@@ -17,23 +17,7 @@ import {
 import { bottleSpray, bottleToothbrushComb, pepperChilli } from '@lucide/lab';
 import { View } from 'react-native';
 import { Text } from '@/components/Text';
-
-export type AisleCategory =
-  | 'produce'
-  | 'bakery'
-  | 'dairy_eggs'
-  | 'meat'
-  | 'seafood'
-  | 'pantry'
-  | 'frozen_foods'
-  | 'beverages'
-  | 'snacks'
-  | 'condiments_sauces'
-  | 'spices_baking'
-  | 'household'
-  | 'personal_care'
-  | 'pet_supplies'
-  | 'other';
+import { AisleCategory } from '@/api/groceries';
 
 export const AisleHeader = ({ type }: { type: AisleCategory }) => {
   const getText = () => {

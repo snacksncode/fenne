@@ -12,6 +12,7 @@ import { scheduleOnUI } from 'react-native-worklets';
 type Props = {
   startOfMonthDate: Date;
   onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
+  onDayLongPress?: (day: { dateString: string }) => void;
 };
 
 function TEMPORARY_isPrime(num: number) {
@@ -53,10 +54,12 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const Day = memo(function Day({
   day,
   onDaySelect,
+  onDayLongPress,
   pressedDayKey,
 }: {
   day: Date;
   onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
+  onDayLongPress?: (day: { dateString: string }) => void;
   pressedDayKey: SharedValue<string | null>;
 }) {
   const isEmpty = TEMPORARY_isPrime(parseInt(format(day, 'd')));
@@ -72,12 +75,18 @@ const Day = memo(function Day({
     onDaySelect({ dateString: dayKey, isEmpty });
   };
 
+  const handleLongPress = () => {
+    if (!onDayLongPress) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onDayLongPress({ dateString: dayKey });
+  };
+
   return (
     <AnimatedPressable
       onPressIn={() => scheduleOnUI(() => (pressedDayKey.value = dayKey))}
       onPressOut={() => scheduleOnUI(() => (pressedDayKey.value = null))}
-      onPress={() => handlePress()}
-      onLongPress={() => alert('Long press')}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
       style={[
         {
           flex: 1,
@@ -144,7 +153,7 @@ const Day = memo(function Day({
   );
 });
 
-export const Month = memo(function Month({ startOfMonthDate, onDaySelect }: Props) {
+export const Month = memo(function Month({ startOfMonthDate, onDaySelect, onDayLongPress }: Props) {
   const pressedDayKey = useSharedValue<string | null>(null);
   const end = endOfMonth(startOfMonthDate);
   const frontOffset = parseInt(format(startOfMonthDate, 'i')) - 1;
@@ -186,7 +195,15 @@ export const Month = memo(function Month({ startOfMonthDate, onDaySelect }: Prop
             <View key={index} style={{ flexDirection: 'row', gap: 6 }}>
               {week.map((day, index) => {
                 if (!day) return <View key={index} style={{ flex: 1 }} />;
-                return <Day key={getUnixTime(day)} day={day} onDaySelect={onDaySelect} pressedDayKey={pressedDayKey} />;
+                return (
+                  <Day
+                    key={getUnixTime(day)}
+                    day={day}
+                    onDaySelect={onDaySelect}
+                    onDayLongPress={onDayLongPress}
+                    pressedDayKey={pressedDayKey}
+                  />
+                );
               })}
             </View>
           );

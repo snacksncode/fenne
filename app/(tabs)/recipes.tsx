@@ -77,7 +77,7 @@ const Recipes = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
-      <RouteTitle text="Recipes" onPress={() => router.push('/test')} />
+      <RouteTitle text="Recipes" />
       <FlashList
         data={recipes}
         contentContainerStyle={{

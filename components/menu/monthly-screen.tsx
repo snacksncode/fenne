@@ -70,6 +70,9 @@ const Item = memo(function Item({ dateString, sheets }: { dateString: string; sh
           setScrollTarget({ dateString, animated: true });
           navigation.navigate('Weekly');
         }}
+        onDayLongPress={({ dateString }) => {
+          sheets.editCalendarDaySheetRef.current?.present({ dateString });
+        }}
       />
     </View>
   );

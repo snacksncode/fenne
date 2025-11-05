@@ -1,5 +1,6 @@
 import { EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
 import { ScheduleMealSheetData } from '@/components/bottomSheets/schedule-meal-sheet';
+import { EditCalendarDaySheetData } from '@/components/bottomSheets/edit-calendar-day-sheet';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 import { ViewToken } from '@shopify/flash-list';
@@ -11,6 +12,7 @@ export type Sheets = {
   scheduleMealSheetRef: RefObject<BottomSheetModal<ScheduleMealSheetData> | null>;
   selectDateSheetRef: RefObject<BottomSheetModal | null>;
   editMealSheetRef: RefObject<BottomSheetModal<EditMealSheetData> | null>;
+  editCalendarDaySheetRef: RefObject<BottomSheetModal<EditCalendarDaySheetData> | null>;
 };
 
 export const useBackToToday = () => {
