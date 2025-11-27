@@ -1,6 +1,9 @@
+import { useSchedule } from '@/api/schedules';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
 import { Text } from '@/components/Text';
+import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
@@ -12,11 +15,13 @@ import Animated from 'react-native-reanimated';
 
 type SheetProps = {
   ref: RefObject<BottomSheetModal | null>;
-  onDaySelect: (data: { dateString: string; isEmpty: boolean }) => void;
+  onDaySelect: (data: { dateString: string }) => void;
 };
 
 export const SelectDateSheet = ({ ref, onDaySelect }: SheetProps) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
+  const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
+  const { scheduleMap } = useSchedule({ weeks });
   const leftArrow = useOnPressWithFeedback({
     onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1))),
     scaleTo: 0.75,
@@ -45,7 +50,8 @@ export const SelectDateSheet = ({ ref, onDaySelect }: SheetProps) => {
             </GestureDetector>
           </View>
         </View>
-        <Month startOfMonthDate={currentMonthDate} onDaySelect={onDaySelect} />
+        <Month startOfMonthDate={currentMonthDate} onDaySelect={onDaySelect} scheduleMap={scheduleMap} />
+        <Button style={{ marginTop: 32 }} onPress={() => ref.current?.dismiss()} variant="outlined" text="Cancel" />
       </BaseSheet.Container>
     </BaseSheet>
   );

@@ -25,9 +25,7 @@ export const useInvalidationChannel = () => {
           console.log('Action Cable disconnected from InvalidationChannel.');
         },
         rejected: () => {
-          console.log(
-            'Action Cable connection rejected for InvalidationChannel.'
-          );
+          console.log('Action Cable connection rejected for InvalidationChannel.');
         },
       }
     );

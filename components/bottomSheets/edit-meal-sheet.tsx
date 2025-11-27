@@ -1,6 +1,7 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { MealDTO } from '@/components/menu/weekly-screen';
+import { RecipeDTO } from '@/api/recipes';
 import { Text } from '@/components/Text';
+import { colors } from '@/constants/colors';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ArrowLeftRight, Trash2 } from 'lucide-react-native';
@@ -8,8 +9,14 @@ import { FunctionComponent, RefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
+import { MealType, useDeleteScheduleEntry } from '@/api/schedules';
+import { ensure } from '@/utils';
 
-export type EditMealSheetData = { meal: MealDTO };
+export type EditMealSheetData = {
+  meal: RecipeDTO;
+  mealType: MealType;
+  dateString: string;
+};
 
 type SheetProps = {
   ref: RefObject<BottomSheetModal<EditMealSheetData> | null>;
@@ -34,13 +41,14 @@ const Action = (props: {
 };
 
 export const EditMealSheet = ({ ref }: SheetProps) => {
+  const deleteScheduleEntry = useDeleteScheduleEntry();
   return (
     <BaseSheet<EditMealSheetData> ref={ref}>
       {({ data }) => (
         <BaseSheet.Container>
           <Text style={styles.header}>
             What to do with{'\n'}
-            <Text style={{ backgroundColor: '#F5D2BB' }}>&ldquo;{data?.meal.name}&rdquo;</Text>?
+            <Text style={{ backgroundColor: colors.orange[100] }}>&ldquo;{data?.meal.name}&rdquo;</Text>?
           </Text>
           <View style={{ gap: 16, marginBottom: 12 }}>
             <Action
@@ -55,7 +63,8 @@ export const EditMealSheet = ({ ref }: SheetProps) => {
               text="Remove"
               icon={Trash2}
               onPress={() => {
-                alert('Remove');
+                const { dateString, mealType } = ensure(data);
+                deleteScheduleEntry.mutate({ date: dateString, mealType });
                 ref.current?.dismiss();
               }}
             />

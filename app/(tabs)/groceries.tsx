@@ -16,7 +16,7 @@ import { Text } from '@/components/Text';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
-import { ShoppingBasket, WandSparkles } from 'lucide-react-native';
+import { CirclePlus, ListPlus, Pen, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
 import { RefObject, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -44,6 +44,7 @@ import {
   SelectCategorySheetData,
 } from '@/components/bottomSheets/new-grocery-item-sheet';
 import { AisleHeader } from '@/components/aisle-header';
+import { colors } from '@/constants/colors';
 
 type AisleDTO = {
   aisle: AisleCategory;
@@ -64,7 +65,7 @@ const EmptyList = ({ sheets }: { sheets: Sheets }) => (
       <Button
         text="Add Your First Item"
         variant="outlined"
-        leftIcon={{ Icon: Plus }}
+        leftIcon={{ Icon: CirclePlus }}
         onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
       />
       <Button text="Auto-Generate from Menu" variant="primary" leftIcon={{ Icon: WandSparkles }} onPress={() => {}} />
@@ -131,7 +132,7 @@ const AisleSkeleton = () => {
         <View
           style={{
             padding: 4,
-            backgroundColor: '#F5D2BB',
+            backgroundColor: colors.orange[100],
             borderRadius: 8,
             width: 32,
             height: 32,
@@ -243,8 +244,8 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={[styles.leftActionContainer, animatedStyle]}
     >
-      <Button size="small" variant="outlined" onPress={props.onEdit} text="Edit" />
-      <Button size="small" variant="secondary" onPress={props.onRemove} text="Remove" />
+      <Button size="small" variant="outlined" onPress={props.onEdit} text="Edit" leftIcon={{ Icon: Pen }} />
+      <Button size="small" variant="secondary" onPress={props.onRemove} text="Remove" leftIcon={{ Icon: Trash2 }} />
     </Animated.View>
   );
 };
@@ -426,7 +427,7 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
         variant="primary"
         onPress={hasAtLeastOneChecked ? handleCheckout : () => sheets.newGroceryItemSheetRef.current?.present()}
         text={hasAtLeastOneChecked ? 'Checkout Time!' : "What's Missing?"}
-        leftIcon={{ Icon: hasAtLeastOneChecked ? ShoppingBasket : Plus }}
+        leftIcon={{ Icon: hasAtLeastOneChecked ? ShoppingBasket : ListPlus }}
         style={{
           position: 'absolute',
           bottom: insets.bottom + 88,
@@ -506,14 +507,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     padding: 8,
-  },
-  deleteButton: {
-    borderRadius: 999,
-    paddingHorizontal: 24,
-    backgroundColor: '#ff3b30',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   deleteText: {
     color: 'white',

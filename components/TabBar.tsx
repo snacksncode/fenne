@@ -7,11 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { NavigationRoute, ParamListBase } from '@react-navigation/native';
 import { GestureDetector } from 'react-native-gesture-handler';
+import { colors } from '@/constants/colors';
 
-const PILL = '#F9954D';
-const PILL_BORDER = '#EC8032';
-const BAR_BG = '#493D34';
-const TEXT = '#FEF7EA';
 const R = 999;
 
 type Props = BottomTabBarProps;
@@ -49,7 +46,7 @@ const Tab = ({
             ? options.tabBarIcon({
                 focused: false,
                 size: 28,
-                color: TEXT,
+                color: colors.cream[100],
               })
             : null}
           <Text style={styles.tabText}>{label}</Text>
@@ -108,7 +105,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     marginHorizontal: 16,
-    backgroundColor: BAR_BG,
+    backgroundColor: colors.brown[900],
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: R,
@@ -120,10 +117,10 @@ const styles = StyleSheet.create({
     top: 8,
     bottom: 8,
     borderRadius: R,
-    backgroundColor: PILL,
+    backgroundColor: colors.orange[500],
     borderWidth: 1,
     borderBottomWidth: 2,
-    borderColor: PILL_BORDER,
+    borderColor: colors.orange[600],
   },
   tab: {
     flex: 1,
@@ -141,7 +138,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tabText: {
-    color: TEXT,
+    color: colors.cream[100],
     fontFamily: 'Satoshi-Bold',
     fontSize: 12,
     includeFontPadding: false,

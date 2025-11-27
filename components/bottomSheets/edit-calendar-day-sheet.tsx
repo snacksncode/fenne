@@ -9,7 +9,8 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { Tag } from '@/components/svgs/tag';
 import { format } from 'date-fns';
-import { parseDateString } from '@/date-tools';
+import { parseISO } from '@/date-tools';
+import { colors } from '@/constants/colors';
 
 export type EditCalendarDaySheetData = { dateString: string };
 
@@ -42,14 +43,14 @@ export const EditCalendarDaySheet = ({ ref }: SheetProps) => {
         <BaseSheet.Container>
           <Text style={styles.header}>
             What to do with{'\n'}
-            <Text style={{ backgroundColor: '#F5D2BB' }}>
-              &ldquo;{format(parseDateString(data!.dateString), 'EEEE, d MMMM')}&rdquo;
+            <Text style={{ backgroundColor: colors.orange[100] }}>
+              &ldquo;{format(parseISO(data!.dateString), 'EEEE, d MMMM')}&rdquo;
             </Text>
             ?
           </Text>
           <View style={{ gap: 16, marginBottom: 12 }}>
             <Action
-              text="Show in weekly"
+              text='Find in "Weekly"'
               icon={CalendarSearch}
               onPress={() => {
                 alert('Show in weekly');

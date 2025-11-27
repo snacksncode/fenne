@@ -18,6 +18,7 @@ import { bottleSpray, bottleToothbrushComb, pepperChilli } from '@lucide/lab';
 import { View } from 'react-native';
 import { Text } from '@/components/Text';
 import { AisleCategory } from '@/api/groceries';
+import { colors } from '@/constants/colors';
 
 export const AisleHeader = ({ type }: { type: AisleCategory }) => {
   const getText = () => {
@@ -59,7 +60,7 @@ export const AisleHeader = ({ type }: { type: AisleCategory }) => {
 
   return (
     <View style={{ gap: 8, flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ padding: 4, backgroundColor: '#F5D2BB', borderRadius: 8 }}>{renderIcon()}</View>
+      <View style={{ padding: 4, backgroundColor: colors.orange[100], borderRadius: 8 }}>{renderIcon()}</View>
       <Text style={{ color: '#795339', fontFamily: 'Satoshi-Bold', fontSize: 20, lineHeight: 20 * 1.25 }}>
         {getText()}
       </Text>

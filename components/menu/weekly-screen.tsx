@@ -1,38 +1,41 @@
 import { Text } from '@/components/Text';
-import { atom, useAtom } from 'jotai';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  addDays,
   addWeeks,
   eachDayOfInterval,
+  eachWeekOfInterval,
   endOfWeek,
   format,
   getUnixTime,
   isAfter,
   isBefore,
-  isSameDay,
   isToday,
-  isTomorrow,
   startOfToday,
   startOfWeek,
 } from 'date-fns';
 import { Soup } from '@/components/svgs/soup';
 
-import Animated from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown, LinearTransition } from 'react-native-reanimated';
 
 import { GestureDetector } from 'react-native-gesture-handler';
-import { difference, first, isEmpty } from 'remeda';
+import { difference, filter, first, isEmpty, isTruthy } from 'remeda';
 import { Tag } from '@/components/svgs/tag';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import { Button } from '@/components/button';
-import { dateToString, parseDateString } from '@/date-tools';
+import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { Plus } from '@/components/svgs/plus';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { SplashScreen } from 'expo-router';
+import { colors } from '@/constants/colors';
+import { RecipeDTO } from '@/api/recipes';
+import { ScheduleDayDTO, MealType, useSchedule } from '@/api/schedules';
+import { splashScreenRequirementsAtom } from '@/app/_layout';
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { useMount } from '@/hooks/use-mount';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
@@ -53,52 +56,64 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-const Meal = ({ meal, sheets }: { meal: MealDTO; sheets: Sheets }) => {
-  const { gesture, scaleStyle } = useOnPressWithFeedback({
-    onLongPress: () => sheets.editMealSheetRef.current?.present({ meal }),
-    scaleTo: 0.985,
-  });
+const Meal = ({
+  meal,
+  sheets,
+  dateString,
+}: {
+  meal: RecipeDTO & { type: MealType };
+  sheets: Sheets;
+  dateString: string;
+}) => (
+  <PressableWithHaptics
+    onLongPress={() => sheets.editMealSheetRef.current?.present({ meal, mealType: meal.type, dateString })}
+    style={{ gap: 2 }}
+    scaleTo={0.985}
+  >
+    <MealTypeKicker type={meal.type} />
+    <Text
+      style={{
+        color: '#4A3E36',
+        fontFamily: 'Satoshi-Black',
+        fontSize: 20,
+        lineHeight: 20 * 1.25,
+      }}
+    >
+      {meal.name}
+    </Text>
+  </PressableWithHaptics>
+);
 
-  return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={[{ gap: 2 }, scaleStyle]}>
-        <MealTypeKicker type={meal.mealType} />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Black',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-          }}
-        >
-          {meal.name}
-        </Text>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner';
-
-export type MealDTO = {
-  name: string;
-  mealType: MealType;
-};
-
-const MockedFullDay = (props: { meals: MealDTO[]; sheets: Sheets; date: Date }) => {
+const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => {
+  const [hasRendered, setHasRendered] = useState(false);
+  useMount(() => setHasRendered(true));
+  const isScrolling = useAtomValue(isScrollingAtom);
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
+  const meals = filter(
+    [
+      data.breakfast ? { ...data.breakfast, type: 'breakfast' as const } : null,
+      data.lunch ? { ...data.lunch, type: 'lunch' as const } : null,
+      data.dinner ? { ...data.dinner, type: 'dinner' as const } : null,
+    ],
+    isTruthy
+  );
+
   const onPress = () => {
-    const alreadyAddedMealTypes = props.meals.map((m) => m.mealType);
-    props.sheets.scheduleMealSheetRef.current?.present({
-      dateString: dateToString(props.date),
+    const alreadyAddedMealTypes = filter(
+      [data.breakfast && 'breakfast', data.lunch && 'lunch', data.dinner && 'dinner'] satisfies (MealType | null)[],
+      isTruthy
+    );
+    sheets.scheduleMealSheetRef.current?.present({
+      dateString: data.date,
       mealType: first(difference(mealTypes, alreadyAddedMealTypes)),
     });
   };
 
-  const addAnother = useOnPressWithFeedback({ onPress });
-
   return (
-    <View
+    <Animated.View
+      exiting={FadeOut}
+      entering={FadeIn}
+      layout={isScrolling ? undefined : LinearTransition.springify()}
       style={{
         backgroundColor: '#FEF2DD',
         paddingHorizontal: 16,
@@ -109,11 +124,16 @@ const MockedFullDay = (props: { meals: MealDTO[]; sheets: Sheets; date: Date }) 
         borderBottomWidth: 2,
       }}
     >
-      {props.meals.map((meal, index) => {
+      {meals.map((meal, index) => {
         return (
-          <View key={index}>
-            <Meal meal={meal} sheets={props.sheets} />
-            {index !== props.meals.length - 1 ? (
+          <Animated.View
+            key={meal.type}
+            entering={hasRendered ? FadeIn.springify() : undefined}
+            exiting={hasRendered ? FadeOut.springify() : undefined}
+            layout={isScrolling ? undefined : LinearTransition.springify()}
+          >
+            <Meal meal={meal} dateString={data.date} sheets={sheets} />
+            {index !== meals.length - 1 ? (
               <View
                 style={{
                   height: 1,
@@ -122,28 +142,29 @@ const MockedFullDay = (props: { meals: MealDTO[]; sheets: Sheets; date: Date }) 
                 }}
               />
             ) : null}
-          </View>
+          </Animated.View>
         );
       })}
-      {props.meals.length !== 3 ? (
-        <GestureDetector gesture={addAnother.gesture}>
-          <View
-            style={{
-              marginHorizontal: -16,
-              marginBottom: -12,
-              marginTop: 16,
-              backgroundColor: '#FEEED2',
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
-              borderStyle: 'dashed',
-              borderColor: '#EEDBB9',
-              borderTopWidth: 1,
-              height: 40,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Animated.View style={[{ flexDirection: 'row', gap: 4 }, addAnother.scaleStyle]}>
+      {meals.length !== 3 ? (
+        <Animated.View
+          entering={hasRendered ? FadeInDown.springify() : undefined}
+          exiting={hasRendered ? FadeOutDown.duration(100) : undefined}
+          layout={isScrolling ? undefined : LinearTransition.springify()}
+          style={{
+            marginHorizontal: -16,
+            marginBottom: -12,
+            marginTop: 16,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
+            backgroundColor: '#FEEED2',
+            borderStyle: 'dashed',
+            borderColor: '#EEDBB9',
+            borderTopWidth: 1,
+            height: 40,
+          }}
+        >
+          <PressableWithHaptics style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }} onPress={onPress}>
+            <Animated.View style={[{ flexDirection: 'row', gap: 4 }]}>
               <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
               <Text
                 style={{
@@ -155,21 +176,20 @@ const MockedFullDay = (props: { meals: MealDTO[]; sheets: Sheets; date: Date }) 
                 Another Meal?
               </Text>
             </Animated.View>
-          </View>
-        </GestureDetector>
+          </PressableWithHaptics>
+        </Animated.View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 };
 
-const MockedEmptyDay = ({ onPress }: { onPress: () => void }) => {
-  const { gesture, scaleStyle } = useOnPressWithFeedback({ onPress });
-
+const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
+  const isScrolling = useAtomValue(isScrollingAtom);
   return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View
-        style={[
-          {
+    <Animated.View layout={isScrolling ? undefined : LinearTransition.springify()} exiting={FadeOut} entering={FadeIn}>
+      <PressableWithHaptics onPress={onPress}>
+        <View
+          style={{
             backgroundColor: '#FEF4E2',
             padding: 16,
             paddingBottom: 20,
@@ -178,80 +198,78 @@ const MockedEmptyDay = ({ onPress }: { onPress: () => void }) => {
             borderStyle: 'dashed',
             borderWidth: 1,
             alignItems: 'center',
-          },
-          scaleStyle,
-        ]}
-      >
-        <Soup size={24} color="#4A3E36" />
-        <Text
-          style={{
-            marginTop: 8,
-            fontFamily: 'Satoshi-Black',
-            fontSize: 16,
-            lineHeight: 16 * 1.25,
-            color: '#4A3E36',
           }}
         >
-          No meals planned
-        </Text>
-        <Text
-          style={{
-            marginTop: 2,
-            fontFamily: 'Satoshi-Bold',
-            fontSize: 14,
-            lineHeight: 14,
-            color: '#4A3E36',
-          }}
-        >
-          Tap to add a meal
-        </Text>
-      </Animated.View>
-    </GestureDetector>
+          <Soup size={24} color="#4A3E36" />
+          <Text
+            style={{
+              marginTop: 8,
+              fontFamily: 'Satoshi-Black',
+              fontSize: 16,
+              lineHeight: 16 * 1.25,
+              color: '#4A3E36',
+            }}
+          >
+            No meals planned
+          </Text>
+          <Text
+            style={{
+              marginTop: 2,
+              fontFamily: 'Satoshi-Bold',
+              fontSize: 14,
+              lineHeight: 14,
+              color: '#4A3E36',
+            }}
+          >
+            Tap to add a meal
+          </Text>
+        </View>
+      </PressableWithHaptics>
+    </Animated.View>
   );
 };
 
-const Day = ({ date, sheets }: { date: Date; sheets: Sheets }) => {
-  if (isToday(date)) {
+const Day = ({
+  dateString,
+  data,
+  sheets,
+}: {
+  dateString: string;
+  data: ScheduleDayDTO | undefined;
+  sheets: Sheets;
+}) => {
+  if (!data) {
     return (
-      <MockedFullDay
-        sheets={sheets}
-        date={date}
-        meals={[
-          { mealType: 'breakfast', name: 'Oatmeal' },
-          { mealType: 'lunch', name: 'Extraordinary Pizza' },
-          { mealType: 'dinner', name: 'Cottage Cheese Supreme' },
-        ]}
-      />
+      <View>
+        <Text>Loading...</Text>
+      </View>
     );
   }
 
-  if (isTomorrow(date)) {
-    return (
-      <MockedFullDay
-        sheets={sheets}
-        date={date}
-        meals={[
-          { mealType: 'breakfast', name: 'Oatmeal' },
-          { mealType: 'lunch', name: 'Extraordinary Pizza' },
-        ]}
-      />
-    );
+  if (!data.breakfast && !data.lunch && !data.dinner) {
+    return <EmptyDayCard onPress={() => sheets.scheduleMealSheetRef.current?.present({ dateString })} />;
   }
 
-  if (isSameDay(date, addDays(startOfToday(), 2))) {
-    return <MockedFullDay sheets={sheets} date={date} meals={[{ mealType: 'breakfast', name: 'Oatmeal' }]} />;
-  }
-
-  return (
-    <MockedEmptyDay onPress={() => sheets.scheduleMealSheetRef.current?.present({ dateString: dateToString(date) })} />
-  );
+  return <DayCard sheets={sheets} data={data} />;
 };
 
-const Item = ({ dateString, sheets }: { dateString: string; sheets: Sheets }) => {
-  const date = parseDateString(dateString);
+const Item = ({
+  dateString,
+  data,
+  sheets,
+}: {
+  dateString: string;
+  data: ScheduleDayDTO | undefined;
+  sheets: Sheets;
+}) => {
+  const date = parseISO(dateString);
+  const isScrolling = useAtomValue(isScrollingAtom);
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+      <Animated.View
+        style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
+        layout={isScrolling ? undefined : LinearTransition.springify()}
+      >
         <Text
           style={{
             fontFamily: 'Satoshi-Bold',
@@ -260,13 +278,14 @@ const Item = ({ dateString, sheets }: { dateString: string; sheets: Sheets }) =>
             color: '#4A3E36',
           }}
         >
-          {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
+          {/* {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')} */}
+          isScrolling: {String(isScrolling)}
         </Text>
         {isToday(date) ? (
           <View
             style={{
-              backgroundColor: '#F9954D',
-              borderColor: '#EC8032',
+              backgroundColor: colors.orange[500],
+              borderColor: colors.orange[600],
               borderWidth: 1,
               borderBottomWidth: 2,
               borderRadius: 999,
@@ -287,8 +306,7 @@ const Item = ({ dateString, sheets }: { dateString: string; sheets: Sheets }) =>
             </Text>
           </View>
         ) : null}
-
-        {isTomorrow(date) ? (
+        {data?.is_shopping_day ? (
           <View
             style={{
               backgroundColor: '#61AA64',
@@ -305,8 +323,8 @@ const Item = ({ dateString, sheets }: { dateString: string; sheets: Sheets }) =>
             <Tag color="#FEF7EA" size={14} />
           </View>
         ) : null}
-      </View>
-      <Day date={date} sheets={sheets} />
+      </Animated.View>
+      <Day data={data} dateString={dateString} sheets={sheets} />
     </View>
   );
 };
@@ -315,41 +333,42 @@ export const scrollTargetAtom = atom<{ dateString: string; animated: boolean } |
 
 const useDateRange = () => {
   const [dateRange, setDateRange] = useState({
-    start: dateToString(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
-    end: dateToString(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
+    start: formatDateToISO(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
+    end: formatDateToISO(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
   });
 
   const expandRange = (dateString: string) => {
-    const date = parseDateString(dateString);
+    const date = parseISO(dateString);
 
-    if (isBefore(date, parseDateString(dateRange.start))) {
+    if (isBefore(date, parseISO(dateRange.start))) {
       const newStart = addWeeks(startOfWeek(date, { weekStartsOn: 1 }), -1);
-      setDateRange({ ...dateRange, start: dateToString(newStart) });
+      setDateRange({ ...dateRange, start: formatDateToISO(newStart) });
     }
 
-    if (isAfter(date, parseDateString(dateRange.end))) {
+    if (isAfter(date, parseISO(dateRange.end))) {
       const newEnd = addWeeks(endOfWeek(date, { weekStartsOn: 1 }), 1);
-      setDateRange({ ...dateRange, end: dateToString(newEnd) });
+      setDateRange({ ...dateRange, end: formatDateToISO(newEnd) });
     }
   };
 
   const expandWeekIntoPast = () => {
     setDateRange((prev) => {
-      const newStart = addWeeks(parseDateString(prev.start), -1);
-      return { ...prev, start: dateToString(newStart) };
+      const newStart = addWeeks(parseISO(prev.start), -1);
+      return { ...prev, start: formatDateToISO(newStart) };
     });
   };
 
   const expandWeekIntoFuture = () => {
     setDateRange((prev) => {
-      const newEnd = addWeeks(parseDateString(prev.end), 1);
-      return { ...prev, end: dateToString(newEnd) };
+      const newEnd = addWeeks(parseISO(prev.end), 1);
+      return { ...prev, end: formatDateToISO(newEnd) };
     });
   };
 
+  const weeks = eachWeekOfInterval(dateRange, { weekStartsOn: 1 }).map(formatDateToISO).map(getISOWeekString);
+
   return {
-    dateRange,
-    setDateRange,
+    weeks,
     expandRange,
     expandWeekIntoPast,
     expandWeekIntoFuture,
@@ -360,22 +379,23 @@ type Props = {
   sheets: Sheets;
 };
 
+const isScrollingAtom = atom(true);
+
 export const WeeklyScreen = ({ sheets }: Props) => {
+  const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
   const weeklyListRef = useRef<FlashListRef<string>>(null);
   const insets = useSafeAreaInsets();
   const hasScrolledRef = useRef(false);
-  const [hasCommitted, setHasCommitted] = useState(false);
   const [scrollTarget, setScrollTarget] = useAtom(scrollTargetAtom);
-  const { dateRange, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
+  const { weeks, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
   const backToToday = useBackToToday();
-
-  const days = useMemo(() => {
-    const { start, end } = dateRange;
-    return eachDayOfInterval({ start, end }).map(dateToString);
-  }, [dateRange]);
+  const { scheduleMap, isLoading } = useSchedule({ weeks });
+  const setIsScrolling = useSetAtom(isScrollingAtom);
+  const days = weeks.flatMap(getDatesFromISOWeek);
 
   const scrollToDate = useCallback(
     ({ dateString, animated, offset }: { dateString: string; animated: boolean; offset?: number }) => {
+      if (animated) setIsScrolling(true);
       setImmediate(() => {
         weeklyListRef.current?.scrollToItem({
           item: dateString,
@@ -403,19 +423,16 @@ export const WeeklyScreen = ({ sheets }: Props) => {
     [days, scrollToDate]
   );
 
-  useLayoutEffect(() => {
-    if (!weeklyListRef.current || hasScrolledRef.current || !hasCommitted) return;
-    scrollToToday({ animated: false });
-    hasScrolledRef.current = true;
-    SplashScreen.hide();
-  }, [hasCommitted, scrollToToday]);
-
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<string>[] }) => {
     if (isEmpty(viewableItems)) return;
     backToToday.handleViewableItemsChanged({
       viewableItems,
-      todayItem: dateToString(startOfToday()),
+      todayItem: formatDateToISO(startOfToday()),
     });
+  };
+
+  const handleScrollEnd = () => {
+    setTimeout(() => setIsScrolling(false), 500);
   };
 
   return (
@@ -445,7 +462,7 @@ export const WeeklyScreen = ({ sheets }: Props) => {
       <FlashList
         ref={weeklyListRef}
         data={days}
-        renderItem={({ item }) => <Item dateString={item} sheets={sheets} />}
+        renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} sheets={sheets} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => getUnixTime(item).toString()}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
@@ -458,8 +475,25 @@ export const WeeklyScreen = ({ sheets }: Props) => {
         onStartReachedThreshold={0.2}
         onEndReachedThreshold={0.2}
         onEndReached={expandWeekIntoFuture}
-        onCommitLayoutEffect={() => setHasCommitted(true)}
+        scrollEnabled={!isLoading}
+        onCommitLayoutEffect={() => {
+          if (hasScrolledRef.current) return;
+          setSplashScreenRequirements((r) => ({ ...r, weeklyLayoutCommitted: true }));
+          scrollToToday({ animated: false });
+          if (!isEmpty(scheduleMap)) {
+            hasScrolledRef.current = true;
+            handleScrollEnd();
+          }
+        }}
         onViewableItemsChanged={handleViewableItemsChanged}
+        onScrollBeginDrag={() => !isEmpty(scheduleMap) && setIsScrolling(true)}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={(e) => {
+          if (Math.abs(e.nativeEvent.velocity?.y || 0) < 0.1) {
+            handleScrollEnd();
+          }
+        }}
+        onScroll={() => !isEmpty(scheduleMap) && setIsScrolling(true)}
       />
     </>
   );

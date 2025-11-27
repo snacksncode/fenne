@@ -13,9 +13,11 @@ type Props = {
   onPress?: () => void;
   onLongPress?: () => void;
   scaleTo?: number;
+  disabled?: boolean;
+  hitSlop?: number;
 };
 
-export const PressableWithHaptics = ({ children, style, onPress, onLongPress, scaleTo }: Props) => {
+export const PressableWithHaptics = ({ children, style, onPress, onLongPress, scaleTo, disabled, hitSlop }: Props) => {
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -25,13 +27,13 @@ export const PressableWithHaptics = ({ children, style, onPress, onLongPress, sc
   };
 
   const handlePress = () => {
-    if (!onPress) return;
+    if (!onPress || disabled) return;
     vibrate();
     onPress();
   };
 
   const handleLongPress = () => {
-    if (!onLongPress) return;
+    if (!onLongPress || disabled) return;
     vibrate();
     onLongPress();
   };
@@ -40,9 +42,13 @@ export const PressableWithHaptics = ({ children, style, onPress, onLongPress, sc
     <AnimatedPressable
       onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(scaleTo ?? 0.97)))}
       onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
-      onPress={handlePress}
+      onPress={(e) => {
+        e.stopPropagation();
+        handlePress();
+      }}
       onLongPress={handleLongPress}
       style={[style, scaleStyle]}
+      hitSlop={hitSlop}
     >
       {children}
     </AnimatedPressable>

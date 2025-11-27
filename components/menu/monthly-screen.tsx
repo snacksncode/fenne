@@ -2,37 +2,47 @@ import { TabParamList } from '@/app/(tabs)';
 import { Button } from '@/components/button';
 import { Text } from '@/components/Text';
 import { scrollTargetAtom } from './weekly-screen';
-import { dateToString, parseDateString } from '@/date-tools';
+import { ScheduleDayDTO, useSchedule } from '@/api/schedules';
+import { formatDateToISO, getISOWeekString, parseISO } from '@/date-tools';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import {
   addMonths,
   eachMonthOfInterval,
+  eachWeekOfInterval,
   format,
   getUnixTime,
   isThisMonth,
-  isToday,
   startOfMonth,
   startOfToday,
 } from 'date-fns';
 import { useSetAtom } from 'jotai';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmpty, pipe } from 'remeda';
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { Month } from '@/components/menu/month';
+import { colors } from '@/constants/colors';
 
 const HEADER_SIZE = 105;
 
 type Navigation = BottomTabNavigationProp<TabParamList, 'Monthly'>;
 
-const Item = memo(function Item({ dateString, sheets }: { dateString: string; sheets: Sheets }) {
+const Item = memo(function Item({
+  scheduleMap,
+  dateString,
+  sheets,
+}: {
+  scheduleMap: Record<string, ScheduleDayDTO>;
+  dateString: string;
+  sheets: Sheets;
+}) {
   const navigation = useNavigation<Navigation>();
   const setScrollTarget = useSetAtom(scrollTargetAtom);
-  const startOfMonthDate = startOfMonth(parseDateString(dateString));
+  const startOfMonthDate = startOfMonth(parseISO(dateString));
 
   return (
     <View>
@@ -48,7 +58,7 @@ const Item = memo(function Item({ dateString, sheets }: { dateString: string; sh
         >
           {format(startOfMonthDate, 'MMMM yyyy')}
         </Text>
-        {isThisMonth(parseDateString(dateString)) ? (
+        {isThisMonth(parseISO(dateString)) ? (
           <View
             style={{
               position: 'absolute',
@@ -57,13 +67,14 @@ const Item = memo(function Item({ dateString, sheets }: { dateString: string; sh
               transform: [{ translateY: '-50%' }],
               height: 6,
               width: 6,
-              backgroundColor: '#F9954D',
+              backgroundColor: colors.orange[500],
               borderRadius: 999,
             }}
           />
         ) : null}
       </View>
       <Month
+        scheduleMap={scheduleMap}
         startOfMonthDate={startOfMonthDate}
         onDaySelect={({ dateString, isEmpty }) => {
           if (isEmpty) return sheets.scheduleMealSheetRef.current?.present({ dateString });
@@ -84,18 +95,40 @@ type Props = {
   sheets: Sheets;
 };
 
+const useDateRange = () => {
+  const [monthRange, setMonthRange] = useState({
+    start: formatDateToISO(addMonths(startOfMonth(startOfToday()), -3)),
+    end: formatDateToISO(addMonths(startOfMonth(startOfToday()), 3)),
+  });
+
+  const months = eachMonthOfInterval(monthRange).map(formatDateToISO);
+  const weeks = eachWeekOfInterval(monthRange, { weekStartsOn: 1 }).map(formatDateToISO).map(getISOWeekString);
+
+  const expandIntoPast = () => {
+    setMonthRange((prev) => {
+      const newStart = addMonths(parseISO(prev.start), -6);
+      return { start: formatDateToISO(newStart), end: prev.end };
+    });
+  };
+
+  const expandIntoFuture = () => {
+    setMonthRange((prev) => {
+      const newEnd = addMonths(parseISO(prev.end), 6);
+      return { start: prev.start, end: formatDateToISO(newEnd) };
+    });
+  };
+
+  return { weeks, months, expandIntoPast, expandIntoFuture };
+};
+
 export const MonthlyScreen = ({ sheets }: Props) => {
   const monthlyListRef = useRef<FlashListRef<string>>(null);
   const hasScrolledRef = useRef(false);
   const backToToday = useBackToToday();
   const [hasCommitted, setHasCommitted] = useState(false);
   const insets = useSafeAreaInsets();
-  const [monthRange, setMonthRange] = useState({
-    start: dateToString(addMonths(startOfMonth(startOfToday()), -3)),
-    end: dateToString(addMonths(startOfMonth(startOfToday()), 3)),
-  });
-
-  const months = eachMonthOfInterval({ start: monthRange.start, end: monthRange.end }).map(dateToString);
+  const { weeks, months, expandIntoFuture, expandIntoPast } = useDateRange();
+  const { scheduleMap } = useSchedule({ weeks });
 
   const scrollToMonth = useCallback(({ dateString, animated }: { dateString: string; animated: boolean }) => {
     setImmediate(() => {
@@ -110,7 +143,7 @@ export const MonthlyScreen = ({ sheets }: Props) => {
   const scrollToToday = useCallback(
     ({ animated }: { animated: boolean }) => {
       const today = months.find((dateString) => {
-        return dateString === dateToString(startOfMonth(startOfToday()));
+        return dateString === formatDateToISO(startOfMonth(startOfToday()));
       });
       if (!today || !monthlyListRef.current) return;
       scrollToMonth({ dateString: today, animated });
@@ -128,21 +161,7 @@ export const MonthlyScreen = ({ sheets }: Props) => {
     if (isEmpty(viewableItems)) return;
     backToToday.handleViewableItemsChanged({
       viewableItems,
-      todayItem: pipe(startOfToday(), startOfMonth, dateToString),
-    });
-  };
-
-  const expandIntoPast = () => {
-    setMonthRange((prev) => {
-      const newStart = addMonths(parseDateString(prev.start), -6);
-      return { start: dateToString(newStart), end: prev.end };
-    });
-  };
-
-  const expandIntoFuture = () => {
-    setMonthRange((prev) => {
-      const newEnd = addMonths(parseDateString(prev.end), 6);
-      return { start: prev.start, end: dateToString(newEnd) };
+      todayItem: pipe(startOfToday(), startOfMonth, formatDateToISO),
     });
   };
 
@@ -173,7 +192,7 @@ export const MonthlyScreen = ({ sheets }: Props) => {
       <FlashList
         ref={monthlyListRef}
         data={months}
-        renderItem={({ item }) => <Item dateString={item} sheets={sheets} />}
+        renderItem={({ item }) => <Item scheduleMap={scheduleMap} dateString={item} sheets={sheets} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => getUnixTime(item).toString()}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
@@ -182,8 +201,8 @@ export const MonthlyScreen = ({ sheets }: Props) => {
           marginTop: insets.top + HEADER_SIZE,
           paddingBottom: insets.bottom + 88,
         }}
-        onStartReachedThreshold={0.5}
-        drawDistance={1000}
+        onStartReachedThreshold={0.2}
+        onEndReachedThreshold={0.2}
         onStartReached={expandIntoPast}
         onEndReached={expandIntoFuture}
         onCommitLayoutEffect={() => setHasCommitted(true)}

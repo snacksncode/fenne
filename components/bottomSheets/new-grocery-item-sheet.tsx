@@ -1,4 +1,5 @@
-import { AisleCategory, AisleHeader } from '@/components/aisle-header';
+import { AisleCategory } from '@/api/groceries';
+import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { SheetTextInput } from '@/components/input';
@@ -46,7 +47,7 @@ const Content = (props: { onNext: (value: string) => void }) => {
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Name</Text>
-          <SheetTextInput autoFocus value={value} onChangeText={setValue} placeholder="e.g. Avocado Toast" />
+          <SheetTextInput value={value} onChangeText={setValue} placeholder="e.g. Avocado Toast" />
         </View>
       </View>
       <View style={{ marginTop: 32 }}>
@@ -86,7 +87,7 @@ export const SelectCategorySheet = ({
       ref={ref}
       backdropDismissBehavior="dismissAll"
       snapPoints={['60%']}
-      maxDynamicContentSize={windowDimensions.height * 0.95}
+      maxDynamicContentSize={windowDimensions.height * 0.9}
     >
       {({ data }) => (
         <BottomSheetScrollView>
