@@ -11,6 +11,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { MealType, useDeleteScheduleEntry } from '@/api/schedules';
 import { ensure } from '@/utils';
+import { ScheduleMealSheetData } from '@/components/bottomSheets/schedule-meal-sheet';
 
 export type EditMealSheetData = {
   meal: RecipeDTO;
@@ -20,6 +21,7 @@ export type EditMealSheetData = {
 
 type SheetProps = {
   ref: RefObject<BottomSheetModal<EditMealSheetData> | null>;
+  scheduleMealSheetRef: RefObject<BottomSheetModal<ScheduleMealSheetData> | null>;
 };
 
 const Action = (props: {
@@ -40,7 +42,7 @@ const Action = (props: {
   );
 };
 
-export const EditMealSheet = ({ ref }: SheetProps) => {
+export const EditMealSheet = ({ ref, scheduleMealSheetRef }: SheetProps) => {
   const deleteScheduleEntry = useDeleteScheduleEntry();
   return (
     <BaseSheet<EditMealSheetData> ref={ref}>
@@ -55,7 +57,8 @@ export const EditMealSheet = ({ ref }: SheetProps) => {
               text="Swap for another meal"
               icon={ArrowLeftRight}
               onPress={() => {
-                alert('Swap');
+                const { dateString, mealType } = ensure(data);
+                scheduleMealSheetRef.current?.present({ dateString, mealType });
                 ref.current?.dismiss();
               }}
             />

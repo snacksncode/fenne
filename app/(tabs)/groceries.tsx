@@ -11,7 +11,6 @@ import {
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Button } from '@/components/button';
 import { RouteTitle } from '@/components/RouteTitle';
-import { Plus } from '@/components/svgs/plus';
 import { Text } from '@/components/Text';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FlashList } from '@shopify/flash-list';
@@ -33,6 +32,9 @@ import Animated, {
   withTiming,
   FadeOut,
   FadeIn,
+  SlideInRight,
+  SlideOutRight,
+  LayoutAnimationConfig,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -194,7 +196,7 @@ const Checkbox = (props: { isChecked: boolean; progress: SharedValue<number> }) 
   const animatedProps = useAnimatedProps(() => {
     return {
       strokeDashoffset: interpolate(props.progress.value, [0, 1], [24, 0]),
-      opacity: interpolate(props.progress.value, [0, 0.1], [0, 1]),
+      opacity: interpolate(props.progress.value, [0, 0.1, 1], [0, 1, 1]),
     };
   });
 
@@ -254,7 +256,7 @@ const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sh
   const swipeRef = useRef<SwipeableMethods>(null);
   const editGroceryItem = useEditGroceryItem({ id: _item.id });
   const deleteGroceryItem = useDeleteGroceryItem({ id: _item.id });
-  const item = { ..._item, ...editGroceryItem.variables };
+  const item = { ..._item, ...(editGroceryItem.isPending && editGroceryItem.variables) };
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCompleted = item.status === 'completed';
@@ -423,17 +425,29 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
           paddingBottom: insets.bottom + 152,
         }}
       />
-      <Button
-        variant="primary"
-        onPress={hasAtLeastOneChecked ? handleCheckout : () => sheets.newGroceryItemSheetRef.current?.present()}
-        text={hasAtLeastOneChecked ? 'Checkout Time!' : "What's Missing?"}
-        leftIcon={{ Icon: hasAtLeastOneChecked ? ShoppingBasket : ListPlus }}
-        style={{
-          position: 'absolute',
-          bottom: insets.bottom + 88,
-          right: 16,
-        }}
-      />
+      <LayoutAnimationConfig skipEntering>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16 }}>
+          {hasAtLeastOneChecked ? (
+            <Animated.View key="checkout" entering={SlideInRight.springify()} exiting={SlideOutRight.springify()}>
+              <Button
+                variant="secondary"
+                onPress={handleCheckout}
+                text={'Checkout!'}
+                leftIcon={{ Icon: ShoppingBasket }}
+              />
+            </Animated.View>
+          ) : (
+            <Animated.View key="add" entering={SlideInRight.springify()} exiting={SlideOutRight.springify()}>
+              <Button
+                variant="primary"
+                onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
+                text="What's Missing?"
+                leftIcon={{ Icon: ListPlus }}
+              />
+            </Animated.View>
+          )}
+        </View>
+      </LayoutAnimationConfig>
     </Animated.View>
   );
 };
@@ -469,7 +483,7 @@ const Groceries = () => {
         onSelect={(name, aisle) => {
           if (addGroceryItem.isPending) return;
           sheets.selectCategorySheetRef.current?.dismiss();
-          addGroceryItem.mutate({ name, aisle, status: 'pending' });
+          addGroceryItem.mutate({ name, aisle, status: 'pending', quantity: 1, unit: 'count' });
         }}
       />
     </View>

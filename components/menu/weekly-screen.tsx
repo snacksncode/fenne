@@ -1,9 +1,10 @@
 import { Text } from '@/components/Text';
-import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { atom, useAtom, useSetAtom } from 'jotai';
+import React, { useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  addDays,
   addWeeks,
   eachDayOfInterval,
   eachWeekOfInterval,
@@ -18,9 +19,16 @@ import {
 } from 'date-fns';
 import { Soup } from '@/components/svgs/soup';
 
-import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown, LinearTransition } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  FadeOutDown,
+  LayoutAnimationConfig,
+  LayoutAnimationsValues,
+  withSpring,
+} from 'react-native-reanimated';
 
-import { GestureDetector } from 'react-native-gesture-handler';
 import { difference, filter, first, isEmpty, isTruthy } from 'remeda';
 import { Tag } from '@/components/svgs/tag';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
@@ -29,16 +37,132 @@ import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { Plus } from '@/components/svgs/plus';
-import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { colors } from '@/constants/colors';
 import { RecipeDTO } from '@/api/recipes';
 import { ScheduleDayDTO, MealType, useSchedule } from '@/api/schedules';
 import { splashScreenRequirementsAtom } from '@/app/_layout';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { useMount } from '@/hooks/use-mount';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
+
+const LayoutTransition = (values: LayoutAnimationsValues) => {
+  'worklet';
+
+  const deltaX = Math.abs(values.targetOriginX - values.currentOriginX);
+  const deltaY = Math.abs(values.targetOriginY - values.currentOriginY);
+  const shouldAnimate = deltaX < 200 && deltaY < 200;
+
+  return {
+    initialValues: {
+      originX: values.currentOriginX,
+      originY: values.currentOriginY,
+      width: values.currentWidth,
+      height: values.currentHeight,
+    },
+    animations: {
+      originX: shouldAnimate ? withSpring(values.targetOriginX) : values.targetOriginX,
+      originY: shouldAnimate ? withSpring(values.targetOriginY) : values.targetOriginY,
+      width: withSpring(values.targetWidth),
+      height: withSpring(values.targetHeight),
+    },
+  };
+};
+
+const DayCardSkeleton = () => {
+  return (
+    <View
+      style={{
+        backgroundColor: '#FEF2DD',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderColor: '#EEDBB9',
+        borderWidth: 1,
+        borderBottomWidth: 2,
+        height: 120,
+        gap: 8,
+      }}
+    >
+      <View>
+        <View style={{ width: '40%', height: 12, backgroundColor: '#EEDBB9', borderRadius: 4 }} />
+        <View style={{ width: '80%', height: 18, backgroundColor: '#EEDBB9', borderRadius: 4, marginTop: 4 }} />
+      </View>
+      <View style={{ height: 1, backgroundColor: '#EEDBB9' }} />
+      <View>
+        <View style={{ width: '30%', height: 12, backgroundColor: '#EEDBB9', borderRadius: 4 }} />
+        <View style={{ width: '60%', height: 18, backgroundColor: '#EEDBB9', borderRadius: 4, marginTop: 4 }} />
+      </View>
+    </View>
+  );
+};
+
+const ItemSkeleton = ({ date }: { date: Date }) => {
+  return (
+    <View style={{ gap: 12 }}>
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+        <Text
+          style={{
+            fontFamily: 'Satoshi-Bold',
+            fontSize: 20,
+            lineHeight: 20 * 1.5,
+            color: '#4A3E36',
+          }}
+        >
+          {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
+        </Text>
+        {isToday(date) ? (
+          <View
+            style={{
+              backgroundColor: colors.orange[500],
+              borderColor: colors.orange[600],
+              borderWidth: 1,
+              borderBottomWidth: 2,
+              borderRadius: 999,
+              height: 24,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Satoshi-Bold',
+                fontSize: 11,
+                color: 'white',
+              }}
+            >
+              Today
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <DayCardSkeleton />
+    </View>
+  );
+};
+
+const WeeklyScreenSkeleton = () => {
+  const insets = useSafeAreaInsets();
+  const start = startOfToday();
+  const end = addDays(start, 7);
+  const days = eachDayOfInterval({ start, end });
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: 20,
+        paddingTop: insets.top + HEADER_SIZE + GAP_SIZE,
+        paddingBottom: insets.bottom + 88,
+        gap: GAP_SIZE,
+      }}
+    >
+      {days.map((date, index) => (
+        <ItemSkeleton date={date} key={index} />
+      ))}
+    </View>
+  );
+};
 
 export function getThreeWeekSlice(today: Date) {
   const MONDAY = 1;
@@ -85,9 +209,6 @@ const Meal = ({
 );
 
 const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => {
-  const [hasRendered, setHasRendered] = useState(false);
-  useMount(() => setHasRendered(true));
-  const isScrolling = useAtomValue(isScrollingAtom);
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
   const meals = filter(
     [
@@ -113,7 +234,7 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
     <Animated.View
       exiting={FadeOut}
       entering={FadeIn}
-      layout={isScrolling ? undefined : LinearTransition.springify()}
+      layout={LayoutTransition}
       style={{
         backgroundColor: '#FEF2DD',
         paddingHorizontal: 16,
@@ -124,69 +245,78 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
         borderBottomWidth: 2,
       }}
     >
-      {meals.map((meal, index) => {
-        return (
-          <Animated.View
-            key={meal.type}
-            entering={hasRendered ? FadeIn.springify() : undefined}
-            exiting={hasRendered ? FadeOut.springify() : undefined}
-            layout={isScrolling ? undefined : LinearTransition.springify()}
-          >
-            <Meal meal={meal} dateString={data.date} sheets={sheets} />
-            {index !== meals.length - 1 ? (
+      <LayoutAnimationConfig skipEntering>
+        {meals.map((meal, index) => {
+          return (
+            <Animated.View key={meal.type} entering={FadeIn} exiting={FadeOut} layout={LayoutTransition}>
+              <View>
+                <Meal meal={meal} dateString={data.date} sheets={sheets} />
+                {index !== meals.length - 1 ? (
+                  <View
+                    style={{
+                      height: 1,
+                      backgroundColor: '#EEDBB9',
+                      marginVertical: 8,
+                    }}
+                  />
+                ) : null}
+              </View>
+            </Animated.View>
+          );
+        })}
+        <LayoutAnimationConfig skipExiting>
+          {meals.length !== 3 ? (
+            <Animated.View
+              entering={FadeInDown.springify()}
+              exiting={FadeOutDown.springify()}
+              layout={LayoutTransition}
+              style={{
+                marginHorizontal: -16,
+                marginBottom: -12,
+                marginTop: 16,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 8,
+                backgroundColor: '#FEEED2',
+                height: 40,
+              }}
+            >
               <View
                 style={{
-                  height: 1,
-                  backgroundColor: '#EEDBB9',
-                  marginVertical: 8,
+                  position: 'relative',
+                  top: 0,
+                  borderTopWidth: 1,
+                  borderStyle: 'dashed',
+                  borderColor: '#EEDBB9',
                 }}
               />
-            ) : null}
-          </Animated.View>
-        );
-      })}
-      {meals.length !== 3 ? (
-        <Animated.View
-          entering={hasRendered ? FadeInDown.springify() : undefined}
-          exiting={hasRendered ? FadeOutDown.duration(100) : undefined}
-          layout={isScrolling ? undefined : LinearTransition.springify()}
-          style={{
-            marginHorizontal: -16,
-            marginBottom: -12,
-            marginTop: 16,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 8,
-            backgroundColor: '#FEEED2',
-            borderStyle: 'dashed',
-            borderColor: '#EEDBB9',
-            borderTopWidth: 1,
-            height: 40,
-          }}
-        >
-          <PressableWithHaptics style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }} onPress={onPress}>
-            <Animated.View style={[{ flexDirection: 'row', gap: 4 }]}>
-              <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
-              <Text
-                style={{
-                  color: '#4A3E36',
-                  fontFamily: 'Satoshi-Bold',
-                  fontSize: 14,
-                }}
+              <PressableWithHaptics
+                style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}
+                onPress={onPress}
               >
-                Another Meal?
-              </Text>
+                <Animated.View style={[{ flexDirection: 'row', gap: 4 }]}>
+                  <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
+                  <Text
+                    style={{
+                      color: '#4A3E36',
+                      fontFamily: 'Satoshi-Bold',
+                      fontSize: 14,
+                    }}
+                  >
+                    Another Meal?
+                  </Text>
+                </Animated.View>
+              </PressableWithHaptics>
             </Animated.View>
-          </PressableWithHaptics>
-        </Animated.View>
-      ) : null}
+          ) : null}
+        </LayoutAnimationConfig>
+      </LayoutAnimationConfig>
     </Animated.View>
   );
 };
 
 const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
-  const isScrolling = useAtomValue(isScrollingAtom);
   return (
-    <Animated.View layout={isScrolling ? undefined : LinearTransition.springify()} exiting={FadeOut} entering={FadeIn}>
+    <Animated.View layout={LayoutTransition} exiting={FadeOut} entering={FadeIn}>
       <PressableWithHaptics onPress={onPress}>
         <View
           style={{
@@ -198,6 +328,8 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
             borderStyle: 'dashed',
             borderWidth: 1,
             alignItems: 'center',
+            justifyContent: 'center',
+            height: 116,
           }}
         >
           <Soup size={24} color="#4A3E36" />
@@ -229,47 +361,21 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
-const Day = ({
-  dateString,
-  data,
-  sheets,
-}: {
-  dateString: string;
-  data: ScheduleDayDTO | undefined;
-  sheets: Sheets;
-}) => {
-  if (!data) {
-    return (
-      <View>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
+const Day = ({ dateString, data, sheets }: { dateString: string; data: ScheduleDayDTO; sheets: Sheets }) => {
   if (!data.breakfast && !data.lunch && !data.dinner) {
-    return <EmptyDayCard onPress={() => sheets.scheduleMealSheetRef.current?.present({ dateString })} />;
+    const onPress = () => sheets.scheduleMealSheetRef.current?.present({ dateString });
+    return <EmptyDayCard onPress={onPress} />;
   }
 
   return <DayCard sheets={sheets} data={data} />;
 };
 
-const Item = ({
-  dateString,
-  data,
-  sheets,
-}: {
-  dateString: string;
-  data: ScheduleDayDTO | undefined;
-  sheets: Sheets;
-}) => {
+const Item = ({ dateString, data, sheets }: { dateString: string; data: ScheduleDayDTO; sheets: Sheets }) => {
   const date = parseISO(dateString);
-  const isScrolling = useAtomValue(isScrollingAtom);
+
   return (
     <View style={{ gap: 12 }}>
-      <Animated.View
-        style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
-        layout={isScrolling ? undefined : LinearTransition.springify()}
-      >
+      <Animated.View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }} layout={LayoutTransition}>
         <Text
           style={{
             fontFamily: 'Satoshi-Bold',
@@ -278,8 +384,7 @@ const Item = ({
             color: '#4A3E36',
           }}
         >
-          {/* {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')} */}
-          isScrolling: {String(isScrolling)}
+          {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
         </Text>
         {isToday(date) ? (
           <View
@@ -329,7 +434,7 @@ const Item = ({
   );
 };
 
-export const scrollTargetAtom = atom<{ dateString: string; animated: boolean } | null>(null);
+export const scrollTargetAtom = atom<{ dateString: string } | null>(null);
 
 const useDateRange = () => {
   const [dateRange, setDateRange] = useState({
@@ -379,9 +484,8 @@ type Props = {
   sheets: Sheets;
 };
 
-const isScrollingAtom = atom(true);
-
 export const WeeklyScreen = ({ sheets }: Props) => {
+  const [isTodayVisible, setIsTodayVisible] = useState(false);
   const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
   const weeklyListRef = useRef<FlashListRef<string>>(null);
   const insets = useSafeAreaInsets();
@@ -390,49 +494,48 @@ export const WeeklyScreen = ({ sheets }: Props) => {
   const { weeks, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
   const backToToday = useBackToToday();
   const { scheduleMap, isLoading } = useSchedule({ weeks });
-  const setIsScrolling = useSetAtom(isScrollingAtom);
   const days = weeks.flatMap(getDatesFromISOWeek);
 
-  const scrollToDate = useCallback(
-    ({ dateString, animated, offset }: { dateString: string; animated: boolean; offset?: number }) => {
-      if (animated) setIsScrolling(true);
-      setImmediate(() => {
-        weeklyListRef.current?.scrollToItem({
-          item: dateString,
-          viewOffset: -1 * (insets.top + HEADER_SIZE + GAP_SIZE + (offset ?? 0)),
-          animated,
-        });
+  const scrollToDate = ({
+    dateString,
+    animated,
+    offset,
+  }: {
+    dateString: string;
+    animated: boolean;
+    offset?: number;
+  }) => {
+    setImmediate(() => {
+      weeklyListRef.current?.scrollToItem({
+        item: dateString,
+        viewOffset: -1 * (insets.top + HEADER_SIZE + GAP_SIZE + (offset ?? 0)),
+        animated,
       });
-    },
-    [insets.top]
-  );
+    });
+  };
 
   useEffect(() => {
     if (!scrollTarget || !weeklyListRef.current) return;
     if (!days.includes(scrollTarget.dateString)) return expandRange(scrollTarget.dateString);
-    scrollToDate({ dateString: scrollTarget.dateString, animated: scrollTarget.animated, offset: 60 });
+    scrollToDate({ dateString: scrollTarget.dateString, offset: 60, animated: true });
     setScrollTarget(null);
-  }, [days, expandRange, scrollTarget, scrollToDate, setScrollTarget]);
+  }, [days, scrollTarget]);
 
-  const scrollToToday = useCallback(
-    ({ animated }: { animated: boolean }) => {
-      const today = days.find((day) => isToday(day));
-      if (!today || !weeklyListRef.current) return;
-      scrollToDate({ dateString: today, animated });
-    },
-    [days, scrollToDate]
-  );
+  const scrollToToday = ({ animated }: { animated: boolean }) => {
+    scrollToDate({ dateString: formatDateToISO(startOfToday()), animated });
+  };
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<string>[] }) => {
     if (isEmpty(viewableItems)) return;
+
+    const today = formatDateToISO(startOfToday());
+    if (viewableItems.find(({ item }) => item === today)) setIsTodayVisible(true);
+    if (!today) return;
+
     backToToday.handleViewableItemsChanged({
       viewableItems,
       todayItem: formatDateToISO(startOfToday()),
     });
-  };
-
-  const handleScrollEnd = () => {
-    setTimeout(() => setIsScrolling(false), 500);
   };
 
   return (
@@ -459,42 +562,40 @@ export const WeeklyScreen = ({ sheets }: Props) => {
           }}
         />
       </Animated.View>
-      <FlashList
-        ref={weeklyListRef}
-        data={days}
-        renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} sheets={sheets} />}
-        style={{ backgroundColor: '#FEF7EA', flex: 1 }}
-        keyExtractor={(item) => getUnixTime(item).toString()}
-        ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          marginTop: insets.top + HEADER_SIZE,
-          paddingBottom: insets.bottom + 88,
-        }}
-        onStartReached={expandWeekIntoPast}
-        onStartReachedThreshold={0.2}
-        onEndReachedThreshold={0.2}
-        onEndReached={expandWeekIntoFuture}
-        scrollEnabled={!isLoading}
-        onCommitLayoutEffect={() => {
-          if (hasScrolledRef.current) return;
-          setSplashScreenRequirements((r) => ({ ...r, weeklyLayoutCommitted: true }));
-          scrollToToday({ animated: false });
-          if (!isEmpty(scheduleMap)) {
-            hasScrolledRef.current = true;
-            handleScrollEnd();
-          }
-        }}
-        onViewableItemsChanged={handleViewableItemsChanged}
-        onScrollBeginDrag={() => !isEmpty(scheduleMap) && setIsScrolling(true)}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={(e) => {
-          if (Math.abs(e.nativeEvent.velocity?.y || 0) < 0.1) {
-            handleScrollEnd();
-          }
-        }}
-        onScroll={() => !isEmpty(scheduleMap) && setIsScrolling(true)}
-      />
+      {(isLoading || !isTodayVisible) && (
+        <View style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundColor: '#FEF7EA' }}>
+          <WeeklyScreenSkeleton />
+        </View>
+      )}
+      {!isEmpty(scheduleMap) && (
+        <LayoutAnimationConfig skipEntering>
+          <FlashList
+            maxItemsInRecyclePool={0}
+            ref={weeklyListRef}
+            data={days}
+            renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} sheets={sheets} />}
+            style={{ backgroundColor: '#FEF7EA', flex: 1, opacity: isLoading ? 0 : 1 }}
+            keyExtractor={(item) => getUnixTime(item).toString()}
+            ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              marginTop: insets.top + HEADER_SIZE,
+              paddingBottom: insets.bottom + 88,
+            }}
+            onStartReached={expandWeekIntoPast}
+            onStartReachedThreshold={0.2}
+            onEndReachedThreshold={0.2}
+            onEndReached={expandWeekIntoFuture}
+            onCommitLayoutEffect={() => {
+              if (hasScrolledRef.current) return;
+              hasScrolledRef.current = true;
+              scrollToToday({ animated: false });
+              setSplashScreenRequirements((r) => ({ ...r, weeklyLayoutCommitted: true }));
+            }}
+            onViewableItemsChanged={handleViewableItemsChanged}
+          />
+        </LayoutAnimationConfig>
+      )}
     </>
   );
 };

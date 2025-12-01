@@ -66,14 +66,15 @@ export function SegmentedSelect<TValue extends string>({ options, value, onValue
         <View style={StyleSheet.absoluteFill}>
           <Options variant="back" options={options} onValueChange={onValueChange} />
         </View>
-        <MaskedView
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-          maskElement={<Animated.View style={[styles.pillMask, { width: tabWidth }, animatedStyle]} />}
-        >
-          <View style={styles.pillBg} />
-          <Options variant="mask" options={options} />
-        </MaskedView>
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <MaskedView
+            style={{ flex: 1 }}
+            maskElement={<Animated.View style={[styles.pillMask, { width: tabWidth }, animatedStyle]} />}
+          >
+            <View style={styles.pillBg} />
+            <Options variant="mask" options={options} />
+          </MaskedView>
+        </View>
       </View>
     </View>
   );

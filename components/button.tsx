@@ -4,7 +4,6 @@ import { StyleProp, StyleSheet, ViewStyle, ActivityIndicator, View } from 'react
 import { filter, isTruthy } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { colors } from '@/constants/colors';
-import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
 
 type Props = {
   onPress: () => void;

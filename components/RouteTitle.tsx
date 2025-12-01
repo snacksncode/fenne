@@ -1,8 +1,7 @@
 import { Text } from '@/components/Text';
-import { BlurView } from 'expo-blur';
 import { Ellipsis } from 'lucide-react-native';
 import { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
@@ -26,7 +25,7 @@ export const RouteTitle = ({ text, footerSlot, onPress }: Props) => {
         paddingHorizontal: 20,
         borderBottomColor: '#4A3E36',
         borderBottomWidth: 1,
-        ...(Platform.OS === 'android' && { backgroundColor: '#FEF7EA' }),
+        backgroundColor: '#FEF7EA',
       }}
     >
       <View style={styles.container}>
@@ -36,20 +35,6 @@ export const RouteTitle = ({ text, footerSlot, onPress }: Props) => {
         </Pressable>
       </View>
       {footerSlot}
-      {Platform.OS === 'ios' && (
-        <BlurView
-          style={{
-            position: 'absolute',
-            top: -1 * insets.top,
-            left: -20,
-            right: -20,
-            bottom: 0,
-            zIndex: -1,
-          }}
-          tint="light"
-          intensity={60}
-        />
-      )}
     </View>
   );
 };

@@ -12,6 +12,7 @@ import { QueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
+import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
 
 const WEEK_IN_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -28,6 +29,11 @@ const asyncStoragePersister = createAsyncStoragePersister({ storage: AsyncStorag
 SplashScreen.preventAutoHideAsync();
 
 export const splashScreenRequirementsAtom = atom({ queriesRestored: false, weeklyLayoutCommitted: false });
+
+const InvalidationChannel = () => {
+  useInvalidationChannel();
+  return null;
+};
 
 export default function Layout() {
   const splashScreenRequirements = useAtomValue(splashScreenRequirementsAtom);
@@ -59,6 +65,7 @@ export default function Layout() {
       }}
       onSuccess={() => setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }))}
     >
+      <InvalidationChannel />
       <GestureHandlerRootView>
         <EventProvider>
           <BottomSheetModalProvider>

@@ -38,63 +38,66 @@ const Index = () => {
   };
 
   return (
-    <View
-      style={{
-        backgroundColor: '#FEF7EA',
-        flex: 1,
-      }}
-    >
-      <Tab.Navigator
-        tabBar={(props) => (
-          <RouteTitle
-            text="Menu"
-            footerSlot={
-              <View style={{ marginTop: 12 }}>
-                <TopTabBar {...props} />
-              </View>
-            }
+    <Tab.Navigator
+      layout={({ children, navigation }) => (
+        <View
+          style={{
+            backgroundColor: '#FEF7EA',
+            flex: 1,
+          }}
+        >
+          {children}
+          <Button
+            variant="primary"
+            onPress={() => selectDateSheetRef.current?.present()}
+            text="Schedule Meal"
+            leftIcon={{ Icon: CalendarPlus }}
+            style={{
+              position: 'absolute',
+              bottom: insets.bottom + 88,
+              right: 16,
+            }}
           />
-        )}
-      >
-        <Tab.Screen name="Weekly">{() => <WeeklyScreen sheets={sheets} />}</Tab.Screen>
-        <Tab.Screen name="Monthly">{() => <MonthlyScreen sheets={sheets} />}</Tab.Screen>
-      </Tab.Navigator>
-      <Button
-        variant="primary"
-        onPress={() => selectDateSheetRef.current?.present()}
-        text="Schedule Meal"
-        leftIcon={{ Icon: CalendarPlus }}
-        style={{
-          position: 'absolute',
-          bottom: insets.bottom + 88,
-          right: 16,
-        }}
-      />
-      <ScheduleMealSheet
-        ref={scheduleMealSheetRef}
-        onMealSelect={(meal, date, mealType) => {
-          updateScheduleDay.mutate({
-            data: {
-              date,
-              ...(mealType === 'breakfast' && { breakfast_recipe_id: meal.id }),
-              ...(mealType === 'lunch' && { lunch_recipe_id: meal.id }),
-              ...(mealType === 'dinner' && { dinner_recipe_id: meal.id }),
-            },
-            date,
-          });
-          scheduleMealSheetRef.current?.dismiss();
-        }}
-      />
-      <SelectDateSheet
-        ref={selectDateSheetRef}
-        onDaySelect={({ dateString }) => {
-          selectDateSheetRef.current?.dismiss();
-          return scheduleMealSheetRef.current?.present({ dateString });
-        }}
-      />
-      <EditMealSheet ref={editMealSheetRef} />
-      <EditCalendarDaySheet ref={editCalendarDaySheetRef} />
-    </View>
+          <ScheduleMealSheet
+            ref={scheduleMealSheetRef}
+            onMealSelect={(meal, date, mealType) => {
+              updateScheduleDay.mutate({
+                data: {
+                  date,
+                  ...(mealType === 'breakfast' && { breakfast_recipe_id: meal.id }),
+                  ...(mealType === 'lunch' && { lunch_recipe_id: meal.id }),
+                  ...(mealType === 'dinner' && { dinner_recipe_id: meal.id }),
+                },
+                date,
+              });
+              scheduleMealSheetRef.current?.dismiss();
+            }}
+          />
+          <SelectDateSheet
+            ref={selectDateSheetRef}
+            onDaySelect={({ dateString }) => {
+              selectDateSheetRef.current?.dismiss();
+              return scheduleMealSheetRef.current?.present({ dateString });
+            }}
+          />
+          <EditMealSheet ref={editMealSheetRef} scheduleMealSheetRef={scheduleMealSheetRef} />
+          <EditCalendarDaySheet ref={editCalendarDaySheetRef} navigation={navigation} />
+        </View>
+      )}
+      tabBar={(props) => (
+        <RouteTitle
+          text="Menu"
+          footerSlot={
+            <View style={{ marginTop: 12 }}>
+              <TopTabBar {...props} />
+            </View>
+          }
+        />
+      )}
+    >
+      <Tab.Screen name="Weekly">{() => <WeeklyScreen sheets={sheets} />}</Tab.Screen>
+      <Tab.Screen name="Monthly">{() => <MonthlyScreen sheets={sheets} />}</Tab.Screen>
+    </Tab.Navigator>
   );
 };
 

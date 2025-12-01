@@ -1,38 +1,57 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import cable from '../cable';
+import { isPlainObject } from 'remeda';
+import { getISOWeekString } from '@/date-tools';
+import { recipesOptions } from '@/api/recipes';
+import { scheduleOptions } from '@/api/schedules';
+import { groceriesOptions } from '@/api/groceries';
+
+type Data =
+  | {
+      resource: 'schedules';
+      data: { dates: string[] };
+    }
+  | {
+      resource: 'recipes';
+      data: null;
+    }
+  | {
+      resource: 'grocery_items';
+      data: null;
+    };
 
 export const useInvalidationChannel = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('effect run');
     const subscription = cable.subscriptions.create(
       { channel: 'InvalidationChannel' },
       {
-        received: (data: { action: string; query_key: any[] }) => {
-          if (data.action === 'invalidate' && Array.isArray(data.query_key)) {
-            console.log('Received invalidation for queryKey:', data.query_key);
-            queryClient.invalidateQueries({ queryKey: data.query_key });
-          } else {
-            console.warn('Unknown or malformed invalidation message:', data);
+        received: (data: Data) => {
+          if (!isPlainObject(data)) return;
+
+          if (data.resource === 'schedules') {
+            const weekKeys = data.data.dates.map(getISOWeekString);
+            weekKeys.forEach((weekKey) => {
+              queryClient.invalidateQueries({ queryKey: scheduleOptions(weekKey).queryKey });
+            });
+          }
+
+          if (data.resource === 'recipes') {
+            queryClient.invalidateQueries({ queryKey: recipesOptions.queryKey });
+          }
+
+          if (data.resource === 'grocery_items') {
+            queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey });
           }
         },
-        connected: () => {
-          console.log('Action Cable connected to InvalidationChannel!');
-        },
-        disconnected: () => {
-          console.log('Action Cable disconnected from InvalidationChannel.');
-        },
-        rejected: () => {
-          console.log('Action Cable connection rejected for InvalidationChannel.');
-        },
+        connected: () => {},
+        disconnected: () => {},
+        rejected: () => {},
       }
     );
 
-    return () => {
-      console.log('Unsubscribing from InvalidationChannel');
-      subscription.unsubscribe();
-    };
+    return () => void subscription.unsubscribe();
   }, [queryClient]);
 };

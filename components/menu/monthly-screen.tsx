@@ -76,9 +76,8 @@ const Item = memo(function Item({
       <Month
         scheduleMap={scheduleMap}
         startOfMonthDate={startOfMonthDate}
-        onDaySelect={({ dateString, isEmpty }) => {
-          if (isEmpty) return sheets.scheduleMealSheetRef.current?.present({ dateString });
-          setScrollTarget({ dateString, animated: true });
+        onDaySelect={({ dateString }) => {
+          setScrollTarget({ dateString });
           navigation.navigate('Weekly');
         }}
         onDayLongPress={({ dateString }) => {

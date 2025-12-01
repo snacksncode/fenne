@@ -1,9 +1,10 @@
+import { getBaseUrl } from '@/api';
 import { createConsumer } from '@rails/actioncable';
 
 global.addEventListener = () => {};
 global.removeEventListener = () => {};
 
-let websocketUrl = 'ws://127.0.0.1:3000/cable';
+let websocketUrl = `ws://${getBaseUrl()}/cable`;
 
 const cable = createConsumer(websocketUrl);
 

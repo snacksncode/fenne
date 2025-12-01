@@ -7,10 +7,9 @@ import {
   useBottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import React, { ReactNode, Ref } from 'react';
-import Animated, { Extrapolation, interpolate, useAnimatedReaction, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Popsicle } from 'lucide-react-native';
 
 type BaseSheetProps<T> = BottomSheetModalProps<T> & {
   ref: Ref<BottomSheetModal>;
