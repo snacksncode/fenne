@@ -7,23 +7,24 @@ import { colors } from '@/constants/colors';
 
 type Props = {
   onPress: () => void;
-  text: string;
+  text?: string;
   leftIcon?: {
-    Icon: FunctionComponent<{ size: number; color: string }>;
+    Icon: FunctionComponent<{ size: number; color: string; strokeWidth: number }>;
     size?: number;
   };
   rightIcon?: {
-    Icon: FunctionComponent<{ size: number; color: string }>;
+    Icon: FunctionComponent<{ size: number; color: string; strokeWidth: number }>;
     size?: number;
   };
   style?: StyleProp<ViewStyle>;
   size?: 'base' | 'small';
-  variant: 'primary' | 'secondary' | 'outlined';
+  variant: 'primary' | 'secondary' | 'outlined' | 'green' | 'red-outlined';
   isLoading?: boolean;
 };
 
 export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, size, isLoading }: Props) => {
-  const textColor = variant === 'outlined' ? colors.brown[900] : colors.cream[100];
+  const textColor =
+    variant === 'outlined' ? colors.brown[900] : variant === 'red-outlined' ? colors.red[500] : colors.cream[100];
 
   return (
     <PressableWithHaptics
@@ -36,6 +37,8 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
           variant === 'primary' && styles.primaryColors,
           variant === 'secondary' && styles.secondaryColors,
           variant === 'outlined' && styles.outlinedColors,
+          variant === 'green' && styles.greenColors,
+          variant === 'red-outlined' && styles.redOutlinedColors,
           isLoading && styles.disabled,
           style,
         ],
@@ -52,9 +55,25 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
           opacity: isLoading ? 0 : 1,
         }}
       >
-        {leftIcon ? <leftIcon.Icon {...leftIcon} size={leftIcon.size ?? 20} color={textColor} /> : null}
-        <Text style={[styles.text, { color: textColor }, size === 'small' && styles.smallText]}>{text}</Text>
-        {rightIcon ? <rightIcon.Icon {...rightIcon} size={rightIcon.size ?? 20} color={textColor} /> : null}
+        {leftIcon ? (
+          <leftIcon.Icon
+            {...leftIcon}
+            size={leftIcon.size ?? size === 'small' ? 16 : 20}
+            color={textColor}
+            strokeWidth={2.25}
+          />
+        ) : null}
+        {text ? (
+          <Text style={[styles.text, { color: textColor }, size === 'small' && styles.smallText]}>{text}</Text>
+        ) : null}
+        {rightIcon ? (
+          <rightIcon.Icon
+            {...rightIcon}
+            size={rightIcon.size ?? size === 'small' ? 16 : 20}
+            color={textColor}
+            strokeWidth={2.25}
+          />
+        ) : null}
       </View>
       <View
         style={{
@@ -73,11 +92,12 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
 
 const styles = StyleSheet.create({
   container: {
+    flexShrink: 0,
     borderRadius: 999,
     height: 48,
     paddingHorizontal: 24,
-    borderWidth: 1,
-    borderBottomWidth: 2,
+    borderWidth: 2,
+    borderBottomWidth: 3,
   },
   primaryColors: {
     backgroundColor: colors.orange[500],
@@ -86,6 +106,14 @@ const styles = StyleSheet.create({
   secondaryColors: {
     backgroundColor: '#594B40',
     borderColor: '#493D34',
+  },
+  greenColors: {
+    backgroundColor: colors.green[500],
+    borderColor: colors.green[600],
+  },
+  redOutlinedColors: {
+    backgroundColor: 'transparent',
+    borderColor: colors.red[500],
   },
   outlinedColors: {
     backgroundColor: 'transparent',
@@ -98,11 +126,9 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: 'Satoshi-Bold',
     fontSize: 16,
-    lineHeight: 16 * 1.5,
   },
   smallText: {
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
+    fontSize: 16,
   },
   disabled: {
     opacity: 0.6,

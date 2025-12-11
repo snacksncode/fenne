@@ -258,7 +258,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
                   return types.includes('breakfast') ? types.filter((t) => t !== 'breakfast') : [...types, 'breakfast'];
                 });
               }}
-              leftIcon={{ Icon: Pancake, size: 16 }}
+              leftIcon={{ Icon: Pancake }}
               text="Breakfast"
               variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
               size="small"
@@ -270,7 +270,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
                   return types.includes('lunch') ? types.filter((t) => t !== 'lunch') : [...types, 'lunch'];
                 });
               }}
-              leftIcon={{ Icon: Salad, size: 16 }}
+              leftIcon={{ Icon: Salad }}
               text="Lunch"
               variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
               size="small"
@@ -282,7 +282,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
                   return types.includes('dinner') ? types.filter((t) => t !== 'dinner') : [...types, 'dinner'];
                 });
               }}
-              leftIcon={{ Icon: Ham, size: 16 }}
+              leftIcon={{ Icon: Ham }}
               text="Dinner"
               variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
               size="small"

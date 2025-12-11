@@ -14,7 +14,7 @@ import { colors } from '@/constants/colors';
 import { NavigationHelpers } from '@react-navigation/native';
 import { useSetAtom } from 'jotai';
 import { scrollTargetAtom } from '@/components/menu/weekly-screen';
-import { TabParamList } from '@/app/(tabs)';
+import { TabParamList } from '@/app/(app)/(tabs)';
 import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
 
 export type EditCalendarDaySheetData = { dateString: string };

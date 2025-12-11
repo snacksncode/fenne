@@ -371,6 +371,7 @@ const Day = ({ dateString, data, sheets }: { dateString: string; data: ScheduleD
 };
 
 const Item = ({ dateString, data, sheets }: { dateString: string; data: ScheduleDayDTO; sheets: Sheets }) => {
+  console.log(dateString, data);
   const date = parseISO(dateString);
 
   return (

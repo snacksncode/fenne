@@ -21,14 +21,14 @@ export const SheetTextInput = ({ style, ...props }: ComponentProps<typeof _Botto
 const styles = StyleSheet.create({
   input: {
     borderRadius: 8,
-    fontSize: 14,
+    fontSize: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderBottomWidth: 2,
     borderColor: '#493D34',
     color: '#493D34',
     fontFamily: 'Satoshi-Bold',
-    height: 44,
-    lineHeight: 14 * 1.25,
+    height: 48,
+    lineHeight: 16 * 1.25,
   },
 });

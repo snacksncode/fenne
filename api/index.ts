@@ -1,34 +1,51 @@
 import { Platform } from 'react-native';
-
-export const TOKEN = '31f9584869f43d0181059804a4802c93c4887d6f2615b0520bceca4396c19ad0';
+import * as SecureStore from 'expo-secure-store';
+import { TOKEN_KEY } from '@/contexts/session';
 
 export const getBaseUrl = () => {
-  const host = Platform.OS === 'android' ? '10.0.2.2' : '192.168.233.48';
+  const host = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
   return `${host}:3000`;
 };
 
-const headers = {
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${TOKEN}`,
+export class APIError extends Error {
+  data: unknown;
+  constructor(data: unknown) {
+    super();
+    this.data = data;
+  }
+}
+
+type RequestProps = ({ method: 'GET' | 'DELETE' } | { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }) & {
+  path: string;
 };
 
-const request = async <T>(method: string, path: string, body?: any): Promise<T> => {
+const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T> => {
+  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+
   const url = `http://${getBaseUrl()}${path}`;
   const options: RequestInit = {
-    method,
+    method: requestDetails.method,
     headers,
-    ...(body && { body: JSON.stringify(body) }),
+    ...('body' in requestDetails && { body: JSON.stringify(requestDetails.body) }),
   };
 
   const res = await fetch(url, options);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const json = await res.json();
+    throw new APIError(json);
+  }
   return res.json();
 };
 
 export const api = {
-  get: <T = any>(path: string) => request<T>('GET', path),
-  post: <T = any>(path: string, data?: any) => request<T>('POST', path, data),
-  patch: <T = any>(path: string, data?: any) => request<T>('PATCH', path, data),
-  put: <T = any>(path: string, data?: any) => request<T>('PUT', path, data),
-  delete: <T = any>(path: string) => request<T>('DELETE', path),
+  get: <T = any>(path: string) => request<T>({ method: 'GET', path }),
+  post: <T = any>(path: string, body?: any) => request<T>({ method: 'POST', path, body }),
+  patch: <T = any>(path: string, body?: any) => request<T>({ method: 'PATCH', path, body }),
+  put: <T = any>(path: string, body?: any) => request<T>({ method: 'PUT', path, body }),
+  delete: <T = any>(path: string) => request<T>({ method: 'DELETE', path }),
 };

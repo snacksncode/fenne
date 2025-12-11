@@ -76,7 +76,7 @@ export const useSchedule = ({ weeks }: { weeks: string[] }) => {
   const queries = useQueries({ queries: weeks.map((weekKey) => scheduleOptions(weekKey)) });
   const allDays = queries.flatMap((q) => q.data ?? []);
   const scheduleMap = indexBy(allDays, (item) => item.date);
-  const isLoading = queries.some((query) => query.isLoading);
+  const isLoading = !queries.every((query) => query.isSuccess);
   return { scheduleMap, queries, isLoading };
 };
 

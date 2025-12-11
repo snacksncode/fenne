@@ -2,8 +2,11 @@ import { TabBar } from '@/components/TabBar';
 import { Tabs } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BookMarked, Coffee, NotepadText } from 'lucide-react-native';
+import { useCurrentUser } from '@/api/auth';
 
 export default function Layout() {
+  useCurrentUser();
+
   return (
     <SafeAreaProvider>
       <Tabs tabBar={(props) => <TabBar {...props} />} initialRouteName="index">

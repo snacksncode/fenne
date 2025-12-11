@@ -55,7 +55,7 @@ const Content = (props: { onNext: (value: string) => void }) => {
         <Button
           text="Select category"
           variant="primary"
-          rightIcon={{ Icon: ArrowRight, size: 16 }}
+          rightIcon={{ Icon: ArrowRight }}
           onPress={() => {
             if (isEmpty(value)) return;
             Keyboard.dismiss();

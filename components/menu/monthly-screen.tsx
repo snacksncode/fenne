@@ -1,4 +1,4 @@
-import { TabParamList } from '@/app/(tabs)';
+import { TabParamList } from '@/app/(app)/(tabs)';
 import { Button } from '@/components/button';
 import { Text } from '@/components/Text';
 import { scrollTargetAtom } from './weekly-screen';

@@ -1,17 +1,21 @@
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
-import { Ellipsis } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Cog } from 'lucide-react-native';
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
   text: string;
   footerSlot?: ReactNode;
-  onPress?: () => void;
 };
 
-export const RouteTitle = ({ text, footerSlot, onPress }: Props) => {
+export const RouteTitle = ({ text, footerSlot }: Props) => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const onPress = () => router.push('/settings');
 
   return (
     <View
@@ -30,9 +34,18 @@ export const RouteTitle = ({ text, footerSlot, onPress }: Props) => {
     >
       <View style={styles.container}>
         <Text style={styles.title}>{text}</Text>
-        <Pressable onPress={onPress} style={styles.button}>
-          <Ellipsis color="#4A3E36" strokeWidth={2} size={24} />
-        </Pressable>
+        <PressableWithHaptics onPress={onPress} style={styles.button}>
+          <Text
+            style={{
+              fontFamily: 'Satoshi-Bold',
+              color: '#4A3E36',
+              fontSize: 14,
+            }}
+          >
+            Settings
+          </Text>
+          <Cog color="#4A3E36" strokeWidth={2} size={24} />
+        </PressableWithHaptics>
       </View>
       {footerSlot}
     </View>
@@ -53,13 +66,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   button: {
-    width: 42,
-    height: 42,
+    display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: '#4A3E36',
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderRadius: 999,
+    gap: 4,
   },
 });

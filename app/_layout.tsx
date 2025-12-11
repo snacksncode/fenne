@@ -4,15 +4,15 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { EventProvider } from 'react-native-outside-press';
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
+import { SessionProvider, useSession } from '@/contexts/session';
 
 const WEEK_IN_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -28,7 +28,10 @@ const asyncStoragePersister = createAsyncStoragePersister({ storage: AsyncStorag
 
 SplashScreen.preventAutoHideAsync();
 
-export const splashScreenRequirementsAtom = atom({ queriesRestored: false, weeklyLayoutCommitted: false });
+export const splashScreenRequirementsAtom = atom({
+  queriesRestored: false,
+  sessionLoaded: false,
+});
 
 const InvalidationChannel = () => {
   useInvalidationChannel();
@@ -57,26 +60,45 @@ export default function Layout() {
   }, [fontsHaveLoaded, splashScreenRequirements]);
 
   return (
-    <PersistQueryClientProvider
+    <QueryClientProvider
       client={queryClient}
-      persistOptions={{
-        persister: asyncStoragePersister,
-        maxAge: WEEK_IN_MS,
-      }}
+      // persistOptions={{
+      //   persister: asyncStoragePersister,
+      //   maxAge: WEEK_IN_MS,
+      // }}
       onSuccess={() => setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }))}
     >
-      <InvalidationChannel />
-      <GestureHandlerRootView>
-        <EventProvider>
+      <SessionProvider>
+        <GestureHandlerRootView>
+          <InvalidationChannel />
           <BottomSheetModalProvider>
-            <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="new-recipe" />
-            </Stack>
+            <RootLayout />
           </BottomSheetModalProvider>
-        </EventProvider>
-      </GestureHandlerRootView>
-      <DevToolsBubble queryClient={queryClient} />
-    </PersistQueryClientProvider>
+          <DevToolsBubble queryClient={queryClient} />
+        </GestureHandlerRootView>
+      </SessionProvider>
+    </QueryClientProvider>
   );
 }
+
+const RootLayout = () => {
+  const [animationsEnabled, setAnimationsEnabled] = useState(false);
+  const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
+  const { token, isLoading } = useSession();
+
+  useEffect(() => {
+    if (!isLoading) setSplashScreenRequirements((r) => ({ ...r, sessionLoaded: true }));
+    setTimeout(() => setAnimationsEnabled(true), 1000);
+  }, [isLoading, setSplashScreenRequirements]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: animationsEnabled ? 'default' : 'none' }}>
+      <Stack.Protected guard={!!token}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!token}>
+        <Stack.Screen name="(auth)/index" options={{ animationTypeForReplace: 'pop' }} />
+      </Stack.Protected>
+    </Stack>
+  );
+};

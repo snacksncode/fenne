@@ -60,7 +60,7 @@ const Content = ({
         </View>
       </View>
       <View style={{ marginTop: 32 }}>
-        <Button text="Save changes" variant="primary" rightIcon={{ Icon: ArrowRight, size: 16 }} onPress={handleSave} />
+        <Button text="Save changes" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={handleSave} />
       </View>
     </BaseSheet.Container>
   );
