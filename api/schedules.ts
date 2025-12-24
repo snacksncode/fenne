@@ -5,6 +5,9 @@ import { ensure } from '@/utils';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { RecipeDTO } from '@/api/recipes';
 import { api } from '@/api';
+import { useRef } from 'react';
+import { AisleCategory } from '@/api/groceries';
+import { hoursToMilliseconds, minutesToMilliseconds } from 'date-fns';
 
 // ============================================================================
 // Types matching Rails backend
@@ -17,6 +20,7 @@ export type IngredientDTO = {
   name: string;
   unit: Unit;
   quantity: number;
+  aisle: AisleCategory;
 };
 
 export type IngredientFormData = {
@@ -24,6 +28,7 @@ export type IngredientFormData = {
   name: string;
   unit: Unit;
   quantity: string;
+  aisle: AisleCategory;
 };
 
 export type ScheduleDayDTO = {
@@ -72,12 +77,21 @@ export const scheduleOptions = (weekKey: string) => {
  * Hook to fetch schedules for multiple weeks
  * Returns a map of dates to schedule days for easy lookup
  */
-export const useSchedule = ({ weeks }: { weeks: string[] }) => {
-  const queries = useQueries({ queries: weeks.map((weekKey) => scheduleOptions(weekKey)) });
+export const useSchedule = ({ weeks, enabled }: { weeks: string[]; enabled?: boolean }) => {
+  const queryClient = useQueryClient();
+  const initialWeeks = useRef(weeks);
+  const queries = useQueries({ queries: weeks.map((weekKey) => ({ ...scheduleOptions(weekKey), enabled })) });
+  const isInitialLoading = initialWeeks.current.some((weekKey) => {
+    const queryState = queryClient.getQueryState(scheduleOptions(weekKey).queryKey);
+    if (!queryState) return false;
+    const isPending = queryState.status === 'pending';
+    const isFetching = queryState.fetchStatus === 'fetching';
+    return isFetching && isPending;
+  });
   const allDays = queries.flatMap((q) => q.data ?? []);
   const scheduleMap = indexBy(allDays, (item) => item.date);
-  const isLoading = !queries.every((query) => query.isSuccess);
-  return { scheduleMap, queries, isLoading };
+  const isLoading = queries.some((q) => q.isLoading);
+  return { scheduleMap, queries, isInitialLoading, isLoading };
 };
 
 export const useUpdateScheduleDay = () => {

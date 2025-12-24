@@ -3,9 +3,11 @@ import { Tabs } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BookMarked, Coffee, NotepadText } from 'lucide-react-native';
 import { useCurrentUser } from '@/api/auth';
+import { useInvitations } from '@/api/invitations';
 
 export default function Layout() {
   useCurrentUser();
+  useInvitations();
 
   return (
     <SafeAreaProvider>

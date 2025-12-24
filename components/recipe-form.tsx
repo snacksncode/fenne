@@ -8,7 +8,7 @@ import { Pancake } from '@/components/svgs/pancake';
 import { Salad } from '@/components/svgs/salad';
 import { useNavigation } from '@react-navigation/native';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { ChevronLeft, CirclePlus, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
@@ -31,6 +31,7 @@ import { colors } from '@/constants/colors';
 import { useMount } from '@/hooks/use-mount';
 import { nanoid } from 'nanoid/non-secure';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 
 const SCREEN_TRANSITION_DURATION_MS = 600;
 
@@ -112,15 +113,66 @@ const IngredientItem = ({
   );
 };
 
+const EmptyIngredientsList = () => (
+  <View
+    style={{
+      backgroundColor: '#FEF4E2',
+      padding: 16,
+      paddingBottom: 20,
+      borderRadius: 8,
+      borderColor: '#D1C5B3',
+      borderStyle: 'dashed',
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 125,
+    }}
+  >
+    <CookingPot size={24} color="#4A3E36" />
+    <Text
+      style={{
+        marginTop: 8,
+        fontFamily: 'Satoshi-Black',
+        fontSize: 16,
+        lineHeight: 16 * 1.25,
+        color: '#4A3E36',
+      }}
+    >
+      No ingredients
+    </Text>
+    <Text
+      style={{
+        marginTop: 2,
+        fontFamily: 'Satoshi-Bold',
+        fontSize: 14,
+        lineHeight: 14,
+        color: '#4A3E36',
+      }}
+    >
+      Tap to add one
+    </Text>
+  </View>
+);
+
 const IngredientsList = ({
   ingredients,
+  handleAddIngredient,
   onIngredientEdit,
   onIngredientDelete,
 }: {
   ingredients: IngredientFormData[];
+  handleAddIngredient: () => void;
   onIngredientEdit: (ingredient: IngredientFormData) => void;
   onIngredientDelete: (id: string) => void;
 }) => {
+  if (isEmpty(ingredients)) {
+    return (
+      <PressableWithHaptics onPress={handleAddIngredient}>
+        <EmptyIngredientsList />
+      </PressableWithHaptics>
+    );
+  }
+
   return (
     <View>
       {!isEmpty(ingredients) ? (
@@ -160,6 +212,7 @@ const getIngredients = (recipe: RecipeDTO | undefined) => {
     name: ingredient.name,
     quantity: ingredient.quantity.toString(),
     unit: ingredient.unit,
+    aisle: ingredient.aisle,
   }));
 };
 
@@ -261,7 +314,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Pancake }}
               text="Breakfast"
               variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
-              size="small"
+              size="pill"
               style={{ flex: 1 }}
             />
             <Button
@@ -273,7 +326,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Salad }}
               text="Lunch"
               variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
-              size="small"
+              size="pill"
               style={{ flex: 1 }}
             />
             <Button
@@ -285,7 +338,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Ham }}
               text="Dinner"
               variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
-              size="small"
+              size="pill"
               style={{ flex: 1 }}
             />
           </View>
@@ -294,6 +347,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           <Text style={styles.label}>Ingredients</Text>
           <IngredientsList
             ingredients={ingredients}
+            handleAddIngredient={handleAddIngredient}
             onIngredientEdit={handleEditIngredient}
             onIngredientDelete={handleDeleteIngredient}
           />

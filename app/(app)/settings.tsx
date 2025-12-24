@@ -6,12 +6,14 @@ import {
   useInvitations,
   useRemoveSentInvite,
 } from '@/api/invitations';
+import { ChangePasswordSheet } from '@/components/bottomSheets/change-password-sheet';
 import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
+import { LeaveFamilySheet } from '@/components/bottomSheets/leave-family-sheet';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
-import { useSession } from '@/contexts/session';
+import { useLogout } from '@/hooks/use-logout';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import {
@@ -24,9 +26,9 @@ import {
   UserRoundCheck,
   UserRoundPlus,
 } from 'lucide-react-native';
-import { FunctionComponent, use, useRef } from 'react';
+import { FunctionComponent, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { doNothing, isEmptyish, sort } from 'remeda';
 
 const Action = (props: {
@@ -222,11 +224,12 @@ const Settings = () => {
   const insets = useSafeAreaInsets();
   const invitations = useInvitations();
   const inviteFamilyMemberSheetRef = useRef<BottomSheetModal>(null);
-  const { removeSessionToken } = useSession();
+  const leaveFamilySheetRef = useRef<BottomSheetModal>(null);
+  const changePasswordSheet = useRef<BottomSheetModal>(null);
+  const { logOut } = useLogout();
   const { data: { user, family } = {} } = useCurrentUser();
 
-  const sortMembers = (members: UserDTO[] | undefined) => {
-    if (!members) return [] as UserDTO[];
+  const sortMembers = (members: UserDTO[]) => {
     return sort(members, (a) => (a.id === user?.id ? -1 : 1));
   };
 
@@ -284,13 +287,12 @@ const Settings = () => {
             </Text>
           </View>
         </View>
-        <View style={{ marginTop: 24 }}>
+        {/* <View style={{ marginTop: 24 }}>
           <Text style={styles.label}>ACCOUNT</Text>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={User} text="Edit profile" onPress={doNothing} />
-            <Action icon={Lock} text="Change password" onPress={doNothing} />
           </View>
-        </View>
+        </View> */}
 
         {invitations.data && !isEmptyish(invitations.data.received) ? (
           <View style={{ marginTop: 24 }}>
@@ -314,33 +316,48 @@ const Settings = () => {
           </View>
         ) : null}
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.label}>FAMILY</Text>
-          <View style={{ gap: 12, marginTop: 12 }}>
-            {sortMembers(family?.members).map((member) => (
-              <Member key={member.id} user={member} />
-            ))}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button
-                style={{ flex: 1 }}
-                text="Invite member"
-                leftIcon={{ Icon: UserRoundPlus }}
-                variant="outlined"
-                size="base"
-                onPress={() => inviteFamilyMemberSheetRef.current?.present()}
-              />
+        {family ? (
+          <View style={{ marginTop: 24 }}>
+            <Text style={styles.label}>FAMILY</Text>
+            <View style={{ gap: 12, marginTop: 12 }}>
+              {sortMembers(family.members).map((member) => (
+                <Member key={member.id} user={member} />
+              ))}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Button
+                  style={{ flex: 1 }}
+                  text="Invite member"
+                  leftIcon={{ Icon: UserRoundPlus }}
+                  variant="outlined"
+                  size="base"
+                  onPress={() => inviteFamilyMemberSheetRef.current?.present()}
+                />
+                {family.members.length > 1 ? (
+                  <Button
+                    leftIcon={{ Icon: LogOut }}
+                    variant="red-outlined"
+                    size="base"
+                    onPress={() => leaveFamilySheetRef.current?.present()}
+                  />
+                ) : null}
+              </View>
             </View>
           </View>
-        </View>
+        ) : null}
 
         <View style={{ marginTop: 24 }}>
           <Text style={styles.label}>ACTIONS</Text>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={LogOut} text="Log out" onPress={removeSessionToken} />
+            <Action icon={Lock} text="Change password" onPress={() => changePasswordSheet.current?.present()} />
+          </View>
+          <View style={{ gap: 12, marginTop: 12 }}>
+            <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
           </View>
         </View>
       </ScrollView>
       <InviteFamilyMemberSheet ref={inviteFamilyMemberSheetRef} />
+      <LeaveFamilySheet ref={leaveFamilySheetRef} />
+      <ChangePasswordSheet ref={changePasswordSheet} />
     </View>
   );
 };

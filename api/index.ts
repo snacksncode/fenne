@@ -39,6 +39,7 @@ const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T>
     const json = await res.json();
     throw new APIError(json);
   }
+  if (res.status === 204) return {} as T; // stupid patch
   return res.json();
 };
 

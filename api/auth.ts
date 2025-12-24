@@ -13,6 +13,11 @@ type SignupData = {
   password: string;
 };
 
+type ChangePasswordData = {
+  current_password: string;
+  new_password: string;
+};
+
 export type UserDTO = {
   email: string;
   id: string;
@@ -53,11 +58,21 @@ export const useSignup = () => {
   });
 };
 
+export const useChangePassword = () => {
+  return useMutation({
+    mutationKey: ['changePassword'],
+    mutationFn: async ({ current_password, new_password }: ChangePasswordData) => {
+      return api.post('/change_password', { current_password, new_password });
+    },
+  });
+};
+
 export const currentUserOptions = queryOptions({
   queryKey: ['currentUser'],
   queryFn: async () => {
     return api.get<CurrentUserDTO>('/me');
   },
+  staleTime: Infinity,
 });
 
 export const useCurrentUser = () => {

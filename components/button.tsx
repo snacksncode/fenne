@@ -17,7 +17,7 @@ type Props = {
     size?: number;
   };
   style?: StyleProp<ViewStyle>;
-  size?: 'base' | 'small';
+  size?: 'base' | 'small' | 'pill';
   variant: 'primary' | 'secondary' | 'outlined' | 'green' | 'red-outlined';
   isLoading?: boolean;
 };
@@ -33,7 +33,7 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
       style={filter(
         [
           styles.container,
-          size === 'small' && styles.small,
+          (size === 'small' || size === 'pill') && styles.small,
           variant === 'primary' && styles.primaryColors,
           variant === 'secondary' && styles.secondaryColors,
           variant === 'outlined' && styles.outlinedColors,
@@ -64,7 +64,16 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
           />
         ) : null}
         {text ? (
-          <Text style={[styles.text, { color: textColor }, size === 'small' && styles.smallText]}>{text}</Text>
+          <Text
+            style={[
+              styles.text,
+              { color: textColor },
+              size === 'small' && styles.smallText,
+              size === 'pill' && styles.pillText,
+            ]}
+          >
+            {text}
+          </Text>
         ) : null}
         {rightIcon ? (
           <rightIcon.Icon
@@ -122,6 +131,9 @@ const styles = StyleSheet.create({
   small: {
     height: 36,
     paddingHorizontal: 16,
+  },
+  pillText: {
+    fontSize: 14,
   },
   text: {
     fontFamily: 'Satoshi-Bold',

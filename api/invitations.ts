@@ -1,5 +1,5 @@
 import { api } from '@/api';
-import { currentUserOptions, UserDTO } from '@/api/auth';
+import { UserDTO } from '@/api/auth';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type InvitationDTO = {
@@ -13,11 +13,12 @@ type InvitationsDTO = {
   received: InvitationDTO[];
 };
 
-const invitationsOptions = queryOptions({
+export const invitationsOptions = queryOptions({
   queryKey: ['invitations'],
   queryFn: () => {
     return api.get<InvitationsDTO>('/invitations');
   },
+  staleTime: Infinity,
 });
 
 export const useInvitations = () => {
@@ -39,9 +40,7 @@ export const useAcceptInvite = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['acceptInvite'],
-    mutationFn: async () => {
-      return api.post(`/invitations/${id}/accept`);
-    },
+    mutationFn: async () => api.post(`/invitations/${id}/accept`),
     onSettled: () => queryClient.invalidateQueries(),
   });
 };
@@ -50,9 +49,7 @@ export const useDeclineInvite = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['declineInvite'],
-    mutationFn: async () => {
-      return api.post(`/invitations/${id}/decline`);
-    },
+    mutationFn: async () => api.post(`/invitations/${id}/decline`),
     onSettled: () => queryClient.invalidateQueries(invitationsOptions),
   });
 };
@@ -61,9 +58,16 @@ export const useRemoveSentInvite = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['removeSentInvite'],
-    mutationFn: async () => {
-      return api.delete(`/invitations/${id}`);
-    },
+    mutationFn: async () => api.delete(`/invitations/${id}`),
     onSettled: () => queryClient.invalidateQueries(invitationsOptions),
+  });
+};
+
+export const useLeaveFamily = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['leaveFamily'],
+    mutationFn: async () => api.post('/leave_family'),
+    onSettled: () => queryClient.invalidateQueries(),
   });
 };

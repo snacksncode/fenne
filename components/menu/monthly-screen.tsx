@@ -1,11 +1,11 @@
 import { TabParamList } from '@/app/(app)/(tabs)';
 import { Button } from '@/components/button';
 import { Text } from '@/components/Text';
-import { scrollTargetAtom } from './weekly-screen';
+import { hasWeeklyScreenLoadedAtom, scrollTargetAtom } from './weekly-screen';
 import { ScheduleDayDTO, useSchedule } from '@/api/schedules';
 import { formatDateToISO, getISOWeekString, parseISO } from '@/date-tools';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import {
   addMonths,
@@ -17,15 +17,17 @@ import {
   startOfMonth,
   startOfToday,
 } from 'date-fns';
-import { useSetAtom } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { ActivityIndicator, View } from 'react-native';
+import Animated, { useAnimatedReaction, useDerivedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmpty, pipe } from 'remeda';
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { Month } from '@/components/menu/month';
 import { colors } from '@/constants/colors';
+import { useTabAnimation } from '@react-navigation/material-top-tabs';
+import { useMount } from '@/hooks/use-mount';
 
 const HEADER_SIZE = 105;
 
@@ -120,14 +122,15 @@ const useDateRange = () => {
   return { weeks, months, expandIntoPast, expandIntoFuture };
 };
 
-export const MonthlyScreen = ({ sheets }: Props) => {
+const Content = ({ sheets }: Props) => {
+  const isScreenFocused = useIsFocused();
   const monthlyListRef = useRef<FlashListRef<string>>(null);
   const hasScrolledRef = useRef(false);
   const backToToday = useBackToToday();
   const [hasCommitted, setHasCommitted] = useState(false);
   const insets = useSafeAreaInsets();
   const { weeks, months, expandIntoFuture, expandIntoPast } = useDateRange();
-  const { scheduleMap } = useSchedule({ weeks });
+  const { scheduleMap } = useSchedule({ weeks, enabled: isScreenFocused });
 
   const scrollToMonth = useCallback(({ dateString, animated }: { dateString: string; animated: boolean }) => {
     setImmediate(() => {
@@ -209,4 +212,29 @@ export const MonthlyScreen = ({ sheets }: Props) => {
       />
     </>
   );
+};
+
+export const MonthlyScreen = ({ sheets }: Props) => {
+  const { position } = useTabAnimation();
+  const hasWeeklyScreenLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
+
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const listenerId = position.addListener(({ value }) => {
+      console.log(value);
+      setIsVisible(value > 0.5);
+    });
+
+    return () => position.removeListener(listenerId);
+  }, [position]);
+
+  if (!hasWeeklyScreenLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', backgroundColor: colors.cream[100], justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  return <Content sheets={sheets} />;
 };

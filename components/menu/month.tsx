@@ -2,7 +2,7 @@ import { Tag } from '@/components/svgs/tag';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/Text';
 import { formatDateToISO, parseISO } from '@/date-tools';
-import { eachDayOfInterval, endOfMonth, format, getUnixTime, isToday } from 'date-fns';
+import { eachDayOfInterval, endOfMonth, format, getUnixTime, isToday, isWithinInterval } from 'date-fns';
 import { View, Pressable, ActivityIndicator } from 'react-native';
 import Animated, { SharedValue, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { chunk, times } from 'remeda';
@@ -16,6 +16,7 @@ type Props = {
   onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
   onDayLongPress?: (day: { dateString: string }) => void;
   scheduleMap: Record<string, ScheduleDayDTO>;
+  selectedRange?: { startDateString: string; endDateString: string };
 };
 
 const ShoppingDayTag = () => (
@@ -48,12 +49,14 @@ const Day = memo(function Day({
   onDaySelect,
   onDayLongPress,
   pressedDayKey,
+  isHighlighted,
 }: {
   dateString: string;
   scheduleDay: ScheduleDayDTO | undefined;
   onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
   onDayLongPress?: (day: { dateString: string }) => void;
   pressedDayKey: SharedValue<string | null>;
+  isHighlighted: boolean;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
     const isPressed = pressedDayKey.value === dateString;
@@ -114,6 +117,7 @@ const Day = memo(function Day({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 2,
+          ...(isHighlighted && { backgroundColor: colors.green[600] + '1A' }),
         },
         animatedStyle,
       ]}
@@ -133,11 +137,12 @@ const Day = memo(function Day({
             borderBottomWidth: 3,
             borderColor: '#EC8032',
           }),
-          ...(isEmpty && !isToday(date) && { borderStyle: 'dashed', borderBottomWidth: 1 }),
-          ...(isEmpty && !isToday(date) && { opacity: 0.7 }),
+          ...(isEmpty && !isToday(date) && !isHighlighted && { borderStyle: 'dashed', borderBottomWidth: 1 }),
+          ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }),
+          ...(isHighlighted && { borderColor: colors.green[600], borderWidth: 2, borderBottomWidth: 3 }),
         }}
       />
-      <View style={{ ...(isEmpty && !isToday(date) && { opacity: 0.7 }) }}>
+      <View style={{ ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }) }}>
         <Text
           style={{
             zIndex: 1,
@@ -172,7 +177,13 @@ const Day = memo(function Day({
   );
 });
 
-export const Month = memo(function Month({ scheduleMap, startOfMonthDate, onDaySelect, onDayLongPress }: Props) {
+export const Month = memo(function Month({
+  scheduleMap,
+  startOfMonthDate,
+  selectedRange,
+  onDaySelect,
+  onDayLongPress,
+}: Props) {
   const pressedDayKey = useSharedValue<string | null>(null);
   const end = endOfMonth(startOfMonthDate);
   const frontOffset = parseInt(format(startOfMonthDate, 'i')) - 1;
@@ -216,6 +227,12 @@ export const Month = memo(function Month({ scheduleMap, startOfMonthDate, onDayS
                 if (!day) return <View key={index} style={{ flex: 1 }} />;
                 const dateString = formatDateToISO(day);
                 const scheduleDay = scheduleMap[dateString] as ScheduleDayDTO | undefined;
+                const isWithinRange = selectedRange
+                  ? isWithinInterval(parseISO(dateString), {
+                      start: parseISO(selectedRange.startDateString),
+                      end: parseISO(selectedRange.endDateString),
+                    })
+                  : false;
                 return (
                   <Day
                     dateString={dateString}
@@ -224,6 +241,7 @@ export const Month = memo(function Month({ scheduleMap, startOfMonthDate, onDayS
                     onDaySelect={onDaySelect}
                     onDayLongPress={onDayLongPress}
                     pressedDayKey={pressedDayKey}
+                    isHighlighted={isWithinRange}
                   />
                 );
               })}

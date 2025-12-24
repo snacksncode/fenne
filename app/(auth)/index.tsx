@@ -1,7 +1,6 @@
-import { Image } from 'expo-image';
 import { Button } from '@/components/button';
 import { Text } from '@/components/Text';
-import { KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { TextInput } from '@/components/input';
@@ -11,12 +10,13 @@ import { APIError } from '@/api';
 import Animated, {
   FadeIn,
   FadeOut,
-  FadingTransition,
   LayoutAnimationsValues,
   LinearTransition,
   withSpring,
 } from 'react-native-reanimated';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { useSession } from '@/contexts/session';
+import { useIsFirstRender } from '@/hooks/use-is-first-render';
 
 type Mode = 'sign-up' | 'log-in';
 
@@ -61,6 +61,7 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
           placeholder="you@example.com"
           keyboardType="email-address"
           autoComplete="email"
+          autoCapitalize="none"
         />
       </View>
       <View style={{ marginTop: 12, gap: 8 }}>
@@ -119,14 +120,16 @@ const TransitionYOnly = (values: LayoutAnimationsValues) => {
 };
 
 const WelcomeScreen = () => {
-  const [mode, setMode] = useState<Mode>('sign-up');
+  const { isFirstRender } = useIsFirstRender();
+  const { hasEverLoggedIn } = useSession();
+  const [mode, setMode] = useState<Mode>(() => (hasEverLoggedIn ? 'log-in' : 'sign-up'));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream[100] }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="position" contentContainerStyle={{ flex: 1 }}>
         <View style={{ zIndex: 1, marginBottom: 12, flex: 1 }}>
           <Animated.View
-            layout={LinearTransition.springify()}
+            layout={isFirstRender ? undefined : LinearTransition.springify()}
             style={{
               flex: 1,
               display: 'flex',
@@ -138,15 +141,15 @@ const WelcomeScreen = () => {
             }}
           >
             <Animated.Image
-              layout={LinearTransition.springify()}
+              layout={isFirstRender ? undefined : LinearTransition.springify()}
               source={require('@/assets/images/icon_full_transparent.png')}
               style={{ width: 192, height: 192, aspectRatio: 1 / 1 }}
             />
-            <Animated.View layout={TransitionYOnly}>
+            <Animated.View layout={isFirstRender ? undefined : TransitionYOnly}>
               {mode === 'log-in' ? (
                 <Animated.Text
                   key="log-in"
-                  layout={LinearTransition.springify()}
+                  layout={isFirstRender ? undefined : LinearTransition.springify()}
                   entering={FadeIn}
                   style={styles.heading}
                 >
@@ -156,7 +159,7 @@ const WelcomeScreen = () => {
               {mode === 'sign-up' ? (
                 <Animated.Text
                   key={mode}
-                  layout={LinearTransition.springify()}
+                  layout={isFirstRender ? undefined : LinearTransition.springify()}
                   entering={FadeIn}
                   style={styles.heading}
                 >

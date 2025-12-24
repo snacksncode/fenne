@@ -33,6 +33,7 @@ export const groceriesOptions = queryOptions({
   queryFn: async () => {
     return api.get<GroceryItemDTO[]>('/grocery_items');
   },
+  staleTime: Infinity,
 });
 
 export const useGroceries = () => {
@@ -46,7 +47,7 @@ export const useEditGroceryItem = ({ id }: { id: string }) => {
     mutationFn: async (newItemData: Omit<Partial<GroceryItemDTO>, 'id'>) => {
       return api.patch(`/grocery_items/${id}`, { data: newItemData });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey }),
+    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
   });
 };
 
@@ -57,7 +58,18 @@ export const useAddGroceryItem = () => {
     mutationFn: async (newItemData: Omit<GroceryItemDTO, 'id'>) => {
       return api.post('/grocery_items', { data: newItemData });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey }),
+    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+  });
+};
+
+export const useGenerateGroceryItems = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['generateGroceryItems'],
+    mutationFn: async (range: { start: string; end: string }) => {
+      return api.post('/grocery_items/generate', { ...range });
+    },
+    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
   });
 };
 
@@ -68,7 +80,7 @@ export const useDeleteGroceryItem = ({ id }: { id: string }) => {
     mutationFn: async () => {
       return api.delete(`/grocery_items/${id}`);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey }),
+    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
   });
 };
 
@@ -79,6 +91,6 @@ export const useGroceryCheckout = () => {
     mutationFn: async () => {
       return api.post(`/grocery_items/checkout`);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey }),
+    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
   });
 };

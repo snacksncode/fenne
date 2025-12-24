@@ -28,6 +28,8 @@ const Content = ({ ref }: SheetProps) => {
             value={email}
             onChangeText={setEmail}
             placeholder="e.g. partner@example.com"
+            keyboardType="email-address"
+            autoComplete="email"
             autoCapitalize="none"
           />
         </View>
@@ -39,11 +41,10 @@ const Content = ({ ref }: SheetProps) => {
           rightIcon={{ Icon: MailPlus }}
           onPress={() => {
             if (isEmpty(email)) return;
-            // Keyboard.dismiss();
             postInvite.mutate(
               { email },
               {
-                onSuccess: () => ref.current?.close(),
+                onSuccess: () => ref.current?.dismiss(),
                 onError: (error) => {
                   if (error instanceof APIError) alert(error.data.error);
                 },

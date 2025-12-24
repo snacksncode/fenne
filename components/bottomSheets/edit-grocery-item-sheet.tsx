@@ -1,7 +1,7 @@
-import { AisleCategory, GroceryItemDTO, useEditGroceryItem } from '@/api/groceries';
+import { GroceryItemDTO, useEditGroceryItem } from '@/api/groceries';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { SelectCategorySheet, SelectCategorySheetData } from '@/components/bottomSheets/new-grocery-item-sheet';
+import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
 import { Button } from '@/components/button';
 import { SheetTextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -68,7 +68,7 @@ const Content = ({
 
 export const EditGroceryItemSheet = ({ ref }: SheetProps) => {
   const groceryItemTempStorage = useRef<GroceryItemDTO>(null);
-  const selectCategorySheetRef = useRef<BottomSheetModal<SelectCategorySheetData>>(null);
+  const selectCategorySheetRef = useRef<BottomSheetModal>(null);
 
   return (
     <>
@@ -78,18 +78,18 @@ export const EditGroceryItemSheet = ({ ref }: SheetProps) => {
             item={data!.item}
             sheetRef={ref}
             onOpenCategorySheet={(item) => {
-              groceryItemTempStorage.current = item;
               ref.current?.dismiss();
-              selectCategorySheetRef.current?.present({ value: item.name });
+              groceryItemTempStorage.current = item;
+              selectCategorySheetRef.current?.present();
             }}
           />
         )}
       </BaseSheet>
       <SelectCategorySheet
         ref={selectCategorySheetRef}
-        onSelect={(name, aisle) => {
+        onSelect={(aisle) => {
           selectCategorySheetRef.current?.dismiss();
-          ref.current?.present({ item: { ...groceryItemTempStorage.current!, name, aisle } });
+          ref.current?.present({ item: { ...groceryItemTempStorage.current!, aisle } });
         }}
       />
     </>

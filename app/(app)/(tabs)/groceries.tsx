@@ -40,40 +40,46 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { scheduleOnUI } from 'react-native-worklets';
 import { doNothing, entries, groupBy, isEmpty, map, sortBy } from 'remeda';
-import {
-  NewGroceryItemSheet,
-  SelectCategorySheet,
-  SelectCategorySheetData,
-} from '@/components/bottomSheets/new-grocery-item-sheet';
+import { NewGroceryItemSheet } from '@/components/bottomSheets/new-grocery-item-sheet';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
+import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
+import { ensure } from '@/utils';
+import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
 
 type AisleDTO = {
   aisle: AisleCategory;
   items: GroceryItemDTO[];
 };
 
-const EmptyList = ({ sheets }: { sheets: Sheets }) => (
-  <Animated.View style={styles.container} entering={FadeIn}>
-    <View style={styles.basket}>
-      <ShoppingBasket size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
-    </View>
-    <Text style={styles.heading}>Your grocery list is empty</Text>
-    <Text style={styles.subheading}>
-      Start planning your meals to fill it up,{'\n'}
-      or add items directly.
-    </Text>
-    <View style={{ marginTop: 24, gap: 12 }}>
-      <Button
-        text="Add Your First Item"
-        variant="outlined"
-        leftIcon={{ Icon: CirclePlus }}
-        onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
-      />
-      <Button text="Auto-Generate from Menu" variant="primary" leftIcon={{ Icon: WandSparkles }} onPress={() => {}} />
-    </View>
-  </Animated.View>
-);
+const EmptyList = ({ sheets }: { sheets: Sheets }) => {
+  return (
+    <Animated.View style={styles.container} entering={FadeIn}>
+      <View style={styles.basket}>
+        <ShoppingBasket size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
+      </View>
+      <Text style={styles.heading}>Your grocery list is empty</Text>
+      <Text style={styles.subheading}>
+        Start planning your meals to fill it up,{'\n'}
+        or add items directly.
+      </Text>
+      <View style={{ marginTop: 24, gap: 12 }}>
+        <Button
+          text="Add Your First Item"
+          variant="outlined"
+          leftIcon={{ Icon: CirclePlus }}
+          onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
+        />
+        <Button
+          text="Auto-Generate from Menu"
+          variant="primary"
+          leftIcon={{ Icon: WandSparkles }}
+          onPress={() => sheets.selectDateRangeSheetRef.current?.present()}
+        />
+      </View>
+    </Animated.View>
+  );
+};
 
 const usePulseAnimation = () => {
   const opacity = useSharedValue(0.75);
@@ -455,15 +461,23 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
 export type Sheets = {
   editGroceryItemSheetRef: RefObject<BottomSheetModal<EditGroceryItemSheetData> | null>;
   newGroceryItemSheetRef: RefObject<BottomSheetModal | null>;
-  selectCategorySheetRef: RefObject<BottomSheetModal<SelectCategorySheetData> | null>;
+  selectCategorySheetRef: RefObject<BottomSheetModal | null>;
+  selectDateRangeSheetRef: RefObject<BottomSheetModal | null>;
 };
 
 const Groceries = () => {
   const addGroceryItem = useAddGroceryItem();
   const editGroceryItemSheetRef = useRef<BottomSheetModal<EditGroceryItemSheetData>>(null);
   const newGroceryItemSheetRef = useRef<BottomSheetModal>(null);
-  const selectCategorySheetRef = useRef<BottomSheetModal<SelectCategorySheetData>>(null);
-  const sheets: Sheets = { editGroceryItemSheetRef, newGroceryItemSheetRef, selectCategorySheetRef };
+  const selectCategorySheetRef = useRef<BottomSheetModal>(null);
+  const selectDateRangeSheetRef = useRef<BottomSheetModal>(null);
+  const tempGroceryItemNameRef = useRef<string>(null);
+  const sheets: Sheets = {
+    editGroceryItemSheetRef,
+    newGroceryItemSheetRef,
+    selectCategorySheetRef,
+    selectDateRangeSheetRef,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
@@ -474,18 +488,26 @@ const Groceries = () => {
         ref={newGroceryItemSheetRef}
         onNext={(value) => {
           if (addGroceryItem.isPending) return;
+          tempGroceryItemNameRef.current = value;
           sheets.newGroceryItemSheetRef.current?.dismiss();
-          sheets.selectCategorySheetRef.current?.present({ value });
+          sheets.selectCategorySheetRef.current?.present();
         }}
       />
       <SelectCategorySheet
         ref={selectCategorySheetRef}
-        onSelect={(name, aisle) => {
+        onSelect={(aisle) => {
           if (addGroceryItem.isPending) return;
           sheets.selectCategorySheetRef.current?.dismiss();
-          addGroceryItem.mutate({ name, aisle, status: 'pending', quantity: 1, unit: 'count' });
+          addGroceryItem.mutate({
+            name: ensure(tempGroceryItemNameRef.current),
+            aisle,
+            status: 'pending',
+            quantity: 1,
+            unit: 'count',
+          });
         }}
       />
+      <SelectDateRangeSheet ref={selectDateRangeSheetRef} />
     </View>
   );
 };
@@ -511,8 +533,8 @@ const styles = StyleSheet.create({
   },
   subheading: {
     fontFamily: 'Satoshi-Medium',
-    fontSize: 12,
-    lineHeight: 12 * 1.5,
+    fontSize: 14,
+    lineHeight: 14 * 1.5,
     textAlign: 'center',
     color: '#4A3E36',
     marginTop: 4,

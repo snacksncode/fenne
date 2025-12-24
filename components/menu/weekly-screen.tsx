@@ -1,5 +1,5 @@
 import { Text } from '@/components/Text';
-import { atom, useAtom, useSetAtom } from 'jotai';
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,8 +40,8 @@ import { Plus } from '@/components/svgs/plus';
 import { colors } from '@/constants/colors';
 import { RecipeDTO } from '@/api/recipes';
 import { ScheduleDayDTO, MealType, useSchedule } from '@/api/schedules';
-import { splashScreenRequirementsAtom } from '@/app/_layout';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { useMount } from '@/hooks/use-mount';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
@@ -80,7 +80,7 @@ const DayCardSkeleton = () => {
         borderColor: '#EEDBB9',
         borderWidth: 1,
         borderBottomWidth: 2,
-        height: 120,
+        height: 116,
         gap: 8,
       }}
     >
@@ -209,6 +209,7 @@ const Meal = ({
 );
 
 const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => {
+  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
   const meals = filter(
     [
@@ -234,7 +235,7 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
     <Animated.View
       exiting={FadeOut}
       entering={FadeIn}
-      layout={LayoutTransition}
+      layout={hasLoaded ? LayoutTransition : undefined}
       style={{
         backgroundColor: '#FEF2DD',
         paddingHorizontal: 16,
@@ -315,8 +316,10 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
 };
 
 const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
+  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
+
   return (
-    <Animated.View layout={LayoutTransition} exiting={FadeOut} entering={FadeIn}>
+    <Animated.View layout={hasLoaded ? LayoutTransition : undefined} exiting={FadeOut} entering={FadeIn}>
       <PressableWithHaptics onPress={onPress}>
         <View
           style={{
@@ -361,7 +364,17 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
-const Day = ({ dateString, data, sheets }: { dateString: string; data: ScheduleDayDTO; sheets: Sheets }) => {
+const Day = ({
+  dateString,
+  data,
+  sheets,
+}: {
+  dateString: string;
+  data: ScheduleDayDTO | undefined;
+  sheets: Sheets;
+}) => {
+  if (!data) return <DayCardSkeleton />;
+
   if (!data.breakfast && !data.lunch && !data.dinner) {
     const onPress = () => sheets.scheduleMealSheetRef.current?.present({ dateString });
     return <EmptyDayCard onPress={onPress} />;
@@ -370,13 +383,24 @@ const Day = ({ dateString, data, sheets }: { dateString: string; data: ScheduleD
   return <DayCard sheets={sheets} data={data} />;
 };
 
-const Item = ({ dateString, data, sheets }: { dateString: string; data: ScheduleDayDTO; sheets: Sheets }) => {
-  console.log(dateString, data);
+const Item = ({
+  dateString,
+  data,
+  sheets,
+}: {
+  dateString: string;
+  data: ScheduleDayDTO | undefined;
+  sheets: Sheets;
+}) => {
+  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const date = parseISO(dateString);
 
   return (
     <View style={{ gap: 12 }}>
-      <Animated.View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }} layout={LayoutTransition}>
+      <Animated.View
+        style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
+        layout={hasLoaded ? LayoutTransition : undefined}
+      >
         <Text
           style={{
             fontFamily: 'Satoshi-Bold',
@@ -485,17 +509,23 @@ type Props = {
   sheets: Sheets;
 };
 
+export const hasWeeklyScreenLoadedAtom = atom(false);
+
 export const WeeklyScreen = ({ sheets }: Props) => {
-  const [isTodayVisible, setIsTodayVisible] = useState(false);
-  const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
+  const [hasLoaded, setHasWeeklyScreenLoaded] = useAtom(hasWeeklyScreenLoadedAtom);
   const weeklyListRef = useRef<FlashListRef<string>>(null);
   const insets = useSafeAreaInsets();
   const hasScrolledRef = useRef(false);
   const [scrollTarget, setScrollTarget] = useAtom(scrollTargetAtom);
   const { weeks, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
   const backToToday = useBackToToday();
-  const { scheduleMap, isLoading } = useSchedule({ weeks });
+  const { scheduleMap, isInitialLoading } = useSchedule({ weeks });
   const days = weeks.flatMap(getDatesFromISOWeek);
+
+  useMount(() => {
+    // unmount happens during logout
+    return () => setHasWeeklyScreenLoaded(false);
+  });
 
   const scrollToDate = ({
     dateString,
@@ -527,11 +557,10 @@ export const WeeklyScreen = ({ sheets }: Props) => {
   };
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<string>[] }) => {
-    if (isEmpty(viewableItems)) return;
+    if (isEmpty(viewableItems) || isInitialLoading) return;
 
     const today = formatDateToISO(startOfToday());
-    if (viewableItems.find(({ item }) => item === today)) setIsTodayVisible(true);
-    if (!today) return;
+    if (viewableItems.find(({ item }) => item === today)) setHasWeeklyScreenLoaded(true);
 
     backToToday.handleViewableItemsChanged({
       viewableItems,
@@ -563,39 +592,40 @@ export const WeeklyScreen = ({ sheets }: Props) => {
           }}
         />
       </Animated.View>
-      {(isLoading || !isTodayVisible) && (
+      {!hasLoaded && (
         <View style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundColor: '#FEF7EA' }}>
           <WeeklyScreenSkeleton />
         </View>
       )}
       {!isEmpty(scheduleMap) && (
-        <LayoutAnimationConfig skipEntering>
-          <FlashList
-            maxItemsInRecyclePool={0}
-            ref={weeklyListRef}
-            data={days}
-            renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} sheets={sheets} />}
-            style={{ backgroundColor: '#FEF7EA', flex: 1, opacity: isLoading ? 0 : 1 }}
-            keyExtractor={(item) => getUnixTime(item).toString()}
-            ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
-            contentContainerStyle={{
-              paddingHorizontal: 20,
-              marginTop: insets.top + HEADER_SIZE,
-              paddingBottom: insets.bottom + 88,
-            }}
-            onStartReached={expandWeekIntoPast}
-            onStartReachedThreshold={0.2}
-            onEndReachedThreshold={0.2}
-            onEndReached={expandWeekIntoFuture}
-            onCommitLayoutEffect={() => {
+        <FlashList
+          maxItemsInRecyclePool={0}
+          ref={weeklyListRef}
+          data={days}
+          renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} sheets={sheets} />}
+          style={{ backgroundColor: colors.cream[100], flex: 1 }}
+          keyExtractor={(item) => getUnixTime(item).toString()}
+          ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            marginTop: insets.top + HEADER_SIZE,
+            paddingBottom: insets.bottom + 88,
+          }}
+          {...(hasLoaded && {
+            onStartReached: expandWeekIntoPast,
+            onStartReachedThreshold: 0.2,
+            onEndReachedThreshold: 0.2,
+            onEndReached: expandWeekIntoFuture,
+          })}
+          onCommitLayoutEffect={() => {
+            if (!isInitialLoading) {
               if (hasScrolledRef.current) return;
-              hasScrolledRef.current = true;
               scrollToToday({ animated: false });
-              setSplashScreenRequirements((r) => ({ ...r, weeklyLayoutCommitted: true }));
-            }}
-            onViewableItemsChanged={handleViewableItemsChanged}
-          />
-        </LayoutAnimationConfig>
+              hasScrolledRef.current = true;
+            }
+          }}
+          onViewableItemsChanged={handleViewableItemsChanged}
+        />
       )}
     </>
   );

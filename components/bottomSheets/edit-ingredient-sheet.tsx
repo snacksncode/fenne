@@ -1,5 +1,7 @@
 import { IngredientFormData } from '@/api/schedules';
+import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
 import { SelectUnitSheet, SelectUnitSheetData, UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
 import { SheetTextInput } from '@/components/input';
@@ -24,15 +26,17 @@ const Content = ({
   ingredient: initialIngredient,
   sheetRef,
   onOpenUnitSheet,
+  onOpenCategorySheet,
   onSave,
 }: {
   ingredient?: IngredientFormData;
   sheetRef: SheetProps['ref'];
   onOpenUnitSheet: (ingredient: IngredientFormData) => void;
+  onOpenCategorySheet: (ingredient: IngredientFormData) => void;
   onSave: (ingredient: IngredientFormData) => void;
 }) => {
   const [ingredient, setIngredient] = useState<IngredientFormData>(() => {
-    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '', unit: 'g' };
+    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '', aisle: 'other', unit: 'g' };
   });
 
   const handleSave = () => {
@@ -82,6 +86,12 @@ const Content = ({
             </PressableWithHaptics>
           </View>
         </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Category</Text>
+          <PressableWithHaptics onPress={() => onOpenCategorySheet(ingredient)}>
+            <AisleHeader type={ingredient.aisle} />
+          </PressableWithHaptics>
+        </View>
       </View>
       <View style={{ marginTop: 32 }}>
         <Button text="Save ingredient" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={handleSave} />
@@ -93,6 +103,7 @@ const Content = ({
 export const EditIngredientSheet = ({ ref, onSave }: SheetProps) => {
   const ingredientTempStorage = useRef<IngredientFormData>(null);
   const selectUnitSheetRef = useRef<BottomSheetModal<SelectUnitSheetData>>(null);
+  const selectCategorySheetRef = useRef<BottomSheetModal>(null);
 
   return (
     <>
@@ -107,6 +118,12 @@ export const EditIngredientSheet = ({ ref, onSave }: SheetProps) => {
               Keyboard.dismiss();
               selectUnitSheetRef.current?.present({ ingredient });
             }}
+            onOpenCategorySheet={(ingredient) => {
+              ingredientTempStorage.current = ingredient;
+              ref.current?.dismiss();
+              Keyboard.dismiss();
+              selectCategorySheetRef.current?.present();
+            }}
             onSave={onSave}
           />
         )}
@@ -116,6 +133,16 @@ export const EditIngredientSheet = ({ ref, onSave }: SheetProps) => {
         onSelect={(unit) => {
           selectUnitSheetRef.current?.dismiss();
           ref.current?.present({ ingredient: { ...ensure(ingredientTempStorage.current), unit } });
+        }}
+        onDismiss={() => {
+          ref.current?.present({ ingredient: ensure(ingredientTempStorage.current) });
+        }}
+      />
+      <SelectCategorySheet
+        ref={selectCategorySheetRef}
+        onSelect={(aisle) => {
+          selectCategorySheetRef.current?.dismiss();
+          ref.current?.present({ ingredient: { ...ensure(ingredientTempStorage.current), aisle } });
         }}
         onDismiss={() => {
           ref.current?.present({ ingredient: ensure(ingredientTempStorage.current) });
@@ -147,7 +174,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomWidth: 2,
     borderColor: '#493D34',
-    height: 44,
+    height: 48,
     justifyContent: 'center',
   },
   unitText: {
