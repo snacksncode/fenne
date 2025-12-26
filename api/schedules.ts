@@ -1,22 +1,18 @@
 import { queryOptions, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
-import { first, indexBy, last } from 'remeda';
+import { first, indexBy, isNullish, last, omitBy } from 'remeda';
 import { getDatesFromISOWeek, getISOWeekString } from '@/date-tools';
 import { ensure } from '@/utils';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
-import { RecipeDTO } from '@/api/recipes';
+import { RecipeDTO, recipesOptions } from '@/api/recipes';
 import { api } from '@/api';
 import { useRef } from 'react';
 import { AisleCategory } from '@/api/groceries';
-import { hoursToMilliseconds, minutesToMilliseconds } from 'date-fns';
-
-// ============================================================================
-// Types matching Rails backend
-// ============================================================================
+import { useOptimisticUpdate } from '@/api/optimistic';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
 export type IngredientDTO = {
-  id: number;
+  id: string;
   name: string;
   unit: Unit;
   quantity: number;
@@ -32,7 +28,7 @@ export type IngredientFormData = {
 };
 
 export type ScheduleDayDTO = {
-  date: string; // ISO date string YYYY-MM-DD
+  date: string;
   breakfast: RecipeDTO | null;
   lunch: RecipeDTO | null;
   dinner: RecipeDTO | null;
@@ -41,20 +37,12 @@ export type ScheduleDayDTO = {
 
 export type ScheduleDayInput = {
   date: string;
-  breakfast_recipe_id?: number | null;
-  lunch_recipe_id?: number | null;
-  dinner_recipe_id?: number | null;
+  breakfast_recipe_id?: string | null;
+  lunch_recipe_id?: string | null;
+  dinner_recipe_id?: string | null;
   is_shopping_day?: boolean;
 };
 
-// ============================================================================
-// Query Options
-// ============================================================================
-
-/**
- * Query options for fetching a week's schedule
- * @param weekKey - ISO week string (e.g., "2025-W12")
- */
 export const scheduleOptions = (weekKey: string) => {
   return queryOptions({
     queryKey: ['schedule', weekKey] as const,
@@ -69,14 +57,6 @@ export const scheduleOptions = (weekKey: string) => {
   });
 };
 
-// ============================================================================
-// Hooks
-// ============================================================================
-
-/**
- * Hook to fetch schedules for multiple weeks
- * Returns a map of dates to schedule days for easy lookup
- */
 export const useSchedule = ({ weeks, enabled }: { weeks: string[]; enabled?: boolean }) => {
   const queryClient = useQueryClient();
   const initialWeeks = useRef(weeks);
@@ -95,6 +75,7 @@ export const useSchedule = ({ weeks, enabled }: { weeks: string[]; enabled?: boo
 };
 
 export const useUpdateScheduleDay = () => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -102,17 +83,43 @@ export const useUpdateScheduleDay = () => {
     mutationFn: async ({ date, data }: { date: string; data: ScheduleDayInput }) => {
       return api.put(`/schedule/${date}`, { data });
     },
+    onMutate: async ({ date, data }) => {
+      const weekKey = getISOWeekString(date);
+      const { queryKey } = scheduleOptions(weekKey);
+
+      const { previousData } = await update({
+        queryKey,
+        updateFn: (state) => {
+          const day = state.find((d) => d.date === date);
+          const recipes = queryClient.getQueryData(recipesOptions.queryKey);
+          if (!day || !recipes) return;
+
+          const { breakfast_recipe_id, lunch_recipe_id, dinner_recipe_id, is_shopping_day } = data;
+          const breakfast = recipes.find((r) => r.id === breakfast_recipe_id);
+          const lunch = recipes.find((r) => r.id === lunch_recipe_id);
+          const dinner = recipes.find((r) => r.id === dinner_recipe_id);
+
+          Object.assign(day, omitBy({ breakfast, dinner, lunch, is_shopping_day }, isNullish));
+        },
+      });
+
+      return { previousData, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
     onSettled: (_data, _error, { date }) => {
-      return queryClient.invalidateQueries({ queryKey: ['schedule', getISOWeekString(date)] });
+      return queryClient.invalidateQueries(scheduleOptions(getISOWeekString(date)));
     },
   });
 };
 
 export const useDeleteScheduleEntry = () => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationKey: ['updateScheduleDay'],
+    mutationKey: ['deleteScheduleEntry'],
     mutationFn: async ({ date, mealType }: { date: string; mealType: MealType }) => {
       return api.put(`/schedule/${date}`, {
         data: {
@@ -122,8 +129,29 @@ export const useDeleteScheduleEntry = () => {
         },
       });
     },
+    onMutate: async ({ date, mealType }) => {
+      const weekKey = getISOWeekString(date);
+      const { queryKey } = scheduleOptions(weekKey);
+
+      const { previousData } = await update({
+        queryKey,
+        updateFn: (draft) => {
+          const day = draft.find((d) => d.date === date);
+          if (!day) return;
+
+          if (mealType === 'breakfast') day.breakfast = null;
+          if (mealType === 'lunch') day.lunch = null;
+          if (mealType === 'dinner') day.dinner = null;
+        },
+      });
+
+      return { previousData, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
     onSettled: (_data, _error, { date }) => {
-      return queryClient.invalidateQueries({ queryKey: ['schedule', getISOWeekString(date)] });
+      queryClient.invalidateQueries({ queryKey: scheduleOptions(getISOWeekString(date)).queryKey });
     },
   });
 };

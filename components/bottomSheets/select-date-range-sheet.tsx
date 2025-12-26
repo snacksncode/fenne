@@ -1,5 +1,5 @@
 import { useGenerateGroceryItems } from '@/api/groceries';
-import { ScheduleDayDTO, useSchedule } from '@/api/schedules';
+import { useSchedule } from '@/api/schedules';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
@@ -13,7 +13,6 @@ import {
   addWeeks,
   endOfToday,
   format,
-  formatDate,
   isAfter,
   isBefore,
   parseISO,
@@ -24,7 +23,7 @@ import {
 import { ChevronLeft, ChevronRight, WandSparkles } from 'lucide-react-native';
 import { RefObject, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { doNothing, filter, find, isEmpty, pipe, values } from 'remeda';
+import { filter, find, pipe, values } from 'remeda';
 
 type SheetProps = {
   ref: RefObject<BottomSheetModal | null>;

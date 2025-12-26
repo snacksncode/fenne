@@ -1,6 +1,7 @@
 import { api } from '@/api';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 
 export type AisleCategory =
   | 'produce'
@@ -41,24 +42,56 @@ export const useGroceries = () => {
 };
 
 export const useEditGroceryItem = ({ id }: { id: string }) => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['editGroceryItem'],
     mutationFn: async (newItemData: Omit<Partial<GroceryItemDTO>, 'id'>) => {
       return api.patch(`/grocery_items/${id}`, { data: newItemData });
     },
-    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+    onMutate: async (newItemData) => {
+      const { previousData } = await update({
+        queryKey: groceriesOptions.queryKey,
+        updateFn: (state) => {
+          const item = state.find((i) => i.id === id);
+          if (item) Object.assign(item, newItemData);
+        },
+      });
+      return { previousData, queryKey: groceriesOptions.queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(groceriesOptions);
+    },
   });
 };
 
 export const useAddGroceryItem = () => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationKey: ['addGroceryItem'],
     mutationFn: async (newItemData: Omit<GroceryItemDTO, 'id'>) => {
       return api.post('/grocery_items', { data: newItemData });
     },
-    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+    onMutate: async (newItemData) => {
+      const { previousData } = await update({
+        queryKey: groceriesOptions.queryKey,
+        updateFn: (state) => {
+          state.push({ ...newItemData, id: tempId() });
+        },
+      });
+      return { previousData, queryKey: groceriesOptions.queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(groceriesOptions);
+    },
   });
 };
 
@@ -74,23 +107,49 @@ export const useGenerateGroceryItems = () => {
 };
 
 export const useDeleteGroceryItem = ({ id }: { id: string }) => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['deleteGroceryItem'],
     mutationFn: async () => {
       return api.delete(`/grocery_items/${id}`);
     },
-    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+    onMutate: async () => {
+      const { previousData } = await update({
+        queryKey: groceriesOptions.queryKey,
+        updateFn: (state) => state.filter((i) => i.id === id),
+      });
+      return { previousData, queryKey: groceriesOptions.queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey });
+    },
   });
 };
 
 export const useGroceryCheckout = () => {
+  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['checkout'],
     mutationFn: async () => {
-      return api.post(`/grocery_items/checkout`);
+      return api.post('/grocery_items/checkout');
     },
-    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+    onMutate: async () => {
+      const { previousData } = await update({
+        queryKey: groceriesOptions.queryKey,
+        updateFn: (state) => state.filter((item) => item.status !== 'completed'),
+      });
+      return { previousData, queryKey: groceriesOptions.queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey });
+    },
   });
 };

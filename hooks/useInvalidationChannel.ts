@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { useEffect } from 'react';
 import { getBaseUrl } from '@/api';
-import { createConsumer, Consumer } from '@rails/actioncable';
+import { createConsumer } from '@rails/actioncable';
 import { useQueryClient } from '@tanstack/react-query';
 import { isPlainObject } from 'remeda';
 import { getISOWeekString } from '@/date-tools';
@@ -47,23 +46,28 @@ export const useInvalidationChannel = () => {
           if (data.resource === 'schedules') {
             const weekKeys = data.data.dates.map(getISOWeekString);
             weekKeys.forEach((weekKey) => {
+              if (queryClient.isFetching(scheduleOptions(weekKey))) return;
               queryClient.invalidateQueries(scheduleOptions(weekKey));
             });
           }
 
           if (data.resource === 'recipes') {
+            if (queryClient.isFetching(recipesOptions)) return;
             queryClient.invalidateQueries(recipesOptions);
           }
 
           if (data.resource === 'grocery_items') {
+            if (queryClient.isFetching(groceriesOptions)) return;
             queryClient.invalidateQueries(groceriesOptions);
           }
 
           if (data.resource === 'invitations') {
+            if (queryClient.isFetching(invitationsOptions)) return;
             queryClient.invalidateQueries(invitationsOptions);
           }
 
           if (data.resource === 'family_members') {
+            if (queryClient.isFetching(currentUserOptions)) return;
             queryClient.invalidateQueries(currentUserOptions);
           }
         },
