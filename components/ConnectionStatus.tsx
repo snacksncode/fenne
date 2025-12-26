@@ -4,7 +4,7 @@ import { connectionStatusAtom, ConnectionStatus as Status } from '@/hooks/useInv
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
-import { useNetInfo } from '@react-native-community/netinfo';
+import { useNetworkState } from 'expo-network';
 
 const statusConfig: Record<Status, { color: string; label: string }> = {
   connected: { color: colors.green[500], label: 'Connected' },
@@ -17,7 +17,7 @@ export const ConnectionStatus = () => {
   const config = statusConfig[status];
   const isFetching = useIsFetching();
   const isMutating = useIsMutating() > 0;
-  const { isConnected } = useNetInfo();
+  const { isConnected } = useNetworkState();
   const isUpdating = isFetching || isMutating;
 
   return (
