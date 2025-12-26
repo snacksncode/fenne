@@ -220,7 +220,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const navigation = useNavigation();
   const nameInputRef = useRef<TextInputType>(null);
   const editIngredientSheetRef = useRef<BottomSheetModal<EditIngredientSheetData>>(null);
-  const editRecipe = useEditRecipe({ id: recipe?.id });
+  const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
   const [recipeName, setRecipeName] = useState(recipe?.name ?? '');
   const [mealTypes, setMealTypes] = useState<MealType[]>(recipe?.meal_types ?? []);
@@ -264,7 +264,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       liked: recipe?.liked ?? false,
     };
     const handleSuccess = () => navigation.goBack();
-    if (recipe) return editRecipe.mutate(recipeData, { onSuccess: handleSuccess });
+    if (recipe) return editRecipe.mutate({ id: recipe.id, ...recipeData }, { onSuccess: handleSuccess });
     addRecipe.mutate(recipeData, { onSuccess: handleSuccess });
   };
 

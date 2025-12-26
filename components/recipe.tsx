@@ -43,14 +43,14 @@ export const Recipe = ({
   onPress,
   onLongPress,
 }: Props) => {
-  const editRecipe = useEditRecipe({ id });
+  const editRecipe = useEditRecipe();
   const now = new Date();
   const futureDate = addMinutes(now, time_in_minutes ?? 0);
   const formattedDuration = formatDistance(now, futureDate, { addSuffix: false });
 
   const handleLike = () => {
     const newState = !liked;
-    editRecipe.mutate({ liked: newState });
+    editRecipe.mutate({ id, liked: newState });
   };
 
   return (

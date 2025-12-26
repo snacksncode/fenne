@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getBaseUrl } from '@/api';
+import { getBaseUrl } from '@/api/client';
 import { createConsumer } from '@rails/actioncable';
 import { useQueryClient } from '@tanstack/react-query';
 import { isPlainObject } from 'remeda';

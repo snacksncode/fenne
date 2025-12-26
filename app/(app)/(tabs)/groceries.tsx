@@ -260,8 +260,8 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
 
 const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sheets }) => {
   const swipeRef = useRef<SwipeableMethods>(null);
-  const editGroceryItem = useEditGroceryItem({ id: _item.id });
-  const deleteGroceryItem = useDeleteGroceryItem({ id: _item.id });
+  const editGroceryItem = useEditGroceryItem();
+  const deleteGroceryItem = useDeleteGroceryItem();
   const item = { ..._item, ...(editGroceryItem.isPending && editGroceryItem.variables) };
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -279,7 +279,7 @@ const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sh
 
   const handlePress = () => {
     vibrate();
-    editGroceryItem.mutate({ status: item.status === 'pending' ? 'completed' : 'pending' });
+    editGroceryItem.mutate({ id: _item.id, status: item.status === 'pending' ? 'completed' : 'pending' });
   };
 
   const closeSwipeable = () => swipeRef.current?.close();
@@ -288,7 +288,7 @@ const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sh
     sheets.editGroceryItemSheetRef.current?.present({ item });
   };
   const onRemove = () => {
-    deleteGroceryItem.mutate();
+    deleteGroceryItem.mutate({ id: _item.id });
   };
 
   const textStyles = useAnimatedStyle(() => ({

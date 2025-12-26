@@ -31,9 +31,7 @@ export type GroceryItemDTO = {
 
 export const groceriesOptions = queryOptions({
   queryKey: ['groceries'] as const,
-  queryFn: async () => {
-    return api.get<GroceryItemDTO[]>('/grocery_items');
-  },
+  queryFn: api.groceries.getAll,
   staleTime: Infinity,
 });
 
@@ -41,19 +39,17 @@ export const useGroceries = () => {
   return useQuery(groceriesOptions);
 };
 
-export const useEditGroceryItem = ({ id }: { id: string }) => {
+export const useEditGroceryItem = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['editGroceryItem'],
-    mutationFn: async (newItemData: Omit<Partial<GroceryItemDTO>, 'id'>) => {
-      return api.patch(`/grocery_items/${id}`, { data: newItemData });
-    },
+    mutationFn: api.groceries.edit,
     onMutate: async (newItemData) => {
       const { previousData } = await update({
         queryKey: groceriesOptions.queryKey,
         updateFn: (state) => {
-          const item = state.find((i) => i.id === id);
+          const item = state.find((i) => i.id === newItemData.id);
           if (item) Object.assign(item, newItemData);
         },
       });
@@ -74,9 +70,7 @@ export const useAddGroceryItem = () => {
 
   return useMutation({
     mutationKey: ['addGroceryItem'],
-    mutationFn: async (newItemData: Omit<GroceryItemDTO, 'id'>) => {
-      return api.post('/grocery_items', { data: newItemData });
-    },
+    mutationFn: api.groceries.add,
     onMutate: async (newItemData) => {
       const { previousData } = await update({
         queryKey: groceriesOptions.queryKey,
@@ -99,22 +93,18 @@ export const useGenerateGroceryItems = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['generateGroceryItems'],
-    mutationFn: async (range: { start: string; end: string }) => {
-      return api.post('/grocery_items/generate', { ...range });
-    },
+    mutationFn: api.groceries.generate,
     onSettled: () => queryClient.invalidateQueries(groceriesOptions),
   });
 };
 
-export const useDeleteGroceryItem = ({ id }: { id: string }) => {
+export const useDeleteGroceryItem = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['deleteGroceryItem'],
-    mutationFn: async () => {
-      return api.delete(`/grocery_items/${id}`);
-    },
-    onMutate: async () => {
+    mutationFn: api.groceries.delete,
+    onMutate: async ({ id }) => {
       const { previousData } = await update({
         queryKey: groceriesOptions.queryKey,
         updateFn: (state) => state.filter((i) => i.id === id),
@@ -135,9 +125,7 @@ export const useGroceryCheckout = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['checkout'],
-    mutationFn: async () => {
-      return api.post('/grocery_items/checkout');
-    },
+    mutationFn: api.groceries.checkout,
     onMutate: async () => {
       const { previousData } = await update({
         queryKey: groceriesOptions.queryKey,

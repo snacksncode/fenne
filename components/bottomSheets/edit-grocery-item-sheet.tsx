@@ -27,11 +27,11 @@ const Content = ({
   onOpenCategorySheet: (item: GroceryItemDTO) => void;
 }) => {
   const [item, setItem] = useState<GroceryItemDTO>(initialItem);
-  const editGroceryItem = useEditGroceryItem({ id: item.id });
+  const editGroceryItem = useEditGroceryItem();
 
   const handleSave = () => {
     Keyboard.dismiss();
-    editGroceryItem.mutate({ name: item.name, aisle: item.aisle });
+    editGroceryItem.mutate({ id: item.id, name: item.name, aisle: item.aisle });
     sheetRef.current?.dismiss();
   };
 

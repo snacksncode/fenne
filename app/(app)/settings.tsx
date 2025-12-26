@@ -65,7 +65,7 @@ const Action = (props: {
 };
 
 const SentInvitation = (props: { invitation: InvitationDTO }) => {
-  const removeSentInvite = useRemoveSentInvite(props.invitation.id);
+  const removeSentInvite = useRemoveSentInvite();
 
   return (
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
@@ -104,7 +104,7 @@ const SentInvitation = (props: { invitation: InvitationDTO }) => {
         </Text>
       </View>
       <Button
-        onPress={() => removeSentInvite.mutate()}
+        onPress={() => removeSentInvite.mutate({ id: props.invitation.id })}
         isLoading={removeSentInvite.isPending}
         leftIcon={{ Icon: Trash2 }}
         variant="red-outlined"
@@ -157,8 +157,8 @@ const Member = (props: { user: UserDTO }) => {
 };
 
 const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
-  const acceptInvite = useAcceptInvite(props.invitation.id);
-  const declineInvite = useDeclineInvite(props.invitation.id);
+  const acceptInvite = useAcceptInvite();
+  const declineInvite = useDeclineInvite();
   return (
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
@@ -203,7 +203,7 @@ const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
           text="Decline"
           variant="red-outlined"
           rightIcon={{ Icon: Trash2 }}
-          onPress={() => declineInvite.mutate()}
+          onPress={() => declineInvite.mutate({ id: props.invitation.id })}
           isLoading={declineInvite.isPending}
         />
         <Button
@@ -212,7 +212,7 @@ const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
           variant="green"
           text="Accept"
           rightIcon={{ Icon: UserRoundCheck }}
-          onPress={() => acceptInvite.mutate()}
+          onPress={() => acceptInvite.mutate({ id: props.invitation.id })}
           isLoading={acceptInvite.isPending}
         />
       </View>

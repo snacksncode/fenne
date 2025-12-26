@@ -1,52 +1,106 @@
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { TOKEN_KEY } from '@/contexts/session';
-
-export const getBaseUrl = () => {
-  const host = Platform.OS === 'android' ? '10.0.2.2' : '192.168.233.59';
-  return `${host}:3000`;
-};
-
-export class APIError extends Error {
-  data: unknown;
-  constructor(data: unknown) {
-    super();
-    this.data = data;
-  }
-}
-
-type RequestProps = ({ method: 'GET' | 'DELETE' } | { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }) & {
-  path: string;
-};
-
-const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T> => {
-  const token = await SecureStore.getItemAsync(TOKEN_KEY);
-
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
-
-  const url = `http://${getBaseUrl()}${path}`;
-  const options: RequestInit = {
-    method: requestDetails.method,
-    headers,
-    ...('body' in requestDetails && { body: JSON.stringify(requestDetails.body) }),
-  };
-
-  const res = await fetch(url, options);
-  if (!res.ok) {
-    const json = await res.json();
-    throw new APIError(json);
-  }
-  if (res.status === 204) return {} as T; // stupid patch
-  return res.json();
-};
+import { first, last } from 'remeda';
+import { client } from '@/api/client';
+import { getDatesFromISOWeek } from '@/date-tools';
+import { ensure } from '@/utils';
+import { GroceryItemDTO } from '@/api/groceries';
+import { RecipeDTO, RecipeFormData } from '@/api/recipes';
+import { ScheduleDayDTO, ScheduleDayInput, MealType } from '@/api/schedules';
+import { AuthResponse, CurrentUserDTO } from '@/api/auth';
+import { InvitationsDTO } from '@/api/invitations';
 
 export const api = {
-  get: <T = any>(path: string) => request<T>({ method: 'GET', path }),
-  post: <T = any>(path: string, body?: any) => request<T>({ method: 'POST', path, body }),
-  patch: <T = any>(path: string, body?: any) => request<T>({ method: 'PATCH', path, body }),
-  put: <T = any>(path: string, body?: any) => request<T>({ method: 'PUT', path, body }),
-  delete: <T = any>(path: string) => request<T>({ method: 'DELETE', path }),
+  auth: {
+    login: (data: { email: string; password: string }) => {
+      return client.post<AuthResponse>('/login', data);
+    },
+    signup: (data: { name: string; email: string; password: string }) => {
+      return client.post<AuthResponse>('/signup', data);
+    },
+    getCurrentUser: () => {
+      return client.get<CurrentUserDTO>('/me');
+    },
+    changePassword: (data: { current_password: string; new_password: string }) => {
+      return client.post('/change_password', data);
+    },
+  },
+  groceries: {
+    getAll: () => {
+      return client.get<GroceryItemDTO[]>('/grocery_items');
+    },
+    add: (itemData: Omit<GroceryItemDTO, 'id'>) => {
+      return client.post('/grocery_items', { data: itemData });
+    },
+    edit: (data: Partial<GroceryItemDTO>) => {
+      const { id, ...itemData } = data;
+      return client.patch(`/grocery_items/${id}`, { data: itemData });
+    },
+    delete: (data: { id: string }) => {
+      return client.delete(`/grocery_items/${data.id}`);
+    },
+    generate: (range: { start: string; end: string }) => {
+      return client.post('/grocery_items/generate', range);
+    },
+    checkout: () => {
+      return client.post('/grocery_items/checkout');
+    },
+  },
+  recipes: {
+    getAll: () => {
+      return client.get<RecipeDTO[]>('/recipes');
+    },
+    get: (id: string) => {
+      return client.get<RecipeDTO>(`/recipes/${id}`);
+    },
+    add: (recipeData: RecipeFormData) => {
+      return client.post('/recipes', { data: recipeData });
+    },
+    edit: (data: { id: string } & Partial<RecipeFormData>) => {
+      const { id, ...recipeData } = data;
+      return client.patch(`/recipes/${id}`, { data: recipeData });
+    },
+    delete: (data: { id: string }) => {
+      return client.delete(`/recipes/${data.id}`);
+    },
+  },
+  schedules: {
+    get: (weekKey: string) => {
+      const weekDates = getDatesFromISOWeek(weekKey);
+      const searchParams = new URLSearchParams();
+      searchParams.append('start', ensure(first(weekDates)));
+      searchParams.append('end', ensure(last(weekDates)));
+      return client.get<ScheduleDayDTO[]>(`/schedule?${searchParams.toString()}`);
+    },
+    updateDay: (data: ScheduleDayInput) => {
+      const { date, ...rest } = data;
+      return client.put(`/schedule/${date}`, { data: rest });
+    },
+    deleteEntry: (data: { date: string; mealType: MealType }) => {
+      const { date, mealType } = data;
+      return client.put(`/schedule/${date}`, {
+        ...(mealType === 'breakfast' && { breakfast_recipe_id: null }),
+        ...(mealType === 'lunch' && { lunch_recipe_id: null }),
+        ...(mealType === 'dinner' && { dinner_recipe_id: null }),
+      });
+    },
+  },
+  invitations: {
+    getAll: () => {
+      return client.get<InvitationsDTO>('/invitations');
+    },
+    post: (data: { email: string }) => {
+      return client.post('/invitations', data);
+    },
+    accept: (data: { id: string }) => {
+      return client.post(`/invitations/${data.id}/accept`);
+    },
+    decline: (data: { id: string }) => {
+      return client.post(`/invitations/${data.id}/decline`);
+    },
+    remove: (data: { id: string }) => {
+      return client.delete(`/invitations/${data.id}`);
+    },
+    leaveFamily: () => {
+      return client.post('/leave_family');
+    },
+  },
 };

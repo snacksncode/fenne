@@ -6,7 +6,7 @@ import { colors } from '@/constants/colors';
 import { TextInput } from '@/components/input';
 import { useState } from 'react';
 import { useLogin, useSignup } from '@/api/auth';
-import { APIError } from '@/api';
+import { APIError } from '@/api/client';
 import Animated, {
   FadeIn,
   FadeOut,

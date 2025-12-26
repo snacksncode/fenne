@@ -8,16 +8,14 @@ export type InvitationDTO = {
   to_user: UserDTO;
 };
 
-type InvitationsDTO = {
+export type InvitationsDTO = {
   sent: InvitationDTO[];
   received: InvitationDTO[];
 };
 
 export const invitationsOptions = queryOptions({
   queryKey: ['invitations'],
-  queryFn: () => {
-    return api.get<InvitationsDTO>('/invitations');
-  },
+  queryFn: api.invitations.getAll,
   staleTime: Infinity,
 });
 
@@ -29,36 +27,34 @@ export const usePostInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['postInvite'],
-    mutationFn: async ({ email }: { email: string }) => {
-      return api.post('/invitations', { email });
-    },
+    mutationFn: api.invitations.post,
     onSettled: () => queryClient.invalidateQueries(invitationsOptions),
   });
 };
 
-export const useAcceptInvite = (id: string) => {
+export const useAcceptInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['acceptInvite'],
-    mutationFn: async () => api.post(`/invitations/${id}/accept`),
+    mutationFn: api.invitations.accept,
     onSettled: () => queryClient.invalidateQueries(),
   });
 };
 
-export const useDeclineInvite = (id: string) => {
+export const useDeclineInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['declineInvite'],
-    mutationFn: async () => api.post(`/invitations/${id}/decline`),
+    mutationFn: api.invitations.decline,
     onSettled: () => queryClient.invalidateQueries(invitationsOptions),
   });
 };
 
-export const useRemoveSentInvite = (id: string) => {
+export const useRemoveSentInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['removeSentInvite'],
-    mutationFn: async () => api.delete(`/invitations/${id}`),
+    mutationFn: api.invitations.remove,
     onSettled: () => queryClient.invalidateQueries(invitationsOptions),
   });
 };
@@ -67,7 +63,7 @@ export const useLeaveFamily = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['leaveFamily'],
-    mutationFn: async () => api.post('/leave_family'),
+    mutationFn: api.invitations.leaveFamily,
     onSettled: () => queryClient.invalidateQueries(),
   });
 };

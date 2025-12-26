@@ -1,4 +1,4 @@
-import { APIError } from '@/api';
+import { APIError } from '@/api/client';
 import { usePostInvite } from '@/api/invitations';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';

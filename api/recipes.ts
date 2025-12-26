@@ -19,18 +19,14 @@ export type RecipeFormData = Omit<RecipeDTO, 'id' | 'ingredients'> & {
 
 export const recipesOptions = queryOptions({
   queryKey: ['recipes'] as const,
-  queryFn: async () => {
-    return api.get<RecipeDTO[]>('/recipes');
-  },
+  queryFn: api.recipes.getAll,
   staleTime: Infinity,
 });
 
 export const recipeOptions = (id: string) => {
   return queryOptions({
     queryKey: ['recipes', id] as const,
-    queryFn: async () => {
-      return api.get<RecipeDTO>(`/recipes/${id}`);
-    },
+    queryFn: () => api.recipes.get(id),
     staleTime: Infinity,
   });
 };
@@ -63,9 +59,7 @@ export const useAddRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['addRecipe'],
-    mutationFn: async (newRecipeData: RecipeFormData) => {
-      return api.post('/recipes', { data: newRecipeData });
-    },
+    mutationFn: api.recipes.add,
     onMutate: async (newRecipeData) => {
       const { previousData } = await update({
         queryKey: recipesOptions.queryKey,
@@ -83,20 +77,17 @@ export const useAddRecipe = () => {
   });
 };
 
-export const useEditRecipe = ({ id }: { id: string | undefined }) => {
+export const useEditRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['editRecipe'],
-    mutationFn: async (newRecipeData: Partial<RecipeFormData>) => {
-      if (!id) return;
-      return api.patch(`/recipes/${id}`, { data: newRecipeData });
-    },
+    mutationFn: (newRecipeData: { id: string } & Partial<RecipeFormData>) => api.recipes.edit(newRecipeData),
     onMutate: async (newRecipeData) => {
       const { previousData } = await update({
         queryKey: recipesOptions.queryKey,
         updateFn: (draft) => {
-          const recipe = draft.find((r) => r.id === id);
+          const recipe = draft.find((r) => r.id === newRecipeData.id);
           if (!recipe) return;
 
           Object.assign(recipe, omit(newRecipeData, ['ingredients']));
@@ -120,15 +111,13 @@ export const useEditRecipe = ({ id }: { id: string | undefined }) => {
   });
 };
 
-export const useDeleteRecipe = ({ id }: { id: string }) => {
+export const useDeleteRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['deleteRecipe'],
-    mutationFn: async () => {
-      return api.delete(`/recipes/${id}`);
-    },
-    onMutate: async () => {
+    mutationFn: api.recipes.delete,
+    onMutate: async ({ id }) => {
       const { previousData } = await update({
         queryKey: recipesOptions.queryKey,
         updateFn: (state) => state.filter((r) => r.id !== id),

@@ -38,7 +38,7 @@ const Action = (props: {
 const Content = ({ recipe }: { recipe: RecipeDTO }) => {
   const router = useRouter();
   const { dismiss } = useBottomSheetModal();
-  const deleteRecipe = useDeleteRecipe({ id: recipe.id });
+  const deleteRecipe = useDeleteRecipe();
 
   return (
     <BaseSheet.Container>
@@ -59,7 +59,7 @@ const Content = ({ recipe }: { recipe: RecipeDTO }) => {
           text="Remove"
           icon={Trash2}
           onPress={() => {
-            deleteRecipe.mutate();
+            deleteRecipe.mutate({ id: recipe.id });
             dismiss();
           }}
         />
