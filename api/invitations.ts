@@ -1,6 +1,7 @@
 import { api } from '@/api';
 import { UserDTO } from '@/api/auth';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '@/query-client';
 
 export type InvitationDTO = {
   id: string;
@@ -23,6 +24,7 @@ export const useInvitations = () => {
   return useQuery(invitationsOptions);
 };
 
+queryClient.setMutationDefaults(['postInvite'], { mutationFn: api.invitations.post });
 export const usePostInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -32,6 +34,7 @@ export const usePostInvite = () => {
   });
 };
 
+queryClient.setMutationDefaults(['acceptInvite'], { mutationFn: api.invitations.accept });
 export const useAcceptInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -41,6 +44,7 @@ export const useAcceptInvite = () => {
   });
 };
 
+queryClient.setMutationDefaults(['declineInvite'], { mutationFn: api.invitations.decline });
 export const useDeclineInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -50,6 +54,7 @@ export const useDeclineInvite = () => {
   });
 };
 
+queryClient.setMutationDefaults(['removeSentInvite'], { mutationFn: api.invitations.remove });
 export const useRemoveSentInvite = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -59,6 +64,7 @@ export const useRemoveSentInvite = () => {
   });
 };
 
+queryClient.setMutationDefaults(['leaveFamily'], { mutationFn: api.invitations.leaveFamily });
 export const useLeaveFamily = () => {
   const queryClient = useQueryClient();
   return useMutation({

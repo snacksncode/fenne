@@ -3,6 +3,7 @@ import { MealType, IngredientDTO, IngredientFormData } from '@/api/schedules';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 import { omit } from 'remeda';
+import { queryClient } from '@/query-client';
 
 export type RecipeDTO = {
   id: string;
@@ -54,6 +55,7 @@ const recipeFormDataToDTO = (recipe: RecipeFormData): RecipeDTO => ({
   })),
 });
 
+queryClient.setMutationDefaults(['addRecipe'], { mutationFn: api.recipes.add });
 export const useAddRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -77,6 +79,7 @@ export const useAddRecipe = () => {
   });
 };
 
+queryClient.setMutationDefaults(['editRecipe'], { mutationFn: api.recipes.edit });
 export const useEditRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -111,6 +114,7 @@ export const useEditRecipe = () => {
   });
 };
 
+queryClient.setMutationDefaults(['deleteRecipe'], { mutationFn: api.recipes.delete });
 export const useDeleteRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();

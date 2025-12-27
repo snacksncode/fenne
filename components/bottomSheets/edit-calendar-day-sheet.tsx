@@ -1,12 +1,12 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Text } from '@/components/Text';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { BottomSheetModal, useBottomSheetInternal } from '@gorhom/bottom-sheet';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { CalendarSearch } from 'lucide-react-native';
 import { FunctionComponent, RefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { Tag } from '@/components/svgs/tag';
 import { format } from 'date-fns';
 import { getISOWeekString, parseISO } from '@/date-tools';
@@ -71,7 +71,7 @@ const Content = ({ date, ref, navigation }: { date: string } & SheetProps) => {
           text={isShoppingDay ? 'Unmark as shopping day' : 'Mark as shopping day'}
           icon={Tag}
           onPress={() => {
-            updateScheduleDay.mutate({ date, data: { date, is_shopping_day: !isShoppingDay } });
+            updateScheduleDay.mutate({ date, is_shopping_day: !isShoppingDay });
             ref.current?.dismiss();
           }}
         />

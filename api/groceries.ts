@@ -2,6 +2,7 @@ import { api } from '@/api';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticUpdate, tempId } from '@/api/optimistic';
+import { queryClient } from '@/query-client';
 
 export type AisleCategory =
   | 'produce'
@@ -39,6 +40,7 @@ export const useGroceries = () => {
   return useQuery(groceriesOptions);
 };
 
+queryClient.setMutationDefaults(['editGroceryItem'], { mutationFn: api.groceries.edit });
 export const useEditGroceryItem = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -64,6 +66,7 @@ export const useEditGroceryItem = () => {
   });
 };
 
+queryClient.setMutationDefaults(['addGroceryItem'], { mutationFn: api.groceries.add });
 export const useAddGroceryItem = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -89,6 +92,7 @@ export const useAddGroceryItem = () => {
   });
 };
 
+queryClient.setMutationDefaults(['generateGroceryItems'], { mutationFn: api.groceries.generate });
 export const useGenerateGroceryItems = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -98,6 +102,7 @@ export const useGenerateGroceryItems = () => {
   });
 };
 
+queryClient.setMutationDefaults(['deleteGroceryItem'], { mutationFn: api.groceries.delete });
 export const useDeleteGroceryItem = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -107,7 +112,7 @@ export const useDeleteGroceryItem = () => {
     onMutate: async ({ id }) => {
       const { previousData } = await update({
         queryKey: groceriesOptions.queryKey,
-        updateFn: (state) => state.filter((i) => i.id === id),
+        updateFn: (state) => state.filter((i) => i.id !== id),
       });
       return { previousData, queryKey: groceriesOptions.queryKey };
     },
@@ -120,6 +125,7 @@ export const useDeleteGroceryItem = () => {
   });
 };
 
+queryClient.setMutationDefaults(['checkout'], { mutationFn: api.groceries.checkout });
 export const useGroceryCheckout = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();

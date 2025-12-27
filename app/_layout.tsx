@@ -78,7 +78,10 @@ export default function Layout() {
           persister: asyncStoragePersister,
           maxAge: WEEK_IN_MS,
         }}
-        onSuccess={() => setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }))}
+        onSuccess={() => {
+          setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }));
+          queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+        }}
       >
         <SessionProvider>
           <GestureHandlerRootView>

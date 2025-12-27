@@ -62,13 +62,10 @@ const Index = () => {
             ref={scheduleMealSheetRef}
             onMealSelect={(meal, date, mealType) => {
               updateScheduleDay.mutate({
-                data: {
-                  date,
-                  ...(mealType === 'breakfast' && { breakfast_recipe_id: meal.id }),
-                  ...(mealType === 'lunch' && { lunch_recipe_id: meal.id }),
-                  ...(mealType === 'dinner' && { dinner_recipe_id: meal.id }),
-                },
                 date,
+                ...(mealType === 'breakfast' && { breakfast_recipe_id: meal.id }),
+                ...(mealType === 'lunch' && { lunch_recipe_id: meal.id }),
+                ...(mealType === 'dinner' && { dinner_recipe_id: meal.id }),
               });
               scheduleMealSheetRef.current?.dismiss();
             }}

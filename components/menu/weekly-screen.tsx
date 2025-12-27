@@ -249,7 +249,7 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
       <LayoutAnimationConfig skipEntering>
         {meals.map((meal, index) => {
           return (
-            <Animated.View key={meal.type} entering={FadeIn} exiting={FadeOut} layout={LayoutTransition}>
+            <Animated.View key={meal.type + meal.id} entering={FadeIn} exiting={FadeOut} layout={LayoutTransition}>
               <View>
                 <Meal meal={meal} dateString={data.date} sheets={sheets} />
                 {index !== meals.length - 1 ? (

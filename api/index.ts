@@ -77,9 +77,11 @@ export const api = {
     deleteEntry: (data: { date: string; mealType: MealType }) => {
       const { date, mealType } = data;
       return client.put(`/schedule/${date}`, {
-        ...(mealType === 'breakfast' && { breakfast_recipe_id: null }),
-        ...(mealType === 'lunch' && { lunch_recipe_id: null }),
-        ...(mealType === 'dinner' && { dinner_recipe_id: null }),
+        data: {
+          ...(mealType === 'breakfast' && { breakfast_recipe_id: null }),
+          ...(mealType === 'lunch' && { lunch_recipe_id: null }),
+          ...(mealType === 'dinner' && { dinner_recipe_id: null }),
+        },
       });
     },
   },

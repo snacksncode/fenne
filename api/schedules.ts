@@ -1,12 +1,13 @@
 import { api } from '@/api';
 import { queryOptions, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
-import { first, indexBy, isNullish, last, omitBy } from 'remeda';
+import { indexBy, isNullish, omitBy } from 'remeda';
 import { getISOWeekString } from '@/date-tools';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { RecipeDTO, recipesOptions } from '@/api/recipes';
 import { useRef } from 'react';
 import { AisleCategory } from '@/api/groceries';
 import { useOptimisticUpdate } from '@/api/optimistic';
+import { queryClient } from '@/query-client';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
@@ -67,6 +68,7 @@ export const useSchedule = ({ weeks, enabled }: { weeks: string[]; enabled?: boo
   return { scheduleMap, queries, isInitialLoading, isLoading };
 };
 
+queryClient.setMutationDefaults(['updateScheduleDay'], { mutationFn: api.schedules.updateDay });
 export const useUpdateScheduleDay = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
@@ -104,6 +106,7 @@ export const useUpdateScheduleDay = () => {
   });
 };
 
+queryClient.setMutationDefaults(['deleteScheduleEntry'], { mutationFn: api.schedules.deleteEntry });
 export const useDeleteScheduleEntry = () => {
   const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();

@@ -7,7 +7,7 @@ import { colors } from '@/constants/colors';
 
 export default function NewRecipe() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = useRecipe({ id: parseInt(id) });
+  const recipe = useRecipe({ id });
 
   if (!recipe.data) {
     return (
