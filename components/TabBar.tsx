@@ -9,8 +9,6 @@ import { NavigationRoute, ParamListBase } from '@react-navigation/native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { colors } from '@/constants/colors';
 
-const R = 999;
-
 type Props = BottomTabBarProps;
 
 const Tab = ({
@@ -108,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brown[900],
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: R,
+    borderRadius: 999,
     padding: 8,
   },
   pill: {
@@ -116,7 +114,7 @@ const styles = StyleSheet.create({
     left: 8,
     top: 8,
     bottom: 8,
-    borderRadius: R,
+    borderRadius: 999,
     backgroundColor: colors.orange[500],
     borderWidth: 1,
     borderBottomWidth: 2,
@@ -125,14 +123,14 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     height: 56,
-    borderRadius: R,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabInner: {
     height: 56,
     paddingHorizontal: 8,
-    borderRadius: R,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -140,7 +138,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: colors.cream[100],
     fontFamily: 'Satoshi-Bold',
-    fontSize: 12,
+    fontSize: 13,
     includeFontPadding: false,
   },
 });

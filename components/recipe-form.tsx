@@ -3,12 +3,10 @@ import { RecipeDTO, RecipeFormData, useAddRecipe, useEditRecipe } from '@/api/re
 import { IngredientFormData, MealType } from '@/api/schedules';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
-import { Ham } from '@/components/svgs/ham';
 import { Pancake } from '@/components/svgs/pancake';
-import { Salad } from '@/components/svgs/salad';
 import { useNavigation } from '@react-navigation/native';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { ChevronLeft, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';

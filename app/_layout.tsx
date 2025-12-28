@@ -2,11 +2,11 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DevToolsBubble } from 'react-native-react-query-devtools';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
-import { AppState, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
@@ -26,27 +26,6 @@ export const splashScreenRequirementsAtom = atom({
 const InvalidationChannel = () => {
   useInvalidationChannel();
   return null;
-};
-
-const useAppState = () => {
-  const appState = useRef(AppState.currentState);
-  const [appStateVisible, setAppStateVisible] = useState(appState.current);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        console.log('App has come to the foreground!');
-      }
-
-      appState.current = nextAppState;
-      setAppStateVisible(appState.current);
-      console.log('AppState', appState.current);
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 };
 
 export default function Layout() {

@@ -1,5 +1,5 @@
 import { Text } from '@/components/Text';
-import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { atom, useAtom, useAtomValue } from 'jotai';
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,6 @@ import {
   startOfToday,
   startOfWeek,
 } from 'date-fns';
-import { Soup } from '@/components/svgs/soup';
 
 import Animated, {
   FadeIn,
@@ -36,7 +35,7 @@ import { Button } from '@/components/button';
 import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
-import { Plus } from '@/components/svgs/plus';
+import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { RecipeDTO } from '@/api/recipes';
 import { ScheduleDayDTO, MealType, useSchedule } from '@/api/schedules';
@@ -550,6 +549,7 @@ export const WeeklyScreen = ({ sheets }: Props) => {
     if (!days.includes(scrollTarget.dateString)) return expandRange(scrollTarget.dateString);
     scrollToDate({ dateString: scrollTarget.dateString, offset: 60, animated: true });
     setScrollTarget(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, scrollTarget]);
 
   const scrollToToday = ({ animated }: { animated: boolean }) => {

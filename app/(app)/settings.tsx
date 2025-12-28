@@ -29,7 +29,7 @@ import {
 import { FunctionComponent, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { doNothing, isEmptyish, sort } from 'remeda';
+import { isEmptyish, sort } from 'remeda';
 
 const Action = (props: {
   text: string;

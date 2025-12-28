@@ -1,7 +1,6 @@
-import { Ham } from '@/components/svgs/ham';
 import { Pancake } from '@/components/svgs/pancake';
-import { Salad } from '@/components/svgs/salad';
 import { Text } from '@/components/Text';
+import { Ham, Salad } from 'lucide-react-native';
 import { View } from 'react-native';
 
 export const MealTypeKicker = ({ type }: { type: 'breakfast' | 'lunch' | 'dinner' }) => (

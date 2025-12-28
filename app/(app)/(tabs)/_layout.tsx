@@ -1,7 +1,7 @@
 import { TabBar } from '@/components/TabBar';
 import { Tabs } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { BookMarked, Coffee, NotepadText } from 'lucide-react-native';
+import { BookMarked, ShoppingBasket, Utensils } from 'lucide-react-native';
 import { useCurrentUser } from '@/api/auth';
 import { useInvitations } from '@/api/invitations';
 
@@ -17,7 +17,7 @@ export default function Layout() {
           options={{
             title: 'Menu',
             headerShown: false,
-            tabBarIcon: (props) => <Coffee {...props} />,
+            tabBarIcon: (props) => <Utensils {...props} />,
           }}
         />
         <Tabs.Screen
@@ -25,7 +25,7 @@ export default function Layout() {
           options={{
             title: 'Groceries',
             headerShown: false,
-            tabBarIcon: (props) => <NotepadText {...props} />,
+            tabBarIcon: (props) => <ShoppingBasket {...props} />,
           }}
         />
         <Tabs.Screen
@@ -36,7 +36,6 @@ export default function Layout() {
             tabBarIcon: (props) => <BookMarked {...props} />,
           }}
         />
-        {/* <StatusBar barStyle="dark-content" /> */}
       </Tabs>
     </SafeAreaProvider>
   );

@@ -2,12 +2,7 @@ import * as React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
 export const Tag = (props: { size: number; color: string }) => (
-  <Svg
-    viewBox="0 0 24 24"
-    width={props.size}
-    height={props.size}
-    fill={props.color}
-  >
+  <Svg viewBox="0 0 24 24" width={props.size} height={props.size} fill={props.color}>
     <Path
       d="
         M12.586 2.586

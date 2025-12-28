@@ -20,14 +20,12 @@ import {
 import { useAtomValue, useSetAtom } from 'jotai';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import Animated, { useAnimatedReaction, useDerivedValue } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmpty, pipe } from 'remeda';
 import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { Month } from '@/components/menu/month';
 import { colors } from '@/constants/colors';
-import { useTabAnimation } from '@react-navigation/material-top-tabs';
-import { useMount } from '@/hooks/use-mount';
 
 const HEADER_SIZE = 105;
 
@@ -215,18 +213,7 @@ const Content = ({ sheets }: Props) => {
 };
 
 export const MonthlyScreen = ({ sheets }: Props) => {
-  const { position } = useTabAnimation();
   const hasWeeklyScreenLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
-
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const listenerId = position.addListener(({ value }) => {
-      console.log(value);
-      setIsVisible(value > 0.5);
-    });
-
-    return () => position.removeListener(listenerId);
-  }, [position]);
 
   if (!hasWeeklyScreenLoaded) {
     return (

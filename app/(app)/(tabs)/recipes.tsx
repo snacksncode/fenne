@@ -1,19 +1,18 @@
 import { Button } from '@/components/button';
 import { Recipe } from '@/components/recipe';
 import { RouteTitle } from '@/components/RouteTitle';
-import { Plus } from '@/components/svgs/plus';
 import { RecipeDTO, useRecipes } from '@/api/recipes';
 import { useRouter } from 'expo-router';
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { RefObject, useRef } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
-import Animated, { FadeIn, FadeOut, LinearTransition, useScrollOffset } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { isEmpty } from 'remeda';
 import { Text } from '@/components/Text';
 import { RecipeOptionsSheet, RecipeOptionsSheetData } from '@/components/bottomSheets/recipe-options-sheet';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { ListPlus, SquarePlus } from 'lucide-react-native';
+import { SquarePlus } from 'lucide-react-native';
 
 const EmptyList = () => (
   <Animated.View style={styles.emptyContainer} entering={FadeIn}>
@@ -79,13 +78,6 @@ const GAP_SIZE = 16;
 const PageContent = (props: { recipeOptionsSheetRef: RefObject<BottomSheetModal<RecipeOptionsSheetData> | null> }) => {
   const insets = useSafeAreaInsets();
   const recipes = useRecipes();
-  const [enterAnimationsEnabled, setEnterAnimationsEnabled] = useState(false);
-
-  useEffect(() => {
-    if (!recipes.data) return;
-    const id = setTimeout(() => setEnterAnimationsEnabled(true), 500);
-    return () => clearTimeout(id);
-  }, [recipes.data]);
 
   if (!recipes.data) return <RecipesSkeleton />;
   if (isEmpty(recipes.data)) return <EmptyList />;

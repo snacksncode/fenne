@@ -29,6 +29,5 @@ const styles = StyleSheet.create({
     color: '#493D34',
     fontFamily: 'Satoshi-Bold',
     height: 48,
-    lineHeight: 16 * 1.25,
   },
 });

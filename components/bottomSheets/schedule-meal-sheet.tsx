@@ -1,14 +1,12 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Option, SegmentedSelect } from '@/components/Select';
-import { Ham } from '@/components/svgs/ham';
 import { Pancake } from '@/components/svgs/pancake';
-import { Salad } from '@/components/svgs/salad';
 import { Text } from '@/components/Text';
 import { parseISO } from '@/date-tools';
 import { ensure } from '@/utils';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { format } from 'date-fns';
-import { CalendarClock } from 'lucide-react-native';
+import { CalendarClock, Ham, Salad } from 'lucide-react-native';
 import { RefObject, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

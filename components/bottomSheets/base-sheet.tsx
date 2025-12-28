@@ -3,7 +3,6 @@ import {
   BottomSheetModal,
   BottomSheetModalProps,
   BottomSheetView,
-  useBottomSheetInternal,
   useBottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import React, { ReactNode, Ref } from 'react';

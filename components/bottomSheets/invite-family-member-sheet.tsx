@@ -46,6 +46,7 @@ const Content = ({ ref }: SheetProps) => {
               {
                 onSuccess: () => ref.current?.dismiss(),
                 onError: (error) => {
+                  // @ts-expect-error - temporary logging of error instead of custom field error
                   if (error instanceof APIError) alert(error.data.error);
                 },
               }

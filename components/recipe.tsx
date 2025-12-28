@@ -1,11 +1,11 @@
 import { Text } from '@/components/Text';
+import plur from 'plur';
 import { StyleSheet, View } from 'react-native';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { RecipeDTO, useEditRecipe } from '@/api/recipes';
 import { colors } from '@/constants/colors';
 import { toTitleCase } from 'remeda';
 import { CookingPot, Heart, Timer } from 'lucide-react-native';
-import { addMinutes, formatDistance } from 'date-fns';
 import { MealType } from '@/api/schedules';
 
 type Props = {
@@ -38,15 +38,21 @@ const MealTypeDots = (props: { mealTypes: MealType[] }) => {
   );
 };
 
+const formatRecipeDuration = (totalMins: number) => {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h > 0 && m > 0) return `${h} ${plur('hr', h)} ${m} ${plur('min', m)}`;
+  if (h > 0) return `${h} ${plur('hour', h)}`;
+  return `${m} ${plur('minute', m)}`;
+};
+
 export const Recipe = ({
   recipe: { id, name, meal_types, ingredients, time_in_minutes, liked },
   onPress,
   onLongPress,
 }: Props) => {
   const editRecipe = useEditRecipe();
-  const now = new Date();
-  const futureDate = addMinutes(now, time_in_minutes ?? 0);
-  const formattedDuration = formatDistance(now, futureDate, { addSuffix: false });
+  const formattedDuration = formatRecipeDuration(time_in_minutes);
 
   const handleLike = () => {
     const newState = !liked;
@@ -103,13 +109,13 @@ export const Recipe = ({
 
 const styles = StyleSheet.create({
   description: {
-    // backgroundColor: 'red',
     color: colors.brown[800],
     fontFamily: 'Satoshi-Medium',
     fontSize: 14,
     lineHeight: 14 * 1.125,
   },
   title: {
+    marginRight: 24,
     color: colors.brown[900],
     fontFamily: 'Satoshi-Black',
     fontSize: 20,
