@@ -14,7 +14,8 @@ import { Sheets } from '@/components/menu/shared';
 import { EditMealSheet, EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
 import { EditCalendarDaySheet, EditCalendarDaySheetData } from '@/components/bottomSheets/edit-calendar-day-sheet';
 import { CalendarPlus } from 'lucide-react-native';
-import { useUpdateScheduleDay } from '@/api/schedules';
+import { useDeleteScheduleEntry, useUpdateScheduleDay } from '@/api/schedules';
+import { SelectRestaurantSheet, SelectRestaurantSheetData } from '@/components/bottomSheets/select-restaurant-sheet';
 
 export type TabParamList = {
   Weekly: undefined;
@@ -26,10 +27,12 @@ const Tab = createMaterialTopTabNavigator<TabParamList>();
 const Index = () => {
   const insets = useSafeAreaInsets();
   const updateScheduleDay = useUpdateScheduleDay();
+  const deleteScheduleEntry = useDeleteScheduleEntry();
   const scheduleMealSheetRef = useRef<BottomSheetModal<ScheduleMealSheetData>>(null);
   const selectDateSheetRef = useRef<BottomSheetModal>(null);
   const editMealSheetRef = useRef<BottomSheetModal<EditMealSheetData>>(null);
   const editCalendarDaySheetRef = useRef<BottomSheetModal<EditCalendarDaySheetData>>(null);
+  const selectRestaurantSheetRef = useRef<BottomSheetModal<SelectRestaurantSheetData>>(null);
   const sheets: Sheets = {
     scheduleMealSheetRef,
     selectDateSheetRef,
@@ -60,25 +63,60 @@ const Index = () => {
           />
           <ScheduleMealSheet
             ref={scheduleMealSheetRef}
-            onMealSelect={(meal, date, mealType) => {
+            handleSwitchToRestaurant={(params) => {
+              selectRestaurantSheetRef.current?.present(params);
+            }}
+            onMealSelect={({ meal, dateString, mealType }) => {
               updateScheduleDay.mutate({
-                date,
-                ...(mealType === 'breakfast' && { breakfast_recipe_id: meal.id }),
-                ...(mealType === 'lunch' && { lunch_recipe_id: meal.id }),
-                ...(mealType === 'dinner' && { dinner_recipe_id: meal.id }),
+                dateString,
+                ...(mealType === 'breakfast' && { breakfast: { type: 'recipe', recipe_id: meal.id } }),
+                ...(mealType === 'lunch' && { lunch: { type: 'recipe', recipe_id: meal.id } }),
+                ...(mealType === 'dinner' && { dinner: { type: 'recipe', recipe_id: meal.id } }),
               });
-              scheduleMealSheetRef.current?.dismiss();
+            }}
+          />
+          <SelectRestaurantSheet
+            ref={selectRestaurantSheetRef}
+            handleSwitchToRecipes={({ dateString, mealType }) => {
+              return scheduleMealSheetRef.current?.present({ dateString, mealType });
+            }}
+            onRestaurantSelect={({ restaurant, dateString, mealType }) => {
+              updateScheduleDay.mutate({
+                dateString,
+                ...(mealType === 'breakfast' && { breakfast: { type: 'dining_out', name: restaurant } }),
+                ...(mealType === 'lunch' && { lunch: { type: 'dining_out', name: restaurant } }),
+                ...(mealType === 'dinner' && { dinner: { type: 'dining_out', name: restaurant } }),
+              });
             }}
           />
           <SelectDateSheet
             ref={selectDateSheetRef}
-            onDaySelect={({ dateString }) => {
+            onDaySelect={(params) => {
               selectDateSheetRef.current?.dismiss();
-              return scheduleMealSheetRef.current?.present({ dateString });
+              return scheduleMealSheetRef.current?.present(params);
             }}
           />
-          <EditMealSheet ref={editMealSheetRef} scheduleMealSheetRef={scheduleMealSheetRef} />
-          <EditCalendarDaySheet ref={editCalendarDaySheetRef} navigation={navigation} />
+          <EditMealSheet
+            ref={editMealSheetRef}
+            onAmendPlace={(params) => {
+              selectRestaurantSheetRef.current?.present(params);
+            }}
+            onRemove={(params) => {
+              editMealSheetRef.current?.dismiss();
+              deleteScheduleEntry.mutate(params);
+            }}
+            onSwapMeal={(params) => {
+              scheduleMealSheetRef.current?.present(params);
+            }}
+          />
+          <EditCalendarDaySheet
+            ref={editCalendarDaySheetRef}
+            navigation={navigation}
+            onScheduleMeal={({ dateString, mealType }) => {
+              scheduleMealSheetRef.current?.present({ dateString, mealType });
+              editCalendarDaySheetRef.current?.dismiss();
+            }}
+          />
         </View>
       )}
       tabBar={(props) => (

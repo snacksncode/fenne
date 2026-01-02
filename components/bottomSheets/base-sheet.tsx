@@ -6,7 +6,7 @@ import {
   useBottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import React, { ReactNode, Ref } from 'react';
-import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Extrapolation, interpolate, useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,10 +23,15 @@ type BackdropProps = BottomSheetBackdropProps & {
 
 const Backdrop = ({ animatedIndex, style, backdropDismissBehavior }: BackdropProps) => {
   const { dismiss, dismissAll } = useBottomSheetModal();
+  const opacity = useSharedValue(0);
 
-  const containerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [-1, 0], [0, 1], Extrapolation.CLAMP),
-  }));
+  useAnimatedReaction(
+    () => animatedIndex.value,
+    (current, previous) => {
+      if (current < 0 && previous === 0) return;
+      opacity.value = interpolate(animatedIndex.value, [-1, 0], [0, 1], Extrapolation.CLAMP);
+    }
+  );
 
   return (
     <AnimatedPressable
@@ -35,7 +40,7 @@ const Backdrop = ({ animatedIndex, style, backdropDismissBehavior }: BackdropPro
         if (backdropDismissBehavior === 'dismissAll') return dismissAll();
         return dismiss();
       }}
-      style={[style, { backgroundColor: '#4A3E36BF' }, containerAnimatedStyle]}
+      style={[style, { backgroundColor: '#4A3E36BF', opacity }]}
     />
   );
 };

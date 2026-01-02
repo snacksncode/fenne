@@ -1,0 +1,4 @@
+- [ ] Dining out, Add option to mark meals as dining out with optional restaurant name
+- [ ] Settings animations, Add layout animations for smoother transitions in settings page
+- [ ] Profile editing, Allow editing of display name and email in user profile
+- [ ] Shopping list units, Display units on grocery items in shopping list view

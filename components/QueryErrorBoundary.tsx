@@ -50,7 +50,9 @@ export class QueryErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>The app encountered an error. Try clearing the cache to recover.</Text>
+          <Text style={styles.message}>
+            The app encountered an error. Try clearing the app data to recover. This will log you out!
+          </Text>
           <Button
             variant="primary"
             text="Clear Cache & Retry"

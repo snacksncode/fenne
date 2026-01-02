@@ -71,17 +71,15 @@ export const api = {
       return client.get<ScheduleDayDTO[]>(`/schedule?${searchParams.toString()}`);
     },
     updateDay: (data: ScheduleDayInput) => {
-      const { date, ...rest } = data;
-      return client.put(`/schedule/${date}`, { data: rest });
+      const { dateString, ...requestData } = data;
+      return client.put(`/schedule/${dateString}`, requestData);
     },
-    deleteEntry: (data: { date: string; mealType: MealType }) => {
-      const { date, mealType } = data;
-      return client.put(`/schedule/${date}`, {
-        data: {
-          ...(mealType === 'breakfast' && { breakfast_recipe_id: null }),
-          ...(mealType === 'lunch' && { lunch_recipe_id: null }),
-          ...(mealType === 'dinner' && { dinner_recipe_id: null }),
-        },
+    deleteEntry: (data: { dateString: string; mealType: MealType }) => {
+      const { dateString, mealType } = data;
+      return client.put(`/schedule/${dateString}`, {
+        ...(mealType === 'breakfast' && { breakfast: null }),
+        ...(mealType === 'lunch' && { lunch: null }),
+        ...(mealType === 'dinner' && { dinner: null }),
       });
     },
   },

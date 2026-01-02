@@ -37,8 +37,7 @@ import { Sheets, useBackToToday } from '@/components/menu/shared';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { RecipeDTO } from '@/api/recipes';
-import { ScheduleDayDTO, MealType, useSchedule } from '@/api/schedules';
+import { ScheduleDayDTO, MealType, useSchedule, MealEntryDTO } from '@/api/schedules';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
 
@@ -179,21 +178,21 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-const Meal = ({
-  meal,
+const Entry = ({
+  entry,
   sheets,
   dateString,
 }: {
-  meal: RecipeDTO & { type: MealType };
+  entry: MealEntryDTO & { mealType: MealType };
   sheets: Sheets;
   dateString: string;
 }) => (
   <PressableWithHaptics
-    onLongPress={() => sheets.editMealSheetRef.current?.present({ meal, mealType: meal.type, dateString })}
+    onLongPress={() => sheets.editMealSheetRef.current?.present({ ...entry, dateString })}
     style={{ gap: 2 }}
     scaleTo={0.985}
   >
-    <MealTypeKicker type={meal.type} />
+    <MealTypeKicker type={entry.mealType} />
     <Text
       style={{
         color: '#4A3E36',
@@ -202,31 +201,32 @@ const Meal = ({
         lineHeight: 20 * 1.25,
       }}
     >
-      {meal.name}
+      {entry.type === 'recipe' ? entry.recipe.name : entry.name}
     </Text>
   </PressableWithHaptics>
 );
 
+export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDayDTO) => {
+  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
+  const alreadyAddedMealTypes: MealType[] = [];
+  if (breakfast) alreadyAddedMealTypes.push('breakfast');
+  if (lunch) alreadyAddedMealTypes.push('lunch');
+  if (dinner) alreadyAddedMealTypes.push('dinner');
+  return first(difference(mealTypes, alreadyAddedMealTypes));
+};
+
 const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => {
   const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
-  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
-  const meals = filter(
-    [
-      data.breakfast ? { ...data.breakfast, type: 'breakfast' as const } : null,
-      data.lunch ? { ...data.lunch, type: 'lunch' as const } : null,
-      data.dinner ? { ...data.dinner, type: 'dinner' as const } : null,
-    ],
-    isTruthy
-  );
+  const entries = [
+    data.breakfast ? { ...data.breakfast, mealType: 'breakfast' as const } : null,
+    data.lunch ? { ...data.lunch, mealType: 'lunch' as const } : null,
+    data.dinner ? { ...data.dinner, mealType: 'dinner' as const } : null,
+  ].filter(isTruthy);
 
   const onPress = () => {
-    const alreadyAddedMealTypes = filter(
-      [data.breakfast && 'breakfast', data.lunch && 'lunch', data.dinner && 'dinner'] satisfies (MealType | null)[],
-      isTruthy
-    );
     sheets.scheduleMealSheetRef.current?.present({
       dateString: data.date,
-      mealType: first(difference(mealTypes, alreadyAddedMealTypes)),
+      mealType: getFirstMissingMealType(data),
     });
   };
 
@@ -246,12 +246,17 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
       }}
     >
       <LayoutAnimationConfig skipEntering>
-        {meals.map((meal, index) => {
+        {entries.map((entry, index) => {
           return (
-            <Animated.View key={meal.type + meal.id} entering={FadeIn} exiting={FadeOut} layout={LayoutTransition}>
+            <Animated.View
+              key={entry.id + entry.mealType}
+              entering={FadeIn}
+              exiting={FadeOut}
+              layout={LayoutTransition}
+            >
               <View>
-                <Meal meal={meal} dateString={data.date} sheets={sheets} />
-                {index !== meals.length - 1 ? (
+                <Entry entry={entry} dateString={data.date} sheets={sheets} />
+                {index !== entries.length - 1 ? (
                   <View
                     style={{
                       height: 1,
@@ -265,7 +270,7 @@ const DayCard = ({ data, sheets }: { data: ScheduleDayDTO; sheets: Sheets }) => 
           );
         })}
         <LayoutAnimationConfig skipExiting>
-          {meals.length !== 3 ? (
+          {entries.length !== 3 ? (
             <Animated.View
               entering={FadeInDown.springify()}
               exiting={FadeOutDown.springify()}
@@ -408,7 +413,7 @@ const Item = ({
             color: '#4A3E36',
           }}
         >
-          {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
+          {format(date, 'EEEE')}
         </Text>
         {isToday(date) ? (
           <View
@@ -452,6 +457,18 @@ const Item = ({
             <Tag color="#FEF7EA" size={14} />
           </View>
         ) : null}
+        <Text
+          style={{
+            flex: 1,
+            textAlign: 'right',
+            fontFamily: 'Satoshi-Bold',
+            fontSize: 14,
+            lineHeight: 14 * 1.5,
+            color: colors.brown[700],
+          }}
+        >
+          {format(date, 'd MMM')}
+        </Text>
       </Animated.View>
       <Day data={data} dateString={dateString} sheets={sheets} />
     </View>

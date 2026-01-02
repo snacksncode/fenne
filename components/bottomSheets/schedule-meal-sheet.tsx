@@ -4,13 +4,13 @@ import { Pancake } from '@/components/svgs/pancake';
 import { Text } from '@/components/Text';
 import { parseISO } from '@/date-tools';
 import { ensure } from '@/utils';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetScrollView, useBottomSheetModal } from '@gorhom/bottom-sheet';
 import { format } from 'date-fns';
-import { CalendarClock, Ham, Salad } from 'lucide-react-native';
+import { CalendarClock, ChefHat, Ham, Salad } from 'lucide-react-native';
 import { RefObject, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Reanimated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { RecipeDTO, recipesOptions, useRecipes } from '@/api/recipes';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMount } from '@/hooks/use-mount';
@@ -18,6 +18,7 @@ import { Recipe } from '@/components/recipe';
 import { colors } from '@/constants/colors';
 import { MealType } from '@/api/schedules';
 import { sort } from 'remeda';
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 
 export type ScheduleMealSheetData = {
   dateString: string;
@@ -26,13 +27,15 @@ export type ScheduleMealSheetData = {
 
 type SheetProps = {
   ref: RefObject<BottomSheetModal<ScheduleMealSheetData> | null>;
-  onMealSelect: (meal: RecipeDTO, date: string, meal_type: MealType) => void;
+  onMealSelect: (params: { meal: RecipeDTO; dateString: string; mealType: MealType }) => void;
+  handleSwitchToRestaurant: (params: { dateString: string; defaultMealType: MealType }) => void;
 };
 
 type ContentProps = {
   dateString: string;
   defaultMealType: MealType | undefined;
-  onMealSelect: (meal: RecipeDTO, date: string, meal_type: MealType) => void;
+  onMealSelect: (params: { meal: RecipeDTO; mealType: MealType }) => void;
+  handleSwitchToRestaurant: (params: { dateString: string; defaultMealType: MealType }) => void;
 };
 
 const mealTypeOptions: Option<MealType>[] = [
@@ -41,10 +44,25 @@ const mealTypeOptions: Option<MealType>[] = [
   { value: 'dinner', text: 'Dinner', icon: Salad },
 ];
 
-const ScheduleMealSheetContent = ({ dateString, defaultMealType, onMealSelect }: ContentProps) => {
+const getRecipeSortRank = (r: RecipeDTO, mealType: MealType) => {
+  if (r.meal_types.length === 1 && r.meal_types[0] === mealType) return 2;
+  if (r.meal_types.includes(mealType)) return 1;
+  return 0;
+};
+
+const ScheduleMealSheetContent = ({
+  dateString,
+  defaultMealType,
+  onMealSelect,
+  handleSwitchToRestaurant,
+}: ContentProps) => {
   const recipes = useRecipes();
   const insets = useSafeAreaInsets();
   const [mealType, setMealType] = useState<MealType>(defaultMealType ?? 'breakfast');
+  const sortedRecipes = sort(
+    recipes.data ?? [],
+    (a, b) => getRecipeSortRank(b, mealType) - getRecipeSortRank(a, mealType)
+  );
 
   return (
     <BottomSheetScrollView stickyHeaderIndices={[0]}>
@@ -59,59 +77,65 @@ const ScheduleMealSheetContent = ({ dateString, defaultMealType, onMealSelect }:
               lineHeight: 20 * 1.25,
             }}
           >
-            {format(parseISO(dateString), 'EEEE, MMMM d')}
+            {format(parseISO(dateString), 'EEEE, MMM d')}
           </Text>
+          <PressableWithHaptics
+            onPress={() => handleSwitchToRestaurant({ dateString, defaultMealType: mealType })}
+            style={{ marginLeft: 'auto' }}
+            scaleTo={0.9}
+          >
+            <ChefHat color={colors.brown[900]} />
+          </PressableWithHaptics>
         </View>
-        <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+        <View style={[{ paddingHorizontal: 20, paddingBottom: 12 }]}>
           <SegmentedSelect value={mealType} options={mealTypeOptions} onValueChange={setMealType} />
         </View>
       </View>
       <View style={{ paddingHorizontal: 20, gap: 8, paddingBottom: insets.bottom }}>
-        {sort(recipes.data ?? [], (a, b) => {
-          const aOnlyType = a.meal_types.length === 1 && a.meal_types.includes(mealType);
-          const bOnlyType = b.meal_types.length === 1 && b.meal_types.includes(mealType);
-          const aHasType = a.meal_types.includes(mealType);
-          const bHasType = b.meal_types.includes(mealType);
-
-          if (aOnlyType && !bOnlyType) return -1;
-          if (!aOnlyType && bOnlyType) return 1;
-          if (aHasType && !bHasType) return -1;
-          if (!aHasType && bHasType) return 1;
-          return 0;
-        }).map((recipe) => (
-          <Reanimated.View
+        {sortedRecipes.map((recipe) => (
+          <Animated.View
             layout={LinearTransition.springify()}
             key={recipe.id}
             entering={FadeInDown.springify()}
             exiting={FadeOut}
           >
-            <Recipe recipe={recipe} onPress={() => onMealSelect(recipe, dateString, mealType)} />
-          </Reanimated.View>
+            <Recipe recipe={recipe} onPress={() => onMealSelect({ meal: recipe, mealType })} />
+          </Animated.View>
         ))}
       </View>
     </BottomSheetScrollView>
   );
 };
 
-export const ScheduleMealSheet = ({ ref, onMealSelect }: SheetProps) => {
+export const ScheduleMealSheet = ({ ref, onMealSelect, handleSwitchToRestaurant }: SheetProps) => {
+  const { dismissAll } = useBottomSheetModal();
   const queryClient = useQueryClient();
   const windowDimensions = useWindowDimensions();
   useMount(() => void queryClient.prefetchQuery(recipesOptions));
 
   return (
-    <BaseSheet<ScheduleMealSheetData>
-      ref={ref}
-      backdropDismissBehavior="dismissAll"
-      snapPoints={['60%']}
-      maxDynamicContentSize={windowDimensions.height * 0.9}
-    >
-      {(props) => (
-        <ScheduleMealSheetContent
-          dateString={ensure(props.data?.dateString)}
-          defaultMealType={props.data?.mealType}
-          onMealSelect={onMealSelect}
-        />
-      )}
-    </BaseSheet>
+    <>
+      <BaseSheet<ScheduleMealSheetData>
+        ref={ref}
+        backdropDismissBehavior="dismissAll"
+        snapPoints={['60%']}
+        maxDynamicContentSize={windowDimensions.height * 0.9}
+      >
+        {(props) => {
+          const { dateString, mealType } = ensure(props.data);
+          return (
+            <ScheduleMealSheetContent
+              dateString={dateString}
+              defaultMealType={mealType}
+              onMealSelect={({ meal, mealType: selectedMealType }) => {
+                dismissAll();
+                onMealSelect({ meal, dateString, mealType: selectedMealType });
+              }}
+              handleSwitchToRestaurant={handleSwitchToRestaurant}
+            />
+          );
+        }}
+      </BaseSheet>
+    </>
   );
 };

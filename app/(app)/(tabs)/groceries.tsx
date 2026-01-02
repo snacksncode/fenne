@@ -46,6 +46,7 @@ import { colors } from '@/constants/colors';
 import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
 import { ensure } from '@/utils';
 import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
+import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 
 type AisleDTO = {
   aisle: AisleCategory;
@@ -258,6 +259,22 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
   );
 };
 
+const unitFormatters: Record<Unit, (data: { count: number }) => string> = {
+  count: () => '',
+  g: () => ' g',
+  kg: () => ' kg',
+  ml: () => ' ml',
+  l: () => ' l',
+  fl_oz: () => ' fl oz',
+  cup: ({ count }) => (count === 1 ? ' cup' : ' cups'),
+  tbsp: () => ' tbsp',
+  tsp: () => ' tsp',
+  pt: ({ count }) => (count === 1 ? ' pt' : ' pts'),
+  qt: ({ count }) => (count === 1 ? ' qt' : ' qts'),
+  oz: () => ' oz',
+  lb: () => ' lb',
+};
+
 const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sheets }) => {
   const swipeRef = useRef<SwipeableMethods>(null);
   const editGroceryItem = useEditGroceryItem();
@@ -312,14 +329,41 @@ const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sh
           gap: 12,
           paddingHorizontal: 16,
           paddingVertical: 12,
+          alignItems: 'flex-start',
         }}
       >
         <Animated.View style={scaleStyle}>
           <Checkbox isChecked={isCompleted} progress={progress} />
         </Animated.View>
-        <Animated.Text style={[{ fontFamily: 'Satoshi-Bold', fontSize: 16, lineHeight: 16 * 1.5 }, textStyles]}>
+        <Animated.Text
+          style={[{ flex: 1, fontFamily: 'Satoshi-Bold', fontSize: 16, lineHeight: 16 * 1.5 }, textStyles]}
+        >
           {item.name}
         </Animated.Text>
+        {!(item.quantity === 1 && item.unit === 'count') && (
+          <View
+            style={{
+              borderRadius: 999,
+              height: 24,
+              paddingHorizontal: 6,
+              backgroundColor: colors.orange[500],
+              borderWidth: 2,
+              borderBottomWidth: 3,
+              borderColor: colors.orange[600],
+            }}
+          >
+            <Text
+              style={{
+                color: colors.cream[100],
+                fontFamily: 'Satoshi-Bold',
+                fontSize: 14,
+              }}
+            >
+              {item.quantity}
+              {unitFormatters[item.unit]({ count: item.quantity })}
+            </Text>
+          </View>
+        )}
       </ReanimatedSwipeable>
     </AnimatedPressable>
   );
@@ -542,7 +586,8 @@ const styles = StyleSheet.create({
   leftActionContainer: {
     flexDirection: 'row',
     gap: 8,
-    padding: 8,
+    paddingHorizontal: 8,
+    alignItems: 'center',
   },
   deleteText: {
     color: 'white',
