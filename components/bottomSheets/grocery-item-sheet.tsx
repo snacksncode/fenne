@@ -1,4 +1,4 @@
-import { IngredientFormData } from '@/api/schedules';
+import { GroceryItemDTO, useAddGroceryItem, useEditGroceryItem } from '@/api/groceries';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
@@ -6,49 +6,72 @@ import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
+import { nanoid } from 'nanoid/non-secure';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowRight } from 'lucide-react-native';
-import { nanoid } from 'nanoid/non-secure';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 
-export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) => {
-  const initialIngredient = props.payload?.ingredient;
-  const [ingredient, setIngredient] = useState<IngredientFormData>(() => {
-    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '', aisle: 'other', unit: 'g' };
+export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
+  const initialGrocery = props.payload?.grocery;
+  const [grocery, setGrocery] = useState<GroceryItemDTO>(() => {
+    if (initialGrocery) return initialGrocery;
+    return {
+      id: nanoid(),
+      name: '',
+      quantity: 1,
+      unit: 'count' as Unit,
+      aisle: 'other',
+      status: 'pending',
+    };
   });
 
+  const addGroceryItem = useAddGroceryItem();
+  const editGroceryItem = useEditGroceryItem();
+  const isEditing = !!initialGrocery;
+
   const handleSave = () => {
-    if (!ingredient.name.trim()) return;
-    SheetManager.hide(props.sheetId, { payload: ingredient });
+    if (!grocery.name.trim()) return;
+    if (isEditing) {
+      editGroceryItem.mutate({
+        id: grocery.id,
+        name: grocery.name,
+        aisle: grocery.aisle,
+        quantity: grocery.quantity,
+        unit: grocery.unit,
+      });
+    } else {
+      addGroceryItem.mutate({
+        name: grocery.name,
+        aisle: grocery.aisle,
+        quantity: grocery.quantity,
+        unit: grocery.unit,
+        status: 'pending',
+      });
+    }
+    SheetManager.hide(props.sheetId);
     Keyboard.dismiss();
   };
 
   const handleOpenUnitSheet = async () => {
-    const unit = await SheetManager.show('select-unit-sheet', {
-      payload: { unit: ingredient.unit as Unit },
-    });
-    if (unit) {
-      setIngredient((prev) => ({ ...prev, unit }));
-    }
+    const unit = await SheetManager.show('select-unit-sheet', { payload: grocery });
+    if (unit) setGrocery((prev) => ({ ...prev, unit }));
   };
 
   const handleOpenCategorySheet = async () => {
     const aisle = await SheetManager.show('select-category-sheet');
-    if (aisle) {
-      setIngredient((prev) => ({ ...prev, aisle }));
-    }
+    if (aisle) setGrocery((prev) => ({ ...prev, aisle }));
   };
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>{initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}</Text>
+      <Text style={styles.header}>{initialGrocery ? 'Edit Item' : 'Add Item'}</Text>
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Name</Text>
           <TextInput
-            value={ingredient.name}
-            onChangeText={(name) => setIngredient((prev) => ({ ...prev, name }))}
+            value={grocery.name}
+            onChangeText={(name) => setGrocery((prev) => ({ ...prev, name }))}
             placeholder="e.g. Avocado"
           />
         </View>
@@ -56,8 +79,8 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Quantity</Text>
             <TextInput
-              value={ingredient.quantity.toString()}
-              onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
+              value={grocery.quantity.toString()}
+              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: parseFloat(quantity) || 0 }))}
               placeholder="e.g. 2"
               keyboardType="decimal-pad"
             />
@@ -67,7 +90,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             <PressableWithHaptics onPress={handleOpenUnitSheet}>
               <View style={styles.unitButton}>
                 <Text style={styles.unitText}>
-                  {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseFloat(ingredient.quantity) })}
+                  {UNITS.find((u) => u.value === grocery.unit)?.label({ count: grocery.quantity })}
                 </Text>
               </View>
             </PressableWithHaptics>
@@ -76,12 +99,18 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
         <View>
           <Text style={styles.label}>Category</Text>
           <PressableWithHaptics onPress={handleOpenCategorySheet}>
-            <AisleHeader type={ingredient.aisle} />
+            <AisleHeader type={grocery.aisle} />
           </PressableWithHaptics>
         </View>
       </View>
-      <View style={{ marginTop: 24 }}>
-        <Button text="Save ingredient" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={handleSave} />
+      <View style={{ marginTop: 32 }}>
+        <Button
+          text={initialGrocery ? 'Save changes' : 'Save item'}
+          variant="primary"
+          rightIcon={{ Icon: ArrowRight }}
+          onPress={handleSave}
+          isLoading={addGroceryItem.isPending || editGroceryItem.isPending}
+        />
       </View>
     </BaseSheet>
   );

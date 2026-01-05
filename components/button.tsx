@@ -131,6 +131,8 @@ const styles = StyleSheet.create({
   small: {
     height: 36,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderBottomWidth: 2,
   },
   pillText: {
     fontSize: 14,

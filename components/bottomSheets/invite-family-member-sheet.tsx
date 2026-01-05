@@ -2,29 +2,25 @@ import { APIError } from '@/api/client';
 import { usePostInvite } from '@/api/invitations';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
-import { SheetTextInput } from '@/components/input';
+import { TextInput } from '@/components/input';
 import { Text } from '@/components/Text';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { MailPlus } from 'lucide-react-native';
-import { RefObject, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { isEmpty } from 'remeda';
 
-type SheetProps = {
-  ref: RefObject<BottomSheetModal | null>;
-};
-
-const Content = ({ ref }: SheetProps) => {
+export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-sheet'>) => {
   const postInvite = usePostInvite();
   const [email, setEmail] = useState('');
 
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>Expand your family</Text>
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Email</Text>
-          <SheetTextInput
+          <TextInput
             value={email}
             onChangeText={setEmail}
             placeholder="e.g. partner@example.com"
@@ -44,7 +40,7 @@ const Content = ({ ref }: SheetProps) => {
             postInvite.mutate(
               { email },
               {
-                onSuccess: () => ref.current?.dismiss(),
+                onSuccess: () => SheetManager.hide(props.sheetId),
                 onError: (error) => {
                   // @ts-expect-error - temporary logging of error instead of custom field error
                   if (error instanceof APIError) alert(error.data.error);
@@ -54,14 +50,6 @@ const Content = ({ ref }: SheetProps) => {
           }}
         />
       </View>
-    </BaseSheet.Container>
-  );
-};
-
-export const InviteFamilyMemberSheet = ({ ref }: SheetProps) => {
-  return (
-    <BaseSheet ref={ref}>
-      <Content ref={ref} />
     </BaseSheet>
   );
 };

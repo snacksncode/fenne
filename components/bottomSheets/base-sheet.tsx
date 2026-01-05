@@ -1,79 +1,46 @@
-import {
-  BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetModalProps,
-  BottomSheetView,
-  useBottomSheetModal,
-} from '@gorhom/bottom-sheet';
-import React, { ReactNode, Ref } from 'react';
-import Animated, { Extrapolation, interpolate, useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
-import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
+import ActionSheet, { ActionSheetProps } from 'react-native-actions-sheet';
+import { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type BaseSheetProps<T> = BottomSheetModalProps<T> & {
-  ref: Ref<BottomSheetModal>;
-  backdropDismissBehavior?: 'dismissAll';
+type BaseSheetProps = Partial<ActionSheetProps> & {
+  children: ReactNode;
+  id: string;
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-type BackdropProps = BottomSheetBackdropProps & {
-  backdropDismissBehavior?: 'dismissAll';
-};
-
-const Backdrop = ({ animatedIndex, style, backdropDismissBehavior }: BackdropProps) => {
-  const { dismiss, dismissAll } = useBottomSheetModal();
-  const opacity = useSharedValue(0);
-
-  useAnimatedReaction(
-    () => animatedIndex.value,
-    (current, previous) => {
-      if (current < 0 && previous === 0) return;
-      opacity.value = interpolate(animatedIndex.value, [-1, 0], [0, 1], Extrapolation.CLAMP);
-    }
-  );
-
+export const BaseSheet = ({ children, ...props }: BaseSheetProps) => {
+  const insets = useSafeAreaInsets();
   return (
-    <AnimatedPressable
-      onPress={() => {
-        if (Keyboard.isVisible()) return;
-        if (backdropDismissBehavior === 'dismissAll') return dismissAll();
-        return dismiss();
-      }}
-      style={[style, { backgroundColor: '#4A3E36BF', opacity }]}
-    />
+    <ActionSheet
+      gestureEnabled
+      containerStyle={styles.container}
+      indicatorStyle={styles.indicator}
+      overlayColor={colors.brown[900]}
+      defaultOverlayOpacity={0.75}
+      useBottomSafeAreaPadding={false}
+      {...props}
+    >
+      <View style={[styles.innerContainer, { paddingBottom: insets.bottom }]}>{children}</View>
+    </ActionSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     backgroundColor: '#FEF7EA',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
-  handle: {
+  indicator: {
     width: 64,
-    backgroundColor: '#766356',
+    backgroundColor: colors.brown[800],
+    height: 4,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  innerContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
 });
-
-export const BaseSheet = <T,>({ children: Children, backdropDismissBehavior, ref, ...props }: BaseSheetProps<T>) => (
-  <BottomSheetModal
-    ref={ref}
-    handleIndicatorStyle={styles.handle}
-    handleStyle={{ paddingBottom: 16 }}
-    backdropComponent={(props) => <Backdrop {...props} backdropDismissBehavior={backdropDismissBehavior} />}
-    backgroundComponent={({ style, ...props }) => <View style={[style, styles.background]} {...props} />}
-    keyboardBlurBehavior="restore"
-    {...props}
-  >
-    {(renderProps) => <>{typeof Children === 'function' ? <Children {...renderProps} /> : Children}</>}
-  </BottomSheetModal>
-);
-
-BaseSheet.Container = function Container(props: { children: ReactNode }) {
-  const insets = useSafeAreaInsets();
-  return (
-    <BottomSheetView style={{ paddingBottom: insets.bottom, paddingHorizontal: 20 }}>{props.children}</BottomSheetView>
-  );
-};

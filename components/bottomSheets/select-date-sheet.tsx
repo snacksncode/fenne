@@ -5,23 +5,28 @@ import { Month } from '@/components/menu/month';
 import { Text } from '@/components/Text';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { RefObject, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
-type SheetProps = {
-  ref: RefObject<BottomSheetModal | null>;
-  onDaySelect: (data: { dateString: string }) => void;
-};
-
-export const SelectDateSheet = ({ ref, onDaySelect }: SheetProps) => {
+export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const { scheduleMap } = useSchedule({ weeks });
+
+  const handleDaySelect = ({ dateString }: { dateString: string; isEmpty: boolean }) => {
+    SheetManager.show('schedule-meal-sheet', {
+      payload: {
+        dateString,
+      },
+    });
+    SheetManager.hide(props.sheetId);
+  };
+
   const leftArrow = useOnPressWithFeedback({
     onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1))),
     scaleTo: 0.75,
@@ -32,27 +37,30 @@ export const SelectDateSheet = ({ ref, onDaySelect }: SheetProps) => {
   });
 
   return (
-    <BaseSheet ref={ref}>
-      <BaseSheet.Container>
-        <Text style={styles.header}>Select a day</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <GestureDetector gesture={leftArrow.gesture}>
-              <Animated.View style={leftArrow.scaleStyle}>
-                <ChevronLeft size={24} color="#4A3E36" />
-              </Animated.View>
-            </GestureDetector>
-            <GestureDetector gesture={rightArrow.gesture}>
-              <Animated.View style={rightArrow.scaleStyle}>
-                <ChevronRight size={24} color="#4A3E36" />
-              </Animated.View>
-            </GestureDetector>
-          </View>
+    <BaseSheet id={props.sheetId}>
+      <Text style={styles.header}>Select a day</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <GestureDetector gesture={leftArrow.gesture}>
+            <Animated.View style={leftArrow.scaleStyle}>
+              <ChevronLeft size={24} color="#4A3E36" />
+            </Animated.View>
+          </GestureDetector>
+          <GestureDetector gesture={rightArrow.gesture}>
+            <Animated.View style={rightArrow.scaleStyle}>
+              <ChevronRight size={24} color="#4A3E36" />
+            </Animated.View>
+          </GestureDetector>
         </View>
-        <Month startOfMonthDate={currentMonthDate} onDaySelect={onDaySelect} scheduleMap={scheduleMap} />
-        <Button style={{ marginTop: 32 }} onPress={() => ref.current?.dismiss()} variant="outlined" text="Cancel" />
-      </BaseSheet.Container>
+      </View>
+      <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+      <Button
+        style={{ marginTop: 32 }}
+        onPress={() => SheetManager.hide(props.sheetId)}
+        variant="outlined"
+        text="Cancel"
+      />
     </BaseSheet>
   );
 };

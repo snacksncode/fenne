@@ -2,14 +2,13 @@ import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowLeftRight, MapPin, Trash2 } from 'lucide-react-native';
-import { FunctionComponent, RefObject } from 'react';
+import { FunctionComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
-import { MealEntryDTO, MealType } from '@/api/schedules';
-import { ensure } from '@/utils';
+import { MealEntryDTO, MealType, useDeleteScheduleEntry } from '@/api/schedules';
 
 export type EditMealSheetData = MealEntryDTO & { mealType: MealType; dateString: string };
 
@@ -33,20 +32,18 @@ const Action = ({ onPress, text, icon: Icon }: ActionProps) => {
   );
 };
 
-type ContentProps = {
-  data: EditMealSheetData;
-  onAmendPlace: (params: { dateString: string; defaultMealType: MealType; defaultRestaurant: string }) => void;
-  onSwapMeal: (params: { dateString: string; mealType: MealType }) => void;
-  onRemove: (params: { dateString: string; mealType: MealType }) => void;
-};
+export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
+  const { data } = props.payload ?? {};
+  const deleteScheduleEntry = useDeleteScheduleEntry();
 
-export const EditMealSheetContent = ({ data, onAmendPlace, onSwapMeal, onRemove }: ContentProps) => {
+  if (!data) return null;
+
   const { dateString, mealType, ...entry } = data;
   const mealName = entry.type === 'recipe' ? entry.recipe.name : entry.name;
   const isDiningOut = entry.type === 'dining_out';
 
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>
         What to do with{'\n'}
         <Text style={{ backgroundColor: colors.orange[100] }}>&ldquo;{mealName}&rdquo;</Text>?
@@ -56,39 +53,43 @@ export const EditMealSheetContent = ({ data, onAmendPlace, onSwapMeal, onRemove 
           <Action
             text="Amend place"
             icon={MapPin}
-            onPress={() => onAmendPlace({ dateString, defaultMealType: mealType, defaultRestaurant: entry.name })}
+            onPress={() => {
+              SheetManager.show('select-restaurant-sheet', {
+                payload: {
+                  dateString,
+                  defaultMealType: mealType,
+                  defaultRestaurant: entry.name,
+                },
+              });
+              SheetManager.hide('edit-meal-sheet');
+            }}
           />
         )}
         <Action
           text={isDiningOut ? 'Swap for a meal' : 'Swap for a different meal'}
           icon={ArrowLeftRight}
-          onPress={() => onSwapMeal({ dateString, mealType })}
+          onPress={() => {
+            SheetManager.show('schedule-meal-sheet', {
+              payload: {
+                dateString,
+                mealType,
+              },
+            });
+            SheetManager.hide('edit-meal-sheet');
+          }}
         />
-        <Action text="Remove" icon={Trash2} onPress={() => onRemove({ dateString, mealType })} />
+        <Action
+          text="Remove"
+          icon={Trash2}
+          onPress={() => {
+            deleteScheduleEntry.mutate({ dateString, mealType });
+            SheetManager.hide('edit-meal-sheet');
+          }}
+        />
       </View>
-    </BaseSheet.Container>
+    </BaseSheet>
   );
 };
-
-type SheetProps = {
-  ref: RefObject<BottomSheetModal<EditMealSheetData> | null>;
-  onAmendPlace: (params: { dateString: string; defaultMealType: MealType; defaultRestaurant: string }) => void;
-  onSwapMeal: (params: { dateString: string; mealType: MealType }) => void;
-  onRemove: (params: { dateString: string; mealType: MealType }) => void;
-};
-
-export const EditMealSheet = ({ ref, onAmendPlace, onSwapMeal, onRemove }: SheetProps) => (
-  <BaseSheet<EditMealSheetData> ref={ref}>
-    {({ data }) => (
-      <EditMealSheetContent
-        data={ensure(data)}
-        onAmendPlace={onAmendPlace}
-        onSwapMeal={onSwapMeal}
-        onRemove={onRemove}
-      />
-    )}
-  </BaseSheet>
-);
 
 const styles = StyleSheet.create({
   header: {

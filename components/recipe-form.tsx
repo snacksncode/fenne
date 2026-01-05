@@ -1,16 +1,15 @@
-import { EditIngredientSheet, EditIngredientSheetData } from '@/components/bottomSheets/edit-ingredient-sheet';
 import { RecipeDTO, RecipeFormData, useAddRecipe, useEditRecipe } from '@/api/recipes';
 import { IngredientFormData, MealType } from '@/api/schedules';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SheetManager } from 'react-native-actions-sheet';
 import Animated, {
   Extrapolation,
   FadeOut,
@@ -217,7 +216,6 @@ const getIngredients = (recipe: RecipeDTO | undefined) => {
 export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const navigation = useNavigation();
   const nameInputRef = useRef<TextInputType>(null);
-  const editIngredientSheetRef = useRef<BottomSheetModal<EditIngredientSheetData>>(null);
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
   const [recipeName, setRecipeName] = useState(recipe?.name ?? '');
@@ -232,14 +230,6 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
     return () => clearTimeout(id);
   });
 
-  const handleAddIngredient = () => editIngredientSheetRef.current?.present();
-
-  const handleEditIngredient = (ingredient: IngredientFormData) => {
-    editIngredientSheetRef.current?.present({ ingredient });
-  };
-
-  const handleDeleteIngredient = (id: string) => setIngredients((prev) => prev.filter((item) => item._id !== id));
-
   const handleSaveIngredient = (ingredient: IngredientFormData) => {
     setIngredients((prev) => {
       const _ingredient = prev.find((i) => i._id === ingredient._id);
@@ -247,6 +237,18 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       return prev.map((i) => (i._id !== ingredient._id ? i : ingredient));
     });
   };
+
+  const handleAddIngredient = async () => {
+    const result = await SheetManager.show('edit-ingredient-sheet');
+    if (result) handleSaveIngredient(result);
+  };
+
+  const handleEditIngredient = async (ingredient: IngredientFormData) => {
+    const result = await SheetManager.show('edit-ingredient-sheet', { payload: { ingredient } });
+    if (result) handleSaveIngredient(result);
+  };
+
+  const handleDeleteIngredient = (id: string) => setIngredients((prev) => prev.filter((item) => item._id !== id));
 
   const handleSubmit = () => {
     Keyboard.dismiss();
@@ -376,7 +378,6 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           isLoading={addRecipe.isPending || editRecipe.isPending}
         />
       </View>
-      <EditIngredientSheet ref={editIngredientSheetRef} onSave={handleSaveIngredient} />
     </SafeAreaView>
   );
 }

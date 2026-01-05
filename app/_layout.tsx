@@ -1,4 +1,5 @@
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { SheetProvider } from 'react-native-actions-sheet';
+import { Sheets } from '@/sheets';
 import { DevToolsBubble } from 'react-native-react-query-devtools';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
@@ -66,9 +67,10 @@ export default function Layout() {
           <GestureHandlerRootView>
             <InvalidationChannel />
             <ConnectionStatus />
-            <BottomSheetModalProvider>
+            <SheetProvider>
+              <Sheets />
               <RootLayout />
-            </BottomSheetModalProvider>
+            </SheetProvider>
             <DevToolsBubble queryClient={queryClient} />
           </GestureHandlerRootView>
         </SessionProvider>

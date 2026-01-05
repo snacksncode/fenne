@@ -23,7 +23,10 @@ import { ActivityIndicator, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmpty, pipe } from 'remeda';
-import { Sheets, useBackToToday } from '@/components/menu/shared';
+import { useBackToToday } from '@/components/menu/shared';
+import { SheetManager } from 'react-native-actions-sheet';
+import { EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
+import { NavigationHelpers } from '@react-navigation/native';
 import { Month } from '@/components/menu/month';
 import { colors } from '@/constants/colors';
 
@@ -31,14 +34,16 @@ const HEADER_SIZE = 105;
 
 type Navigation = BottomTabNavigationProp<TabParamList, 'Monthly'>;
 
+type ShowEditCalendarDaySheet = (dateString: string, navigation: Navigation) => void;
+
 const Item = memo(function Item({
   scheduleMap,
   dateString,
-  sheets,
+  showEditCalendarDaySheet,
 }: {
   scheduleMap: Record<string, ScheduleDayDTO>;
   dateString: string;
-  sheets: Sheets;
+  showEditCalendarDaySheet: ShowEditCalendarDaySheet;
 }) {
   const navigation = useNavigation<Navigation>();
   const setScrollTarget = useSetAtom(scrollTargetAtom);
@@ -81,7 +86,7 @@ const Item = memo(function Item({
           navigation.navigate('Weekly');
         }}
         onDayLongPress={({ dateString }) => {
-          sheets.editCalendarDaySheetRef.current?.present({ dateString });
+          showEditCalendarDaySheet(dateString, navigation as any);
         }}
       />
     </View>
@@ -90,8 +95,10 @@ const Item = memo(function Item({
 
 const GAP_SIZE = 24;
 
+type ShowEditMealSheet = (data: EditMealSheetData) => void;
+
 type Props = {
-  sheets: Sheets;
+  showEditCalendarDaySheet: ShowEditCalendarDaySheet;
 };
 
 const useDateRange = () => {
@@ -120,7 +127,7 @@ const useDateRange = () => {
   return { weeks, months, expandIntoPast, expandIntoFuture };
 };
 
-const Content = ({ sheets }: Props) => {
+const Content = ({ showEditCalendarDaySheet }: { showEditCalendarDaySheet: ShowEditCalendarDaySheet }) => {
   const isScreenFocused = useIsFocused();
   const monthlyListRef = useRef<FlashListRef<string>>(null);
   const hasScrolledRef = useRef(false);
@@ -192,7 +199,7 @@ const Content = ({ sheets }: Props) => {
       <FlashList
         ref={monthlyListRef}
         data={months}
-        renderItem={({ item }) => <Item scheduleMap={scheduleMap} dateString={item} sheets={sheets} />}
+        renderItem={({ item }) => <Item scheduleMap={scheduleMap} dateString={item} showEditCalendarDaySheet={showEditCalendarDaySheet} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => getUnixTime(item).toString()}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
@@ -212,7 +219,7 @@ const Content = ({ sheets }: Props) => {
   );
 };
 
-export const MonthlyScreen = ({ sheets }: Props) => {
+export const MonthlyScreen = ({ showEditCalendarDaySheet }: { showEditCalendarDaySheet: ShowEditCalendarDaySheet }) => {
   const hasWeeklyScreenLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
 
   if (!hasWeeklyScreenLoaded) {
@@ -223,5 +230,5 @@ export const MonthlyScreen = ({ sheets }: Props) => {
     );
   }
 
-  return <Content sheets={sheets} />;
+  return <Content showEditCalendarDaySheet={showEditCalendarDaySheet} />;
 };

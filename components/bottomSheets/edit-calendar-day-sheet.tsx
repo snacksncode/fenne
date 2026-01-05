@@ -1,9 +1,9 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Text } from '@/components/Text';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { CalendarPlus, CalendarSearch } from 'lucide-react-native';
-import { FunctionComponent, RefObject } from 'react';
+import { FunctionComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -11,20 +11,9 @@ import { Tag } from '@/components/svgs/tag';
 import { format } from 'date-fns';
 import { getISOWeekString, parseISO } from '@/date-tools';
 import { colors } from '@/constants/colors';
-import { NavigationHelpers } from '@react-navigation/native';
 import { useSetAtom } from 'jotai';
 import { getFirstMissingMealType, scrollTargetAtom } from '@/components/menu/weekly-screen';
-import { TabParamList } from '@/app/(app)/(tabs)';
-import { MealType, useSchedule, useUpdateScheduleDay } from '@/api/schedules';
-import { ensure } from '@/utils';
-
-export type EditCalendarDaySheetData = { dateString: string };
-
-type SheetProps = {
-  ref: RefObject<BottomSheetModal<EditCalendarDaySheetData> | null>;
-  navigation: NavigationHelpers<TabParamList>;
-  onScheduleMeal: (params: { dateString: string; mealType: MealType | undefined }) => void;
-};
+import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
 
 const Action = (props: {
   onPress: () => void;
@@ -44,15 +33,19 @@ const Action = (props: {
   );
 };
 
-const Content = ({ dateString, ref, navigation, onScheduleMeal }: { dateString: string } & SheetProps) => {
-  const { scheduleMap } = useSchedule({ weeks: [getISOWeekString(dateString)] });
+export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'>) => {
+  const { dateString, navigation } = props.payload ?? {};
+  const { scheduleMap } = useSchedule({ weeks: dateString ? [getISOWeekString(dateString)] : [] });
   const setScrollTarget = useSetAtom(scrollTargetAtom);
   const updateScheduleDay = useUpdateScheduleDay();
+
+  if (!dateString || !navigation) return null;
+
   const scheduleDay = scheduleMap[dateString];
-  const { is_shopping_day } = scheduleDay;
+  const is_shopping_day = scheduleDay?.is_shopping_day ?? false;
 
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>
         What to do with{'\n'}
         <Text style={{ backgroundColor: colors.orange[100] }}>
@@ -64,7 +57,15 @@ const Content = ({ dateString, ref, navigation, onScheduleMeal }: { dateString: 
         <Action
           text="Schedule meal"
           icon={CalendarPlus}
-          onPress={() => onScheduleMeal({ dateString, mealType: getFirstMissingMealType(scheduleDay) })}
+          onPress={() => {
+            SheetManager.show('schedule-meal-sheet', {
+              payload: {
+                dateString,
+                mealType: scheduleDay ? getFirstMissingMealType(scheduleDay) : undefined,
+              },
+            });
+            SheetManager.hide(props.sheetId);
+          }}
         />
         <Action
           text='Find in "Weekly"'
@@ -72,7 +73,7 @@ const Content = ({ dateString, ref, navigation, onScheduleMeal }: { dateString: 
           onPress={() => {
             setScrollTarget({ dateString });
             navigation.navigate('Weekly');
-            ref.current?.dismiss();
+            SheetManager.hide(props.sheetId);
           }}
         />
         <Action
@@ -80,21 +81,10 @@ const Content = ({ dateString, ref, navigation, onScheduleMeal }: { dateString: 
           icon={Tag}
           onPress={() => {
             updateScheduleDay.mutate({ dateString, is_shopping_day: !is_shopping_day });
-            ref.current?.dismiss();
+            SheetManager.hide(props.sheetId);
           }}
         />
       </View>
-    </BaseSheet.Container>
-  );
-};
-
-export const EditCalendarDaySheet = ({ ref, navigation, onScheduleMeal }: SheetProps) => {
-  return (
-    <BaseSheet<EditCalendarDaySheetData> ref={ref}>
-      {({ data }) => {
-        const { dateString } = ensure(data);
-        return <Content dateString={dateString} ref={ref} navigation={navigation} onScheduleMeal={onScheduleMeal} />;
-      }}
     </BaseSheet>
   );
 };

@@ -1,8 +1,6 @@
-import { EditGroceryItemSheet, EditGroceryItemSheetData } from '@/components/bottomSheets/edit-grocery-item-sheet';
 import {
   AisleCategory,
   GroceryItemDTO,
-  useAddGroceryItem,
   useDeleteGroceryItem,
   useEditGroceryItem,
   useGroceries,
@@ -12,11 +10,10 @@ import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-hand
 import { Button } from '@/components/button';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Text } from '@/components/Text';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { CirclePlus, ListPlus, Pen, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -40,20 +37,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { scheduleOnUI } from 'react-native-worklets';
 import { doNothing, entries, groupBy, isEmpty, map, sortBy } from 'remeda';
-import { NewGroceryItemSheet } from '@/components/bottomSheets/new-grocery-item-sheet';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
-import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
-import { ensure } from '@/utils';
-import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { SheetManager } from 'react-native-actions-sheet';
 
 type AisleDTO = {
   aisle: AisleCategory;
   items: GroceryItemDTO[];
 };
 
-const EmptyList = ({ sheets }: { sheets: Sheets }) => {
+const EmptyList = () => {
   return (
     <Animated.View style={styles.container} entering={FadeIn}>
       <View style={styles.basket}>
@@ -69,13 +63,13 @@ const EmptyList = ({ sheets }: { sheets: Sheets }) => {
           text="Add Your First Item"
           variant="outlined"
           leftIcon={{ Icon: CirclePlus }}
-          onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
+          onPress={() => SheetManager.show('grocery-item-sheet')}
         />
         <Button
           text="Auto-Generate from Menu"
           variant="primary"
           leftIcon={{ Icon: WandSparkles }}
-          onPress={() => sheets.selectDateRangeSheetRef.current?.present()}
+          onPress={() => SheetManager.show('select-date-range-sheet')}
         />
       </View>
     </Animated.View>
@@ -275,7 +269,7 @@ const unitFormatters: Record<Unit, (data: { count: number }) => string> = {
   lb: () => ' lb',
 };
 
-const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sheets }) => {
+const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
   const swipeRef = useRef<SwipeableMethods>(null);
   const editGroceryItem = useEditGroceryItem();
   const deleteGroceryItem = useDeleteGroceryItem();
@@ -302,7 +296,7 @@ const GroceryItem = ({ item: _item, sheets }: { item: GroceryItemDTO; sheets: Sh
   const closeSwipeable = () => swipeRef.current?.close();
   const handleEdit = () => {
     closeSwipeable();
-    sheets.editGroceryItemSheetRef.current?.present({ item });
+    SheetManager.show('grocery-item-sheet', { payload: { grocery: _item } });
   };
   const onRemove = () => {
     deleteGroceryItem.mutate({ id: _item.id });
@@ -373,11 +367,9 @@ const GAP_SIZE = 24;
 
 const Aisle = ({
   aisle: { aisle, items },
-  sheets,
   enterAnimationsEnabled,
 }: {
   aisle: AisleDTO;
-  sheets: Sheets;
   enterAnimationsEnabled: boolean;
 }) => (
   <Animated.View
@@ -406,7 +398,7 @@ const Aisle = ({
           exiting={FadeOut}
           {...(enterAnimationsEnabled && { entering: FadeIn })}
         >
-          <GroceryItem key={item.id} item={item} sheets={sheets} />
+          <GroceryItem key={item.id} item={item} />
         </Animated.View>
       ))}
     </Animated.View>
@@ -437,7 +429,7 @@ const parseAisles = (groceries: GroceryItemDTO[]) => {
   return sortBy(aisles, ({ aisle }) => aisleOrder[aisle] ?? 999);
 };
 
-const PageContent = ({ sheets }: { sheets: Sheets }) => {
+const PageContent = () => {
   const insets = useSafeAreaInsets();
   const groceries = useGroceries();
   const groceryCheckout = useGroceryCheckout();
@@ -451,7 +443,7 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
   }, [groceries.data]);
 
   if (!groceries.data) return <GroceriesSkeleton />;
-  if (isEmpty(groceries.data)) return <EmptyList sheets={sheets} />;
+  if (isEmpty(groceries.data)) return <EmptyList />;
   const hasAtLeastOneChecked = !!groceries.data.some((item) => item.status === 'completed');
 
   const aisles = parseAisles(groceries.data);
@@ -463,7 +455,7 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
       <FlatList
         data={aisles}
         renderItem={({ item: aisle }) => (
-          <Aisle aisle={aisle} sheets={sheets} enterAnimationsEnabled={enterAnimationsEnabled} />
+          <Aisle aisle={aisle} enterAnimationsEnabled={enterAnimationsEnabled} />
         )}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => item.aisle}
@@ -490,7 +482,7 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
             <Animated.View key="add" entering={SlideInRight.springify()} exiting={SlideOutRight.springify()}>
               <Button
                 variant="primary"
-                onPress={() => sheets.newGroceryItemSheetRef.current?.present()}
+                onPress={() => SheetManager.show('grocery-item-sheet')}
                 text="What's Missing?"
                 leftIcon={{ Icon: ListPlus }}
               />
@@ -502,56 +494,11 @@ const PageContent = ({ sheets }: { sheets: Sheets }) => {
   );
 };
 
-export type Sheets = {
-  editGroceryItemSheetRef: RefObject<BottomSheetModal<EditGroceryItemSheetData> | null>;
-  newGroceryItemSheetRef: RefObject<BottomSheetModal | null>;
-  selectCategorySheetRef: RefObject<BottomSheetModal | null>;
-  selectDateRangeSheetRef: RefObject<BottomSheetModal | null>;
-};
-
 const Groceries = () => {
-  const addGroceryItem = useAddGroceryItem();
-  const editGroceryItemSheetRef = useRef<BottomSheetModal<EditGroceryItemSheetData>>(null);
-  const newGroceryItemSheetRef = useRef<BottomSheetModal>(null);
-  const selectCategorySheetRef = useRef<BottomSheetModal>(null);
-  const selectDateRangeSheetRef = useRef<BottomSheetModal>(null);
-  const tempGroceryItemNameRef = useRef<string>(null);
-  const sheets: Sheets = {
-    editGroceryItemSheetRef,
-    newGroceryItemSheetRef,
-    selectCategorySheetRef,
-    selectDateRangeSheetRef,
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
       <RouteTitle text="Groceries" />
-      <PageContent sheets={sheets} />
-      <EditGroceryItemSheet ref={editGroceryItemSheetRef} />
-      <NewGroceryItemSheet
-        ref={newGroceryItemSheetRef}
-        onNext={(value) => {
-          if (addGroceryItem.isPending) return;
-          tempGroceryItemNameRef.current = value;
-          sheets.newGroceryItemSheetRef.current?.dismiss();
-          sheets.selectCategorySheetRef.current?.present();
-        }}
-      />
-      <SelectCategorySheet
-        ref={selectCategorySheetRef}
-        onSelect={(aisle) => {
-          if (addGroceryItem.isPending) return;
-          sheets.selectCategorySheetRef.current?.dismiss();
-          addGroceryItem.mutate({
-            name: ensure(tempGroceryItemNameRef.current),
-            aisle,
-            status: 'pending',
-            quantity: 1,
-            unit: 'count',
-          });
-        }}
-      />
-      <SelectDateRangeSheet ref={selectDateRangeSheetRef} />
+      <PageContent />
     </View>
   );
 };

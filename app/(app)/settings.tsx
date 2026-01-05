@@ -6,15 +6,13 @@ import {
   useInvitations,
   useRemoveSentInvite,
 } from '@/api/invitations';
-import { ChangePasswordSheet } from '@/components/bottomSheets/change-password-sheet';
-import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
-import { LeaveFamilySheet } from '@/components/bottomSheets/leave-family-sheet';
+import { SheetManager } from 'react-native-actions-sheet';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { useLogout } from '@/hooks/use-logout';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+
 import { router } from 'expo-router';
 import {
   ChevronLeft,
@@ -223,9 +221,7 @@ const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
 const Settings = () => {
   const insets = useSafeAreaInsets();
   const invitations = useInvitations();
-  const inviteFamilyMemberSheetRef = useRef<BottomSheetModal>(null);
-  const leaveFamilySheetRef = useRef<BottomSheetModal>(null);
-  const changePasswordSheet = useRef<BottomSheetModal>(null);
+
   const { logOut } = useLogout();
   const { data: { user, family } = {} } = useCurrentUser();
 
@@ -330,14 +326,14 @@ const Settings = () => {
                   leftIcon={{ Icon: UserRoundPlus }}
                   variant="outlined"
                   size="base"
-                  onPress={() => inviteFamilyMemberSheetRef.current?.present()}
+                  onPress={() => SheetManager.show('invite-family-member-sheet')}
                 />
                 {family.members.length > 1 ? (
                   <Button
                     leftIcon={{ Icon: LogOut }}
                     variant="red-outlined"
                     size="base"
-                    onPress={() => leaveFamilySheetRef.current?.present()}
+                    onPress={() => SheetManager.show('leave-family-sheet')}
                   />
                 ) : null}
               </View>
@@ -348,16 +344,14 @@ const Settings = () => {
         <View style={{ marginTop: 24 }}>
           <Text style={styles.label}>ACTIONS</Text>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={Lock} text="Change password" onPress={() => changePasswordSheet.current?.present()} />
+            <Action icon={Lock} text="Change password" onPress={() => SheetManager.show('change-password-sheet')} />
           </View>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
           </View>
         </View>
       </ScrollView>
-      <InviteFamilyMemberSheet ref={inviteFamilyMemberSheetRef} />
-      <LeaveFamilySheet ref={leaveFamilySheetRef} />
-      <ChangePasswordSheet ref={changePasswordSheet} />
+
     </View>
   );
 };

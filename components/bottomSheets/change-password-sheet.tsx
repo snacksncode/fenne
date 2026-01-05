@@ -1,29 +1,25 @@
 import { useChangePassword } from '@/api/auth';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
-import { SheetTextInput } from '@/components/input';
+import { TextInput } from '@/components/input';
 import { Text } from '@/components/Text';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { RotateCcwKey } from 'lucide-react-native';
-import { RefObject, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-type SheetProps = {
-  ref: RefObject<BottomSheetModal | null>;
-};
-
-const Content = ({ ref }: SheetProps) => {
+export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) => {
   const changePassword = useChangePassword();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>Change password</Text>
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Current password</Text>
-          <SheetTextInput
+          <TextInput
             value={currentPassword}
             onChangeText={setCurrentPassword}
             autoCapitalize="none"
@@ -33,7 +29,7 @@ const Content = ({ ref }: SheetProps) => {
         </View>
         <View>
           <Text style={styles.label}>New password</Text>
-          <SheetTextInput
+          <TextInput
             value={newPassword}
             onChangeText={setNewPassword}
             autoCapitalize="none"
@@ -50,20 +46,15 @@ const Content = ({ ref }: SheetProps) => {
           onPress={() =>
             changePassword.mutate(
               { new_password: newPassword, current_password: currentPassword },
-              { onSuccess: () => ref.current?.dismiss(), onError: () => alert('Please check your credentials') }
+              {
+                onSuccess: () => SheetManager.hide(props.sheetId),
+                onError: () => alert('Please check your credentials'),
+              }
             )
           }
           isLoading={changePassword.isPending}
         />
       </View>
-    </BaseSheet.Container>
-  );
-};
-
-export const ChangePasswordSheet = ({ ref }: SheetProps) => {
-  return (
-    <BaseSheet ref={ref}>
-      <Content ref={ref} />
     </BaseSheet>
   );
 };

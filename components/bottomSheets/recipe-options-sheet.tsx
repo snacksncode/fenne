@@ -3,19 +3,13 @@ import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { BottomSheetModal, useBottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { useRouter } from 'expo-router';
 import { Edit2, Trash2 } from 'lucide-react-native';
-import { FunctionComponent, RefObject } from 'react';
+import { FunctionComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
-
-export type RecipeOptionsSheetData = { recipe: RecipeDTO };
-
-type SheetProps = {
-  ref: RefObject<BottomSheetModal<RecipeOptionsSheetData> | null>;
-};
 
 const Action = (props: {
   onPress: () => void;
@@ -35,13 +29,15 @@ const Action = (props: {
   );
 };
 
-const Content = ({ recipe }: { recipe: RecipeDTO }) => {
+export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) => {
+  const recipe = props.payload?.recipe;
   const router = useRouter();
-  const { dismiss } = useBottomSheetModal();
   const deleteRecipe = useDeleteRecipe();
 
+  if (!recipe) return null;
+
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>
         What to do with{'\n'}
         <Text style={{ backgroundColor: colors.orange[100] }}>&ldquo;{recipe.name}&rdquo;</Text>?
@@ -51,7 +47,7 @@ const Content = ({ recipe }: { recipe: RecipeDTO }) => {
           text="Edit"
           icon={Edit2}
           onPress={() => {
-            dismiss();
+            SheetManager.hide(props.sheetId);
             router.push({ pathname: '/edit-recipe/[id]', params: { id: recipe.id } });
           }}
         />
@@ -60,18 +56,10 @@ const Content = ({ recipe }: { recipe: RecipeDTO }) => {
           icon={Trash2}
           onPress={() => {
             deleteRecipe.mutate({ id: recipe.id });
-            dismiss();
+            SheetManager.hide(props.sheetId);
           }}
         />
       </View>
-    </BaseSheet.Container>
-  );
-};
-
-export const RecipeOptionsSheet = ({ ref }: SheetProps) => {
-  return (
-    <BaseSheet<RecipeOptionsSheetData> ref={ref}>
-      {({ data }) => (data ? <Content recipe={data.recipe} /> : null)}
     </BaseSheet>
   );
 };

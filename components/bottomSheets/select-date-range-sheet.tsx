@@ -7,7 +7,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import {
   addMonths,
   addWeeks,
@@ -21,20 +21,16 @@ import {
   startOfTomorrow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, WandSparkles } from 'lucide-react-native';
-import { RefObject, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { filter, find, pipe, values } from 'remeda';
-
-type SheetProps = {
-  ref: RefObject<BottomSheetModal | null>;
-};
 
 type Range = {
   startDateString: string;
   endDateString: string;
 };
 
-const Content = ({ ref }: SheetProps) => {
+export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'>) => {
   const generateGroceryItems = useGenerateGroceryItems();
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
@@ -69,12 +65,12 @@ const Content = ({ ref }: SheetProps) => {
     if (!range) return;
     generateGroceryItems.mutate(
       { start: range.startDateString, end: range.endDateString },
-      { onSuccess: () => ref.current?.dismiss() }
+      { onSuccess: () => SheetManager.hide(props.sheetId) }
     );
   };
 
   return (
-    <BaseSheet.Container>
+    <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>Select a range</Text>
       <Text style={styles.info}>
         The shopping list will be generated for days that are selected in{' '}
@@ -111,15 +107,12 @@ const Content = ({ ref }: SheetProps) => {
         text="Generate"
         leftIcon={{ Icon: WandSparkles }}
       />
-      <Button style={{ marginTop: 12 }} onPress={() => ref.current?.dismiss()} variant="outlined" text="Cancel" />
-    </BaseSheet.Container>
-  );
-};
-
-export const SelectDateRangeSheet = ({ ref }: SheetProps) => {
-  return (
-    <BaseSheet ref={ref}>
-      <Content ref={ref} />
+      <Button
+        style={{ marginTop: 12 }}
+        onPress={() => SheetManager.hide(props.sheetId)}
+        variant="outlined"
+        text="Cancel"
+      />
     </BaseSheet>
   );
 };
