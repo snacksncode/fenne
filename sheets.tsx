@@ -3,7 +3,6 @@ import { SheetDefinition, SheetRegister } from 'react-native-actions-sheet';
 import { AisleCategory, GroceryItemDTO } from '@/api/groceries';
 import { IngredientFormData, MealType, MealEntryDTO } from '@/api/schedules';
 import { RecipeDTO } from '@/api/recipes';
-import { NavigationHelpers } from '@react-navigation/native';
 import { TabParamList } from '@/app/(app)/(tabs)';
 
 import { SelectUnitSheet, Unit } from '@/components/bottomSheets/select-unit-sheet';
@@ -19,6 +18,8 @@ import { EditMealSheet } from '@/components/bottomSheets/edit-meal-sheet';
 import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
 import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
 import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
+import { SelectRestaurantSheet } from '@/components/bottomSheets/select-restaurant-sheet';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 declare module 'react-native-actions-sheet' {
   interface Sheets {
@@ -37,18 +38,7 @@ declare module 'react-native-actions-sheet' {
       payload: { grocery?: GroceryItemDTO };
     }>;
     'schedule-meal-sheet': SheetDefinition<{
-      payload:
-        | {
-            type: 'meal';
-            dateString: string;
-            mealType?: MealType;
-          }
-        | {
-            type: 'restaurant';
-            dateString: string;
-            mealType?: MealType;
-            defaultRestaurant?: string;
-          };
+      payload: { dateString: string; mealType?: MealType };
     }>;
     'recipe-options-sheet': SheetDefinition<{
       payload: { recipe: RecipeDTO };
@@ -58,7 +48,7 @@ declare module 'react-native-actions-sheet' {
     'edit-calendar-day-sheet': SheetDefinition<{
       payload: {
         dateString: string;
-        navigation: NavigationHelpers<TabParamList>;
+        navigation: BottomTabNavigationProp<TabParamList>;
       };
     }>;
     'edit-meal-sheet': SheetDefinition<{
@@ -71,6 +61,13 @@ declare module 'react-native-actions-sheet' {
       payload: undefined;
     }>;
     'select-date-range-sheet': SheetDefinition;
+    'select-restaurant-sheet': SheetDefinition<{
+      payload: {
+        dateString: string;
+        defaultMealType?: MealType;
+        defaultRestaurant?: string;
+      };
+    }>;
   }
 }
 
@@ -90,6 +87,7 @@ export const Sheets = () => (
       'invite-family-member-sheet': InviteFamilyMemberSheet,
       'select-date-sheet': SelectDateSheet,
       'select-date-range-sheet': SelectDateRangeSheet,
+      'select-restaurant-sheet': SelectRestaurantSheet,
     }}
   />
 );

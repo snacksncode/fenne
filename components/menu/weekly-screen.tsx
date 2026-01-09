@@ -28,21 +28,17 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { difference, filter, first, isEmpty, isTruthy } from 'remeda';
+import { difference, first, isEmpty, isTruthy } from 'remeda';
 import { Tag } from '@/components/svgs/tag';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import { Button } from '@/components/button';
 import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
 import { useBackToToday } from '@/components/menu/shared';
 import { SheetManager } from 'react-native-actions-sheet';
-import { NavigationHelpers } from '@react-navigation/native';
-import { TabParamList } from '@/app/(app)/(tabs)';
-import { EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { ScheduleDayDTO, MealType, useSchedule, MealEntryDTO, useUpdateScheduleDay } from '@/api/schedules';
-import { RecipeDTO } from '@/api/recipes';
+import { ScheduleDayDTO, MealType, useSchedule, MealEntryDTO } from '@/api/schedules';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
 
@@ -183,15 +179,7 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-
-
-const Entry = ({
-  entry,
-  dateString,
-}: {
-  entry: MealEntryDTO & { mealType: MealType };
-  dateString: string;
-}) => (
+const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealType }; dateString: string }) => (
   <PressableWithHaptics
     onLongPress={() => {
       SheetManager.show('edit-meal-sheet', {
@@ -224,11 +212,7 @@ export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDa
   return first(difference(mealTypes, alreadyAddedMealTypes));
 };
 
-const DayCard = ({
-  data,
-}: {
-  data: ScheduleDayDTO;
-}) => {
+const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
   const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const entries = [
     data.breakfast ? { ...data.breakfast, mealType: 'breakfast' as const } : null,
@@ -238,10 +222,7 @@ const DayCard = ({
 
   const onPress = () => {
     SheetManager.show('schedule-meal-sheet', {
-      payload: {
-        dateString: data.date,
-        mealType: getFirstMissingMealType(data),
-      },
+      payload: { dateString: data.date, mealType: getFirstMissingMealType(data) },
     });
   };
 
@@ -383,20 +364,12 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
   );
 };
 
-const Day = ({
-  dateString,
-  data,
-}: {
-  dateString: string;
-  data: ScheduleDayDTO | undefined;
-}) => {
+const Day = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | undefined }) => {
   if (!data) return <DayCardSkeleton />;
 
   if (!data.breakfast && !data.lunch && !data.dinner) {
     const onPress = () => {
-      SheetManager.show('schedule-meal-sheet', {
-        payload: { dateString },
-      });
+      SheetManager.show('schedule-meal-sheet', { payload: { dateString } });
     };
     return <EmptyDayCard onPress={onPress} />;
   }
@@ -404,13 +377,7 @@ const Day = ({
   return <DayCard data={data} />;
 };
 
-const Item = ({
-  dateString,
-  data,
-}: {
-  dateString: string;
-  data: ScheduleDayDTO | undefined;
-}) => {
+const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | undefined }) => {
   const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const date = parseISO(dateString);
 
@@ -536,11 +503,9 @@ const useDateRange = () => {
   };
 };
 
-type Props = {};
-
 export const hasWeeklyScreenLoadedAtom = atom(false);
 
-export const WeeklyScreen = ({}: Props) => {
+export const WeeklyScreen = () => {
   const [hasLoaded, setHasWeeklyScreenLoaded] = useAtom(hasWeeklyScreenLoadedAtom);
   const weeklyListRef = useRef<FlashListRef<string>>(null);
   const insets = useSafeAreaInsets();
@@ -549,10 +514,7 @@ export const WeeklyScreen = ({}: Props) => {
   const { weeks, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
   const backToToday = useBackToToday();
   const { scheduleMap, isInitialLoading } = useSchedule({ weeks });
-  const updateScheduleDay = useUpdateScheduleDay();
   const days = weeks.flatMap(getDatesFromISOWeek);
-
-
 
   useMount(() => {
     // unmount happens during logout
@@ -635,12 +597,7 @@ export const WeeklyScreen = ({}: Props) => {
           maxItemsInRecyclePool={0}
           ref={weeklyListRef}
           data={days}
-          renderItem={({ item }) => (
-            <Item
-              dateString={item}
-              data={scheduleMap[item]}
-            />
-          )}
+          renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} />}
           style={{ backgroundColor: colors.cream[100], flex: 1 }}
           keyExtractor={(item) => getUnixTime(item).toString()}
           ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}

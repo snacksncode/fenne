@@ -11,6 +11,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
+import { sleep } from '@/utils';
 
 const mealTypeOptions: Option<MealType>[] = [
   { value: 'breakfast', text: 'Breakfast', icon: Pancake },
@@ -35,15 +36,42 @@ export const SelectRestaurantSheet = (props: SheetProps<'select-restaurant-sheet
     SheetManager.hideAll();
   };
 
-  const handleSwitchToRecipesPress = () => {
-    SheetManager.show('schedule-meal-sheet', {
-      payload: {
-        dateString,
-        mealType,
-      },
-    });
-    setTimeout(() => SheetManager.hide(props.sheetId), 100);
+  const handleSwitchToRecipesPress = async () => {
+    await SheetManager.hide(props.sheetId);
+    await sleep(300);
+    SheetManager.show('schedule-meal-sheet', { payload: { dateString, mealType } });
   };
 
-  return <BaseSheet id={props.sheetId}></BaseSheet>;
+  return (
+    <BaseSheet id={props.sheetId}>
+      <View style={{ backgroundColor: colors.cream[100] }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+          <ChefHat color="#4A3E36" size={20} strokeWidth={2.5} />
+          <Text
+            style={{
+              color: '#4A3E36',
+              fontFamily: 'Satoshi-Bold',
+              fontSize: 20,
+              lineHeight: 20 * 1.25,
+            }}
+          >
+            {defaultRestaurant ? 'Edit dining out?' : 'Dining out?'}
+          </Text>
+          <PressableWithHaptics onPress={handleSwitchToRecipesPress} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
+            <BookMarked color={colors.brown[900]} />
+          </PressableWithHaptics>
+        </View>
+        <View style={[{ paddingBottom: 12 }]}>
+          <SegmentedSelect value={mealType} options={mealTypeOptions} onValueChange={setMealType} />
+        </View>
+      </View>
+      <TextInput placeholder="What's the place?" value={restaurant} onChangeText={setRestaurant} />
+      <Button
+        variant="primary"
+        text={defaultRestaurant ? 'Update' : 'Confirm'}
+        style={{ marginTop: 16 }}
+        onPress={handleRestaurantSelect}
+      />
+    </BaseSheet>
+  );
 };

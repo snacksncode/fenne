@@ -14,6 +14,7 @@ import { colors } from '@/constants/colors';
 import { useSetAtom } from 'jotai';
 import { getFirstMissingMealType, scrollTargetAtom } from '@/components/menu/weekly-screen';
 import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
+import { ensure, sleep } from '@/utils';
 
 const Action = (props: {
   onPress: () => void;
@@ -34,12 +35,10 @@ const Action = (props: {
 };
 
 export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'>) => {
-  const { dateString, navigation } = props.payload ?? {};
+  const { dateString, navigation } = ensure(props.payload);
   const { scheduleMap } = useSchedule({ weeks: dateString ? [getISOWeekString(dateString)] : [] });
   const setScrollTarget = useSetAtom(scrollTargetAtom);
   const updateScheduleDay = useUpdateScheduleDay();
-
-  if (!dateString || !navigation) return null;
 
   const scheduleDay = scheduleMap[dateString];
   const is_shopping_day = scheduleDay?.is_shopping_day ?? false;
@@ -57,14 +56,15 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
         <Action
           text="Schedule meal"
           icon={CalendarPlus}
-          onPress={() => {
+          onPress={async () => {
+            await SheetManager.hide(props.sheetId);
+            await sleep(300);
             SheetManager.show('schedule-meal-sheet', {
               payload: {
                 dateString,
                 mealType: scheduleDay ? getFirstMissingMealType(scheduleDay) : undefined,
               },
             });
-            SheetManager.hide(props.sheetId);
           }}
         />
         <Action

@@ -9,6 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { MealEntryDTO, MealType, useDeleteScheduleEntry } from '@/api/schedules';
+import { sleep } from '@/utils';
 
 export type EditMealSheetData = MealEntryDTO & { mealType: MealType; dateString: string };
 
@@ -53,29 +54,22 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
           <Action
             text="Amend place"
             icon={MapPin}
-            onPress={() => {
+            onPress={async () => {
+              await SheetManager.hide('edit-meal-sheet');
+              await sleep(300);
               SheetManager.show('select-restaurant-sheet', {
-                payload: {
-                  dateString,
-                  defaultMealType: mealType,
-                  defaultRestaurant: entry.name,
-                },
+                payload: { dateString, defaultMealType: mealType, defaultRestaurant: entry.name },
               });
-              SheetManager.hide('edit-meal-sheet');
             }}
           />
         )}
         <Action
           text={isDiningOut ? 'Swap for a meal' : 'Swap for a different meal'}
           icon={ArrowLeftRight}
-          onPress={() => {
-            SheetManager.show('schedule-meal-sheet', {
-              payload: {
-                dateString,
-                mealType,
-              },
-            });
-            SheetManager.hide('edit-meal-sheet');
+          onPress={async () => {
+            await SheetManager.hide('edit-meal-sheet');
+            await sleep(300);
+            SheetManager.show('schedule-meal-sheet', { payload: { dateString, mealType } });
           }}
         />
         <Action

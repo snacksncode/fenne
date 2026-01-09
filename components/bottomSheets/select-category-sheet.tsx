@@ -3,9 +3,7 @@ import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
-import useTimeout from '@/hooks/use-timeout';
 import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 const aisles: AisleCategory[] = [
@@ -23,16 +21,6 @@ const aisles: AisleCategory[] = [
   'household',
   'personal_care',
   'pet_supplies',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
-  'other',
   'other',
 ];
 

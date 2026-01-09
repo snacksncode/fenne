@@ -12,19 +12,17 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
+import { sleep } from '@/utils';
 
 export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const { scheduleMap } = useSchedule({ weeks });
 
-  const handleDaySelect = ({ dateString }: { dateString: string; isEmpty: boolean }) => {
-    SheetManager.show('schedule-meal-sheet', {
-      payload: {
-        dateString,
-      },
-    });
-    SheetManager.hide(props.sheetId);
+  const handleDaySelect = async ({ dateString }: { dateString: string }) => {
+    await SheetManager.hide(props.sheetId);
+    await sleep(300);
+    SheetManager.show('schedule-meal-sheet', { payload: { dateString } });
   };
 
   const leftArrow = useOnPressWithFeedback({

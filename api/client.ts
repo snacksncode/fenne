@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEY } from '@/contexts/session';
 
 export const getBaseUrl = () => {
-  const host = Platform.OS === 'android' ? '10.0.2.2' : '192.168.233.63';
+  const host = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
   return `${host}:3000`;
 };
 

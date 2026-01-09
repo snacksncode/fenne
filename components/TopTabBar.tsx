@@ -26,7 +26,7 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
     const inputRange = state.routes.map((_, i) => i);
     const outputRange = state.routes.map((_, i) => i * tabWidth);
 
-    return position.interpolate({ inputRange, outputRange });
+    return position.interpolate({ inputRange, outputRange, extrapolate: 'clamp' });
   }, [position, tabWidth, state.routes]);
 
   const labels = state.routes.map((route) => {

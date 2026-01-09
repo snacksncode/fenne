@@ -13,7 +13,7 @@ import { ScheduleDayDTO } from '@/api/schedules';
 
 type Props = {
   startOfMonthDate: Date;
-  onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
+  onDaySelect: (day: { dateString: string }) => void;
   onDayLongPress?: (day: { dateString: string }) => void;
   scheduleMap: Record<string, ScheduleDayDTO>;
   selectedRange?: { startDateString: string; endDateString: string };
@@ -53,7 +53,7 @@ const Day = memo(function Day({
 }: {
   dateString: string;
   scheduleDay: ScheduleDayDTO | undefined;
-  onDaySelect: (day: { dateString: string; isEmpty: boolean }) => void;
+  onDaySelect: (day: { dateString: string }) => void;
   onDayLongPress?: (day: { dateString: string }) => void;
   pressedDayKey: SharedValue<string | null>;
   isHighlighted: boolean;
@@ -92,7 +92,7 @@ const Day = memo(function Day({
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onDaySelect({ dateString, isEmpty });
+    onDaySelect({ dateString });
   };
 
   const handleLongPress = () => {

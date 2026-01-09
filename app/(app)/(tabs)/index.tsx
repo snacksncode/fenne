@@ -8,8 +8,6 @@ import { SheetManager } from 'react-native-actions-sheet';
 import { WeeklyScreen } from '@/components/menu/weekly-screen';
 import { MonthlyScreen } from '@/components/menu/monthly-screen';
 import { CalendarPlus } from 'lucide-react-native';
-import { EditMealSheetData } from '@/components/bottomSheets/edit-meal-sheet';
-import { NavigationHelpers } from '@react-navigation/native';
 
 export type TabParamList = {
   Weekly: undefined;
@@ -24,8 +22,6 @@ const Index = () => {
   const showSelectDateSheet = () => {
     SheetManager.show('select-date-sheet');
   };
-
-
 
   return (
     <Tab.Navigator
@@ -61,16 +57,8 @@ const Index = () => {
         />
       )}
     >
-      <Tab.Screen name="Weekly">
-        {() => <WeeklyScreen />}
-      </Tab.Screen>
-      <Tab.Screen name="Monthly">
-        {() => <MonthlyScreen showEditCalendarDaySheet={(dateString, navigation) => {
-          SheetManager.show('edit-calendar-day-sheet', {
-            payload: { dateString, navigation: navigation as any },
-          });
-        }} />}
-      </Tab.Screen>
+      <Tab.Screen name="Weekly">{() => <WeeklyScreen />}</Tab.Screen>
+      <Tab.Screen name="Monthly">{() => <MonthlyScreen />}</Tab.Screen>
     </Tab.Navigator>
   );
 };
