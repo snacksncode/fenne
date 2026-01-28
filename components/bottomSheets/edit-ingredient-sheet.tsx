@@ -1,5 +1,6 @@
 import { IngredientFormData } from '@/api/schedules';
 import { AisleHeader } from '@/components/aisle-header';
+import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
@@ -40,15 +41,20 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
     }
   };
 
+  const handleIngredientSelect = (option: IngredientOption) => {
+    setIngredient((prev) => ({ ...prev, name: option.name, aisle: option.aisle }));
+  };
+
   return (
     <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>{initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}</Text>
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Name</Text>
-          <TextInput
+          <AutocompleteInput
             value={ingredient.name}
             onChangeText={(name) => setIngredient((prev) => ({ ...prev, name }))}
+            onSelect={handleIngredientSelect}
             placeholder="e.g. Avocado"
           />
         </View>

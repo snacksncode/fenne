@@ -24,7 +24,7 @@ import {
   UserRoundCheck,
   UserRoundPlus,
 } from 'lucide-react-native';
-import { FunctionComponent, useRef } from 'react';
+import { FunctionComponent } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmptyish, sort } from 'remeda';
@@ -351,7 +351,6 @@ const Settings = () => {
           </View>
         </View>
       </ScrollView>
-
     </View>
   );
 };

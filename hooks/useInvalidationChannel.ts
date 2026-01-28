@@ -34,7 +34,7 @@ export const useInvalidationChannel = () => {
   useEffect(() => {
     if (!token) return setConnectionStatus('disconnected');
 
-    const cable = createConsumer(`ws://${getBaseUrl()}/cable?token=${token}`);
+    const cable = createConsumer(`wss://${getBaseUrl()}/cable?token=${token}`);
     setConnectionStatus('connecting');
 
     cable.subscriptions.create(
@@ -84,5 +84,5 @@ export const useInvalidationChannel = () => {
     );
 
     return () => cable.disconnect();
-  }, [token, user?.family.id]);
+  }, [token, user?.family?.id]);
 };

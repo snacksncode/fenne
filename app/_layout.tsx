@@ -16,6 +16,8 @@ import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
 import { asyncStoragePersister, queryClient, WEEK_IN_MS } from '@/query-client';
 import { useOnAppActive } from '@/hooks/use-on-app-active';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLogout } from '@/hooks/use-logout';
+import { authSignal } from '@/api/auth-event';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -66,7 +68,7 @@ export default function Layout() {
         <SessionProvider>
           <GestureHandlerRootView>
             <InvalidationChannel />
-            <ConnectionStatus />
+            {/* <ConnectionStatus /> */}
             <SheetProvider>
               <Sheets />
               <RootLayout />
@@ -84,6 +86,10 @@ const RootLayout = () => {
   const [animationsEnabled, setAnimationsEnabled] = useState(false);
   const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
   const { token, isLoading } = useSession();
+
+  // connect react-less API layer to react context via this "ping"
+  const { logOut } = useLogout();
+  authSignal.handleUnauthorized = logOut;
 
   useOnAppActive(() => {
     queryClient.invalidateQueries();

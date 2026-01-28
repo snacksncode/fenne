@@ -58,7 +58,6 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
           icon={CalendarPlus}
           onPress={async () => {
             await SheetManager.hide(props.sheetId);
-            await sleep(300);
             SheetManager.show('schedule-meal-sheet', {
               payload: {
                 dateString,

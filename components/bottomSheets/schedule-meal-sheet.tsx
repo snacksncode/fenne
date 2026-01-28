@@ -17,7 +17,7 @@ import { colors } from '@/constants/colors';
 import { MealType, useUpdateScheduleDay } from '@/api/schedules';
 import { sort } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { ensure, sleep } from '@/utils';
+import { ensure } from '@/utils';
 
 const mealTypeOptions: Option<MealType>[] = [
   { value: 'breakfast', text: 'Breakfast', icon: Pancake },
@@ -56,12 +56,11 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
 
   const handleRestaurantSwitch = async () => {
     await SheetManager.hide(props.sheetId);
-    await sleep(300);
     SheetManager.show('select-restaurant-sheet', { payload });
   };
 
   return (
-    <BaseSheet onSnapIndexChange={setSnapIndex} id={props.sheetId} snapPoints={[60]}>
+    <BaseSheet onSnapIndexChange={setSnapIndex} id={props.sheetId} snapPoints={sortedRecipes.length > 4 ? [60] : [100]}>
       <ScrollView stickyHeaderIndices={[0]} scrollEnabled={snapIndex === 1}>
         <View style={{ backgroundColor: colors.cream[100] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>

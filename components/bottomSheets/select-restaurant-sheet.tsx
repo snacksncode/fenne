@@ -11,7 +11,6 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
-import { sleep } from '@/utils';
 
 const mealTypeOptions: Option<MealType>[] = [
   { value: 'breakfast', text: 'Breakfast', icon: Pancake },
@@ -38,7 +37,6 @@ export const SelectRestaurantSheet = (props: SheetProps<'select-restaurant-sheet
 
   const handleSwitchToRecipesPress = async () => {
     await SheetManager.hide(props.sheetId);
-    await sleep(300);
     SheetManager.show('schedule-meal-sheet', { payload: { dateString, mealType } });
   };
 

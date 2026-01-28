@@ -1,4 +1,4 @@
-import { first, last } from 'remeda';
+import { first, isDefined, last, pickBy } from 'remeda';
 import { client } from '@/api/client';
 import { getDatesFromISOWeek } from '@/date-tools';
 import { ensure } from '@/utils';
@@ -7,6 +7,7 @@ import { RecipeDTO, RecipeFormData } from '@/api/recipes';
 import { ScheduleDayDTO, ScheduleDayInput, MealType } from '@/api/schedules';
 import { AuthResponse, CurrentUserDTO } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
+import { IngredientOption } from '@/api/search';
 
 export const api = {
   auth: {
@@ -21,6 +22,9 @@ export const api = {
     },
     changePassword: (data: { current_password: string; new_password: string }) => {
       return client.post('/change_password', data);
+    },
+    changeDetails: (data: { name?: string; email?: string }) => {
+      return client.post('/change_details', { data });
     },
   },
   groceries: {
@@ -52,11 +56,16 @@ export const api = {
       return client.get<RecipeDTO>(`/recipes/${id}`);
     },
     add: (recipeData: RecipeFormData) => {
-      return client.post('/recipes', { data: recipeData });
+      const { ingredients, ...data } = recipeData;
+      const mappedIngredients = ingredients.map((ingredient) => ({ ...ingredient, quantity: +ingredient.quantity }));
+      return client.post('/recipes', { data: { ...data, ingredients: mappedIngredients } });
     },
     edit: (data: { id: string } & Partial<RecipeFormData>) => {
-      const { id, ...recipeData } = data;
-      return client.patch(`/recipes/${id}`, { data: recipeData });
+      const { id, ingredients, ...recipeData } = data;
+      const mappedIngredients = ingredients?.map((ingredient) => ({ ...ingredient, quantity: +ingredient.quantity }));
+      return client.patch(`/recipes/${id}`, {
+        data: pickBy({ ...recipeData, ingredients: mappedIngredients }, isDefined),
+      });
     },
     delete: (data: { id: string }) => {
       return client.delete(`/recipes/${data.id}`);
@@ -101,6 +110,14 @@ export const api = {
     },
     leaveFamily: () => {
       return client.post('/leave_family');
+    },
+  },
+  search: {
+    byQuery: (query: string) => {
+      return client.get<IngredientOption[]>(`/search?q=${encodeURIComponent(query)}`);
+    },
+    delete: (id: string) => {
+      return client.delete(`/search/${id}`);
     },
   },
 };

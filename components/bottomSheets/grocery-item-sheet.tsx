@@ -11,6 +11,7 @@ import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
+import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const initialGrocery = props.payload?.grocery;
@@ -63,15 +64,20 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
     if (aisle) setGrocery((prev) => ({ ...prev, aisle }));
   };
 
+  const handleGrocerySelect = (option: IngredientOption) => {
+    setGrocery((prev) => ({ ...prev, aisle: option.aisle }));
+  };
+
   return (
     <BaseSheet id={props.sheetId}>
       <Text style={styles.header}>{initialGrocery ? 'Edit Item' : 'Add Item'}</Text>
       <View style={{ gap: 16 }}>
         <View>
           <Text style={styles.label}>Name</Text>
-          <TextInput
+          <AutocompleteInput
             value={grocery.name}
             onChangeText={(name) => setGrocery((prev) => ({ ...prev, name }))}
+            onSelect={handleGrocerySelect}
             placeholder="e.g. Avocado"
           />
         </View>

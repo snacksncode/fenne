@@ -1,4 +1,7 @@
-- [ ] Dining out, Add option to mark meals as dining out with optional restaurant name
+- [x] Dining out, Add option to mark meals as dining out with optional restaurant name
 - [ ] Settings animations, Add layout animations for smoother transitions in settings page
 - [ ] Profile editing, Allow editing of display name and email in user profile
-- [ ] Shopping list units, Display units on grocery items in shopping list view
+- [x] Shopping list units, Display units on grocery items in shopping list view
+- [x] Integrate with search API
+- [ ] New ingredient does not trigger creation of custom food item
+  - [ ] New endpoint to create a custom ingredients

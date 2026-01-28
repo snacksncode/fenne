@@ -12,7 +12,6 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
-import { sleep } from '@/utils';
 
 export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
@@ -21,7 +20,6 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
 
   const handleDaySelect = async ({ dateString }: { dateString: string }) => {
     await SheetManager.hide(props.sheetId);
-    await sleep(300);
     SheetManager.show('schedule-meal-sheet', { payload: { dateString } });
   };
 

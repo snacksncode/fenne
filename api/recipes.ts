@@ -85,7 +85,7 @@ export const useEditRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['editRecipe'],
-    mutationFn: (newRecipeData: { id: string } & Partial<RecipeFormData>) => api.recipes.edit(newRecipeData),
+    mutationFn: api.recipes.edit,
     onMutate: async (newRecipeData) => {
       const { previousData } = await update({
         queryKey: recipesOptions.queryKey,

@@ -1,5 +1,6 @@
 export const colors = {
   cream: {
+    50: '#fffbf4',
     100: '#FEF7EA',
   },
   brown: {

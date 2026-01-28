@@ -1,12 +1,8 @@
-import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEY } from '@/contexts/session';
+import { authSignal } from '@/api/auth-event';
 
-export const getBaseUrl = () => {
-  const host = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
-  return `${host}:3000`;
-};
-
+export const getBaseUrl = () => `api.fenneplanner.com`;
 export class APIError extends Error {
   data: unknown;
   constructor(data: unknown) {
@@ -27,7 +23,7 @@ const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T>
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
-  const url = `http://${getBaseUrl()}${path}`;
+  const url = `https://${getBaseUrl()}${path}`;
   const options: RequestInit = {
     method: requestDetails.method,
     headers,
@@ -35,6 +31,10 @@ const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T>
   };
 
   const res = await fetch(url, options);
+  if (res.status === 401 && SecureStore.getItem(TOKEN_KEY) != null) {
+    authSignal.handleUnauthorized();
+    return {} as T;
+  }
   if (!res.ok) {
     const json = await res.json();
     throw new APIError(json);
