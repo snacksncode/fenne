@@ -1,5 +1,5 @@
 import { Button } from '@/components/button';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
@@ -52,9 +52,12 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
           isLoading={guestLogin.isPending}
         />
         <PressableWithHaptics onPress={() => setMode('log-in')} style={{ marginBottom: 8, alignItems: 'center' }}>
-          <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 14, lineHeight: 14 * 1.5 }}>
-            Already have an account? <Text style={{ color: colors.orange[600] }}>Log in</Text>
-          </Text>
+          <Typography variant="body-sm" weight="medium">
+            Already have an account?{' '}
+            <Typography variant="body-sm" weight="medium" color={colors.orange[600]}>
+              Log in
+            </Typography>
+          </Typography>
         </PressableWithHaptics>
       </View>
     );
@@ -63,7 +66,7 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
   return (
     <View style={{ paddingHorizontal: 24, marginTop: 'auto' }}>
       <View style={{ gap: 8 }}>
-        <Text style={styles.label}>Email</Text>
+        <Typography variant="body-base" weight="bold">Email</Typography>
         <TextInput
           value={email}
           onChangeText={setEmail}
@@ -74,7 +77,7 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
         />
       </View>
       <View style={{ marginTop: 12, gap: 8 }}>
-        <Text style={styles.label}>Password</Text>
+        <Typography variant="body-base" weight="bold">Password</Typography>
         <TextInput
           value={password}
           onChangeText={setPassword}
@@ -91,9 +94,12 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
         isLoading={login.isPending}
       />
       <PressableWithHaptics onPress={() => setMode('landing')} style={{ marginBottom: 8, alignItems: 'center' }}>
-        <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 14, lineHeight: 14 * 1.5 }}>
-          Don&apos;t have an account? <Text style={{ color: colors.orange[600] }}>Get started</Text>
-        </Text>
+        <Typography variant="body-sm" weight="medium">
+          Don&apos;t have an account?{' '}
+          <Typography variant="body-sm" weight="medium" color={colors.orange[600]}>
+            Get started
+          </Typography>
+        </Typography>
       </PressableWithHaptics>
     </View>
   );
@@ -183,12 +189,7 @@ const styles = StyleSheet.create({
     color: colors.brown[900],
     marginBottom: 16,
   },
-  label: {
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.5,
-    color: colors.brown[900],
-  },
+
 });
 
 export default WelcomeScreen;

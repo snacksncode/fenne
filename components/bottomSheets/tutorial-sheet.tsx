@@ -1,5 +1,5 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { Check, ArrowRight } from 'lucide-react-native';
@@ -16,7 +16,7 @@ const ChecklistItem = ({ title, isDone, onPress }: { title: string; isDone: bool
     <View style={[styles.iconContainer, isDone ? styles.iconContainerDone : styles.iconContainerTodo]}>
       <Check size={16} color="white" strokeWidth={3} />
     </View>
-    <Text style={[styles.itemText, isDone && styles.itemTextDone]}>{title}</Text>
+    <Typography variant="body-base" weight="bold" style={isDone ? { flex: 1, ...styles.itemTextDone } : { flex: 1 }}>{title}</Typography>
     {!isDone && <ArrowRight size={20} color={colors.brown[900]} />}
   </TouchableOpacity>
 );
@@ -34,8 +34,8 @@ export const TutorialSheet = (props: SheetProps<'tutorial-sheet'>) => {
     <BaseSheet id={props.sheetId}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Let&apos;s show you around</Text>
-          <Text style={styles.headerSubtitle}>The only 3 things you need</Text>
+          <Typography variant="heading-md" weight="bold">Let&apos;s show you around</Typography>
+          <Typography variant="body-base" weight="regular" color={colors.brown[800]}>The only 3 things you need</Typography>
         </View>
         <View style={styles.listContainer}>
           <ChecklistItem
@@ -66,17 +66,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontFamily: 'Satoshi-Bold',
-    color: colors.brown[900],
-  },
-  headerSubtitle: {
-    fontFamily: 'Satoshi-Regular',
-    fontSize: 16,
-    color: colors.brown[800],
-    lineHeight: 16 * 1.3,
-  },
+
   listContainer: {
     gap: 12,
   },
@@ -111,12 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green[500],
     borderColor: colors.green[600],
   },
-  itemText: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Satoshi-Bold',
-    color: colors.brown[900],
-  },
+
   itemTextDone: {
     textDecorationLine: 'line-through',
     opacity: 0.6,

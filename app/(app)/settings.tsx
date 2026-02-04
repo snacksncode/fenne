@@ -12,7 +12,7 @@ import {
 import { SheetManager } from 'react-native-actions-sheet';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useLogout } from '@/hooks/use-logout';
 
@@ -51,16 +51,9 @@ const Action = (props: {
       >
         <props.icon color={colors.cream[100]} size={20} />
       </View>
-      <Text
-        style={{
-          color: colors.brown[900],
-          fontFamily: 'Satoshi-Medium',
-          fontSize: 18,
-          lineHeight: 18 * 1.25,
-        }}
-      >
+      <Typography variant="body-lg" weight="medium">
         {props.text}
-      </Text>
+      </Typography>
     </PressableWithHaptics>
   );
 };
@@ -84,25 +77,12 @@ const SentInvitation = (props: { invitation: InvitationDTO }) => {
         <UserRoundPlus color={colors.cream[100]} size={24} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            color: colors.brown[900],
-            fontFamily: 'Satoshi-Medium',
-            fontSize: 18,
-            lineHeight: 18 * 1.25,
-          }}
-        >
+        <Typography variant="body-lg" weight="medium">
           {props.invitation.to_user.name}
-        </Text>
-        <Text
-          style={{
-            color: colors.brown[700],
-            fontFamily: 'Satoshi-Medium',
-            fontSize: 14,
-          }}
-        >
+        </Typography>
+        <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
           {props.invitation.to_user.email}
-        </Text>
+        </Typography>
       </View>
       <Button
         onPress={() => removeSentInvite.mutate({ id: props.invitation.id })}
@@ -132,26 +112,18 @@ const Member = (props: { user: UserDTO }) => {
         <User color={colors.cream[100]} size={24} />
       </View>
       <View>
-        <Text
-          style={{
-            color: colors.brown[900],
-            fontFamily: 'Satoshi-Medium',
-            fontSize: 18,
-            lineHeight: 18 * 1.25,
-          }}
-        >
+        <Typography variant="body-lg" weight="medium">
           {props.user.name}
-          {user?.id === props.user.id ? <Text style={{ color: colors.brown[700], fontSize: 14 }}> (You)</Text> : null}
-        </Text>
-        <Text
-          style={{
-            color: colors.brown[700],
-            fontFamily: 'Satoshi-Medium',
-            fontSize: 14,
-          }}
-        >
+          {user?.id === props.user.id ? (
+            <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
+              {' '}
+              (You)
+            </Typography>
+          ) : null}
+        </Typography>
+        <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
           {props.user.email}
-        </Text>
+        </Typography>
       </View>
     </View>
   );
@@ -205,25 +177,12 @@ const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
           <MailQuestionMark color={colors.cream[100]} size={24} />
         </View>
         <View>
-          <Text
-            style={{
-              color: colors.brown[900],
-              fontFamily: 'Satoshi-Medium',
-              fontSize: 18,
-              lineHeight: 18 * 1.25,
-            }}
-          >
+          <Typography variant="body-lg" weight="medium">
             {props.invitation.from_user.name}
-          </Text>
-          <Text
-            style={{
-              color: colors.brown[700],
-              fontFamily: 'Satoshi-Medium',
-              fontSize: 14,
-            }}
-          >
+          </Typography>
+          <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
             {props.invitation.from_user.email}
-          </Text>
+          </Typography>
         </View>
       </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -277,7 +236,7 @@ const Settings = () => {
         }}
       >
         <ChevronLeft />
-        <Text style={styles.header}>Settings</Text>
+        <Typography variant="heading-sm" weight="bold">Settings</Typography>
       </Pressable>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: 'center', marginTop: 24 }}>
@@ -294,32 +253,16 @@ const Settings = () => {
             <User color={colors.cream[100]} size={48} />
           </View>
           <View style={{ marginTop: 8 }}>
-            <Text
-              style={{
-                textAlign: 'center',
-                color: colors.brown[900],
-                fontFamily: 'Satoshi-Bold',
-                fontSize: 36,
-                lineHeight: 36 * 1.25,
-              }}
-            >
+            <Typography variant="heading-xl" weight="bold" style={{ textAlign: 'center' }}>
               {user?.name}
-            </Text>
-            <Text
-              style={{
-                textAlign: 'center',
-                color: colors.brown[900],
-                fontFamily: 'Satoshi-Medium',
-                fontSize: 16,
-                lineHeight: 16 * 1.25,
-              }}
-            >
+            </Typography>
+            <Typography variant="body-base" weight="medium" style={{ textAlign: 'center' }}>
               {user?.email}
-            </Text>
+            </Typography>
           </View>
         </View>
         <View style={{ marginTop: 24 }}>
-          <Text style={styles.label}>ACCOUNT</Text>
+          <Typography variant="body-base" weight="bold">ACCOUNT</Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={User} text="Edit profile" onPress={() => SheetManager.show('change-details-sheet')} />
           </View>
@@ -330,7 +273,7 @@ const Settings = () => {
 
         {invitations.data && !isEmptyish(invitations.data.received) ? (
           <View style={{ marginTop: 24 }}>
-            <Text style={styles.label}>RECEIVED INVITATIONS</Text>
+            <Typography variant="body-base" weight="bold">RECEIVED INVITATIONS</Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {invitations.data.received.map((invitation) => (
                 <ReceivedInvitation key={invitation.id} invitation={invitation} />
@@ -341,7 +284,7 @@ const Settings = () => {
 
         {invitations.data && !isEmptyish(invitations.data.sent) ? (
           <View style={{ marginTop: 24 }}>
-            <Text style={styles.label}>SENT INVITATIONS</Text>
+            <Typography variant="body-base" weight="bold">SENT INVITATIONS</Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {invitations.data.sent.map((invitation) => (
                 <SentInvitation key={invitation.id} invitation={invitation} />
@@ -352,7 +295,7 @@ const Settings = () => {
 
         {family ? (
           <View style={{ marginTop: 24 }}>
-            <Text style={styles.label}>FAMILY</Text>
+            <Typography variant="body-base" weight="bold">FAMILY</Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {sortMembers(family.members).map((member) => (
                 <Member key={member.id} user={member} />
@@ -380,7 +323,7 @@ const Settings = () => {
         ) : null}
 
         <View style={{ marginTop: 24 }}>
-          <Text style={styles.label}>ACTIONS</Text>
+          <Typography variant="body-base" weight="bold">ACTIONS</Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
           </View>
@@ -410,18 +353,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  header: {
-    color: colors.brown[900],
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    color: colors.brown[900],
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.5,
-  },
+
 });
 
 export default Settings;
