@@ -5,30 +5,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { TextInput } from '@/components/input';
 import { useState } from 'react';
-import { useLogin, useSignup } from '@/api/auth';
+import { useLogin, useLoginAsGuest } from '@/api/auth';
 import { APIError } from '@/api/client';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LayoutAnimationsValues,
-  LinearTransition,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, LayoutAnimationsValues, LinearTransition, withSpring } from 'react-native-reanimated';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useSession } from '@/contexts/session';
 import { useIsFirstRender } from '@/hooks/use-is-first-render';
 
-type Mode = 'sign-up' | 'log-in';
+type Mode = 'log-in' | 'landing';
 
 const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.SetStateAction<Mode>> }) => {
   const login = useLogin();
-  const signup = useSignup();
-  const [name, setName] = useState('');
+  const guestLogin = useLoginAsGuest();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleAction = () => {
-    if (!email || !password || (mode === 'sign-up' && !name)) return alert('Fill in the details');
+    if (mode === 'landing') {
+      return guestLogin.mutate(undefined, {
+        onError: () => alert('Something went wrong starting guest session'),
+      });
+    }
+
+    if (!email || !password) return alert('Fill in the details');
     if (mode === 'log-in') {
       login.mutate(
         { email, password },
@@ -40,19 +39,29 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
         }
       );
     }
-    if (mode === 'sign-up') {
-      signup.mutate({ email, password, name }, { onError: () => alert('Something went wrong') });
-    }
   };
+
+  if (mode === 'landing') {
+    return (
+      <View style={{ paddingHorizontal: 24, marginTop: 'auto' }}>
+        <Button
+          style={{ marginTop: 24, marginBottom: 16 }}
+          text="Get Started"
+          onPress={handleAction}
+          variant="primary"
+          isLoading={guestLogin.isPending}
+        />
+        <PressableWithHaptics onPress={() => setMode('log-in')} style={{ marginBottom: 8, alignItems: 'center' }}>
+          <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 14, lineHeight: 14 * 1.5 }}>
+            Already have an account? <Text style={{ color: colors.orange[600] }}>Log in</Text>
+          </Text>
+        </PressableWithHaptics>
+      </View>
+    );
+  }
 
   return (
     <View style={{ paddingHorizontal: 24, marginTop: 'auto' }}>
-      {mode === 'sign-up' && (
-        <Animated.View entering={FadeIn.springify()} exiting={FadeOut.springify()} style={{ marginBottom: 12, gap: 8 }}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput value={name} onChangeText={setName} placeholder="John" />
-        </Animated.View>
-      )}
       <View style={{ gap: 8 }}>
         <Text style={styles.label}>Email</Text>
         <TextInput
@@ -76,24 +85,14 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
       </View>
       <Button
         style={{ marginTop: 24, marginBottom: 16 }}
-        text={mode === 'log-in' ? 'Log in!' : 'Start planning!'}
+        text="Log in!"
         onPress={handleAction}
         variant="primary"
+        isLoading={login.isPending}
       />
-      <PressableWithHaptics
-        onPress={() => setMode((p) => (p === 'log-in' ? 'sign-up' : 'log-in'))}
-        style={{ marginBottom: 8, alignItems: 'center' }}
-      >
+      <PressableWithHaptics onPress={() => setMode('landing')} style={{ marginBottom: 8, alignItems: 'center' }}>
         <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 14, lineHeight: 14 * 1.5 }}>
-          {mode === 'log-in' ? (
-            <>
-              Don&apos;t have an account? <Text style={{ color: colors.orange[600] }}>Create one</Text>
-            </>
-          ) : (
-            <>
-              Already have an account? <Text style={{ color: colors.orange[600] }}>Log in</Text>
-            </>
-          )}
+          Don&apos;t have an account? <Text style={{ color: colors.orange[600] }}>Get started</Text>
         </Text>
       </PressableWithHaptics>
     </View>
@@ -122,7 +121,7 @@ const TransitionYOnly = (values: LayoutAnimationsValues) => {
 const WelcomeScreen = () => {
   const { isFirstRender } = useIsFirstRender();
   const { hasEverLoggedIn } = useSession();
-  const [mode, setMode] = useState<Mode>(() => (hasEverLoggedIn ? 'log-in' : 'sign-up'));
+  const [mode, setMode] = useState<Mode>(() => (hasEverLoggedIn ? 'log-in' : 'landing'));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream[100] }}>
@@ -146,6 +145,16 @@ const WelcomeScreen = () => {
               style={{ width: 192, height: 192, aspectRatio: 1 / 1 }}
             />
             <Animated.View layout={isFirstRender ? undefined : TransitionYOnly}>
+              {mode === 'landing' ? (
+                <Animated.Text
+                  key="landing"
+                  layout={isFirstRender ? undefined : LinearTransition.springify()}
+                  entering={FadeIn}
+                  style={styles.heading}
+                >
+                  Welcome to Fenne
+                </Animated.Text>
+              ) : null}
               {mode === 'log-in' ? (
                 <Animated.Text
                   key="log-in"
@@ -154,16 +163,6 @@ const WelcomeScreen = () => {
                   style={styles.heading}
                 >
                   Log in
-                </Animated.Text>
-              ) : null}
-              {mode === 'sign-up' ? (
-                <Animated.Text
-                  key={mode}
-                  layout={isFirstRender ? undefined : LinearTransition.springify()}
-                  entering={FadeIn}
-                  style={styles.heading}
-                >
-                  Create an account
                 </Animated.Text>
               ) : null}
             </Animated.View>

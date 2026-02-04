@@ -454,9 +454,7 @@ const PageContent = () => {
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
       <FlatList
         data={aisles}
-        renderItem={({ item: aisle }) => (
-          <Aisle aisle={aisle} enterAnimationsEnabled={enterAnimationsEnabled} />
-        )}
+        renderItem={({ item: aisle }) => <Aisle aisle={aisle} enterAnimationsEnabled={enterAnimationsEnabled} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => item.aisle}
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}

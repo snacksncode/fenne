@@ -10,10 +10,13 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanim
 import { isEmpty } from 'remeda';
 import { Text } from '@/components/Text';
 import { SheetManager } from 'react-native-actions-sheet';
-import { SquarePlus } from 'lucide-react-native';
+import { BookMarked, SquarePlus } from 'lucide-react-native';
 
 const EmptyList = () => (
   <Animated.View style={styles.emptyContainer} entering={FadeIn}>
+    <View style={styles.iconContainer}>
+      <BookMarked size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
+    </View>
     <Text style={styles.emptyHeading}>No recipes yet</Text>
     <Text style={styles.emptySubheading}>Create your first recipe to get started</Text>
   </Animated.View>
@@ -127,18 +130,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  iconContainer: {
+    backgroundColor: '#493D34',
+    paddingHorizontal: 36,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
   emptyHeading: {
     fontFamily: 'Satoshi-Black',
     fontSize: 24,
-    lineHeight: 24 * 1.25,
+    lineHeight: 24 * 1.5,
     color: '#4A3E36',
-    marginBottom: 4,
+    marginTop: 10,
   },
   emptySubheading: {
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.25,
-    color: '#766356',
+    fontFamily: 'Satoshi-Medium',
+    fontSize: 14,
+    lineHeight: 14 * 1.5,
+    textAlign: 'center',
+    color: '#4A3E36',
+    marginTop: 4,
   },
 });
 

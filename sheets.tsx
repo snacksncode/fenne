@@ -13,12 +13,15 @@ import { ScheduleMealSheet } from '@/components/bottomSheets/schedule-meal-sheet
 import { RecipeOptionsSheet } from '@/components/bottomSheets/recipe-options-sheet';
 import { LeaveFamilySheet } from '@/components/bottomSheets/leave-family-sheet';
 import { ChangePasswordSheet } from '@/components/bottomSheets/change-password-sheet';
+import { ChangeDetailsSheet } from '@/components/bottomSheets/change-details-sheet';
 import { EditCalendarDaySheet } from '@/components/bottomSheets/edit-calendar-day-sheet';
 import { EditMealSheet } from '@/components/bottomSheets/edit-meal-sheet';
 import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
 import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
 import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
 import { SelectRestaurantSheet } from '@/components/bottomSheets/select-restaurant-sheet';
+import { TutorialSheet } from '@/components/bottomSheets/tutorial-sheet';
+import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 declare module 'react-native-actions-sheet' {
@@ -45,6 +48,8 @@ declare module 'react-native-actions-sheet' {
     }>;
     'leave-family-sheet': SheetDefinition;
     'change-password-sheet': SheetDefinition;
+    'change-details-sheet': SheetDefinition;
+    'convert-guest-sheet': SheetDefinition;
     'edit-calendar-day-sheet': SheetDefinition<{
       payload: {
         dateString: string;
@@ -68,6 +73,7 @@ declare module 'react-native-actions-sheet' {
         defaultRestaurant?: string;
       };
     }>;
+    'tutorial-sheet': SheetDefinition;
   }
 }
 
@@ -82,12 +88,15 @@ export const Sheets = () => (
       'recipe-options-sheet': RecipeOptionsSheet,
       'leave-family-sheet': LeaveFamilySheet,
       'change-password-sheet': ChangePasswordSheet,
+      'change-details-sheet': ChangeDetailsSheet,
+      'convert-guest-sheet': ConvertGuestSheet,
       'edit-calendar-day-sheet': EditCalendarDaySheet,
       'edit-meal-sheet': EditMealSheet,
       'invite-family-member-sheet': InviteFamilyMemberSheet,
       'select-date-sheet': SelectDateSheet,
       'select-date-range-sheet': SelectDateRangeSheet,
       'select-restaurant-sheet': SelectRestaurantSheet,
+      'tutorial-sheet': TutorialSheet,
     }}
   />
 );

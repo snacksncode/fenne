@@ -12,9 +12,10 @@ export type IngredientOption = {
 export const searchOptions = (query: string) => {
   return queryOptions({
     queryKey: ['search', query] as const,
-    queryFn: () => api.search.byQuery(query),
+    queryFn: () => api.foodItems.byQuery(query),
     enabled: query.length > 0,
     placeholderData: keepPreviousData,
+    gcTime: 0,
   });
 };
 
@@ -26,7 +27,18 @@ export const useDeleteCustomIngredient = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['deleteCustomIngredient'],
-    mutationFn: (id: string) => api.search.delete(id),
+    mutationFn: (id: string) => api.foodItems.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['search'] });
+    },
+  });
+};
+
+export const useCreateCustomIngredient = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['createCustomIngredient'],
+    mutationFn: api.foodItems.createIfNeeded,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['search'] });
     },

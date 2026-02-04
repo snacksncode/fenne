@@ -5,7 +5,7 @@ import { Text } from '@/components/Text';
 import { parseISO } from '@/date-tools';
 import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
 import { format } from 'date-fns';
-import { CalendarClock, ChefHat, Ham, Salad } from 'lucide-react-native';
+import { BookMarked, CalendarClock, ChefHat, Ham, Salad } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -15,9 +15,11 @@ import { useMount } from '@/hooks/use-mount';
 import { Recipe } from '@/components/recipe';
 import { colors } from '@/constants/colors';
 import { MealType, useUpdateScheduleDay } from '@/api/schedules';
-import { sort } from 'remeda';
+import { sort, isEmpty } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ensure } from '@/utils';
+import { useRouter } from 'expo-router';
+import { Button } from '@/components/button';
 
 const mealTypeOptions: Option<MealType>[] = [
   { value: 'breakfast', text: 'Breakfast', icon: Pancake },
@@ -36,6 +38,7 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
   const recipes = useRecipes();
   const queryClient = useQueryClient();
   const updateScheduleDay = useUpdateScheduleDay();
+  const router = useRouter();
   const [mealType, setMealType] = useState<MealType>(payload.mealType ?? 'breakfast');
   const [snapIndex, setSnapIndex] = useState(0);
 
@@ -59,6 +62,11 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
     SheetManager.show('select-restaurant-sheet', { payload });
   };
 
+  const handleGoToRecipes = async () => {
+    await SheetManager.hide(props.sheetId);
+    router.push('/recipes');
+  };
+
   return (
     <BaseSheet onSnapIndexChange={setSnapIndex} id={props.sheetId} snapPoints={sortedRecipes.length > 4 ? [60] : [100]}>
       <ScrollView stickyHeaderIndices={[0]} scrollEnabled={snapIndex === 1}>
@@ -79,21 +87,60 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
               <ChefHat color={colors.brown[900]} />
             </PressableWithHaptics>
           </View>
-          <View style={[{ paddingBottom: 12 }]}>
-            <SegmentedSelect value={mealType} options={mealTypeOptions} onValueChange={setMealType} />
-          </View>
+          {!isEmpty(sortedRecipes) && (
+            <View style={[{ paddingBottom: 12 }]}>
+              <SegmentedSelect value={mealType} options={mealTypeOptions} onValueChange={setMealType} />
+            </View>
+          )}
         </View>
         <View style={{ gap: 8, paddingBottom: 20 }}>
-          {sortedRecipes.map((recipe) => (
-            <Animated.View
-              layout={LinearTransition.springify()}
-              key={recipe.id}
-              entering={FadeInDown.springify()}
-              exiting={FadeOut}
+          {isEmpty(sortedRecipes) ? (
+            <View
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 40,
+                gap: 12,
+              }}
             >
-              <Recipe recipe={recipe} onPress={() => handleMealSelect(recipe)} />
-            </Animated.View>
-          ))}
+              <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <Text
+                  style={{
+                    fontFamily: 'Satoshi-Bold',
+                    fontSize: 18,
+                    color: colors.brown[900],
+                    textAlign: 'center',
+                  }}
+                >
+                  No recipes found
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Satoshi-Medium',
+                    fontSize: 14,
+                    color: colors.brown[700],
+                    textAlign: 'center',
+                    marginBottom: 8,
+                  }}
+                >
+                  Add some recipes to start planning your meals
+                </Text>
+              </View>
+              <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />
+            </View>
+          ) : (
+            sortedRecipes.map((recipe) => (
+              <Animated.View
+                layout={LinearTransition.springify()}
+                key={recipe.id}
+                entering={FadeInDown.springify()}
+                exiting={FadeOut}
+              >
+                <Recipe recipe={recipe} onPress={() => handleMealSelect(recipe)} />
+              </Animated.View>
+            ))
+          )}
         </View>
       </ScrollView>
     </BaseSheet>

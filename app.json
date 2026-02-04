@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "fenne",
+    "name": "Fenne",
     "slug": "fenne",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,15 +16,7 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "package": "com.snacksncode.fenne"
     },
     "plugins": [
       "expo-router",
@@ -34,10 +26,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#1d1e22"
+          "backgroundColor": "#F7CF94"
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Satoshi-Black.otf",
+            "./assets/fonts/Satoshi-Bold.otf",
+            "./assets/fonts/Satoshi-Medium.otf",
+            "./assets/fonts/Satoshi-Regular.otf"
+          ]
+        }
+      ],
       "expo-web-browser",
       "expo-secure-store"
     ],

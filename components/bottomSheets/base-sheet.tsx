@@ -9,12 +9,12 @@ type BaseSheetProps = Partial<ActionSheetProps> & {
   id: string;
 };
 
-export const BaseSheet = ({ children, ...props }: BaseSheetProps) => {
+export const BaseSheet = ({ children, containerStyle, ...props }: BaseSheetProps) => {
   const insets = useSafeAreaInsets();
   return (
     <ActionSheet
       gestureEnabled
-      containerStyle={styles.container}
+      containerStyle={[styles.container, containerStyle]}
       indicatorStyle={styles.indicator}
       overlayColor={colors.brown[900]}
       defaultOverlayOpacity={0.75}

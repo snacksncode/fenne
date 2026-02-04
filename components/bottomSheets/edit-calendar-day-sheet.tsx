@@ -14,7 +14,7 @@ import { colors } from '@/constants/colors';
 import { useSetAtom } from 'jotai';
 import { getFirstMissingMealType, scrollTargetAtom } from '@/components/menu/weekly-screen';
 import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
-import { ensure, sleep } from '@/utils';
+import { ensure } from '@/utils';
 
 const Action = (props: {
   onPress: () => void;

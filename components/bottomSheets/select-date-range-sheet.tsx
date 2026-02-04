@@ -71,10 +71,19 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Select a range</Text>
+      <Text style={styles.header}>Which days?</Text>
       <Text style={styles.info}>
-        The shopping list will be generated for days that are selected in{' '}
-        <Text style={{ fontFamily: 'Satoshi-Black', color: colors.green[600] }}>green</Text>
+        Shopping list is for the <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.green[600] }}>green</Text>{' '}
+        days only{'\n'}
+        <Text
+          style={{
+            fontFamily: 'Satoshi-Bold',
+            color: colors.orange[600],
+          }}
+        >
+          Pro tip:
+        </Text>{' '}
+        Tap on a day to expand the selection!
       </Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
         <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
@@ -129,7 +138,7 @@ const styles = StyleSheet.create({
   info: {
     marginBottom: 16,
     color: '#4A3E36',
-    fontFamily: 'Satoshi-Medium',
+    fontFamily: 'Satoshi-Regular',
     fontSize: 16,
     lineHeight: 16 * 1.4,
   },

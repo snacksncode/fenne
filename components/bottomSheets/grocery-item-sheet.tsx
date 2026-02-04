@@ -12,8 +12,10 @@ import { ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
+import { useCreateCustomIngredient } from '@/api/food-items';
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
+  const createCustomIngredient = useCreateCustomIngredient();
   const initialGrocery = props.payload?.grocery;
   const [grocery, setGrocery] = useState<GroceryItemDTO>(() => {
     if (initialGrocery) return initialGrocery;
@@ -33,6 +35,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
 
   const handleSave = () => {
     if (!grocery.name.trim()) return;
+    createCustomIngredient.mutate(grocery);
     if (isEditing) {
       editGroceryItem.mutate({
         id: grocery.id,

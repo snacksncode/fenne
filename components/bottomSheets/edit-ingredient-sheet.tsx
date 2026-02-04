@@ -12,15 +12,18 @@ import { ArrowRight } from 'lucide-react-native';
 import { nanoid } from 'nanoid/non-secure';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
+import { useCreateCustomIngredient } from '@/api/food-items';
 
 export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) => {
   const initialIngredient = props.payload?.ingredient;
+  const createCustomIngredient = useCreateCustomIngredient();
   const [ingredient, setIngredient] = useState<IngredientFormData>(() => {
-    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '', aisle: 'other', unit: 'g' };
+    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '1', aisle: 'other', unit: 'count' };
   });
 
   const handleSave = () => {
     if (!ingredient.name.trim()) return;
+    createCustomIngredient.mutate(ingredient);
     SheetManager.hide(props.sheetId, { payload: ingredient });
     Keyboard.dismiss();
   };

@@ -1,3 +1,6 @@
+import { EnrichedTextInput } from 'react-native-enriched';
+import type { EnrichedTextInputInstance, OnChangeStateEvent } from 'react-native-enriched';
+
 import { useCurrentUser, UserDTO } from '@/api/auth';
 import {
   InvitationDTO,
@@ -24,8 +27,8 @@ import {
   UserRoundCheck,
   UserRoundPlus,
 } from 'lucide-react-native';
-import { FunctionComponent } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FunctionComponent, useRef, useState } from 'react';
+import { Pressable, Button as NativeButton, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmptyish, sort } from 'remeda';
 
@@ -154,6 +157,35 @@ const Member = (props: { user: UserDTO }) => {
   );
 };
 
+function Test() {
+  const ref = useRef<EnrichedTextInputInstance>(null);
+
+  const [stylesState, setStylesState] = useState<OnChangeStateEvent | null>();
+
+  return (
+    <View style={styles.containerX}>
+      <EnrichedTextInput ref={ref} onChangeState={(e) => setStylesState(e.nativeEvent)} style={styles.input} />
+      <View style={{ flexDirection: 'row' }}>
+        <NativeButton
+          title={stylesState?.bold.isActive ? 'Unbold' : 'Bold'}
+          color={stylesState?.bold.isActive ? 'green' : 'gray'}
+          onPress={() => ref.current?.toggleBold()}
+        />
+        <NativeButton
+          title={stylesState?.orderedList.isActive ? 'Unlist' : 'List'}
+          color={stylesState?.orderedList.isActive ? 'green' : 'gray'}
+          onPress={() => ref.current?.toggleOrderedList()}
+        />
+        <NativeButton
+          title={stylesState?.unorderedList.isActive ? 'Unlist 2' : 'List 2'}
+          color={stylesState?.unorderedList.isActive ? 'green' : 'gray'}
+          onPress={() => ref.current?.toggleUnorderedList()}
+        />
+      </View>
+    </View>
+  );
+}
+
 const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
   const acceptInvite = useAcceptInvite();
   const declineInvite = useDeclineInvite();
@@ -229,6 +261,9 @@ const Settings = () => {
     return sort(members, (a) => (a.id === user?.id ? -1 : 1));
   };
 
+  // todo: uncomment for testing of new rich text editor
+  // return <Test />;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Pressable
@@ -283,12 +318,15 @@ const Settings = () => {
             </Text>
           </View>
         </View>
-        {/* <View style={{ marginTop: 24 }}>
+        <View style={{ marginTop: 24 }}>
           <Text style={styles.label}>ACCOUNT</Text>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={User} text="Edit profile" onPress={doNothing} />
+            <Action icon={User} text="Edit profile" onPress={() => SheetManager.show('change-details-sheet')} />
           </View>
-        </View> */}
+          <View style={{ gap: 12, marginTop: 12 }}>
+            <Action icon={Lock} text="Change password" onPress={() => SheetManager.show('change-password-sheet')} />
+          </View>
+        </View>
 
         {invitations.data && !isEmptyish(invitations.data.received) ? (
           <View style={{ marginTop: 24 }}>
@@ -344,9 +382,6 @@ const Settings = () => {
         <View style={{ marginTop: 24 }}>
           <Text style={styles.label}>ACTIONS</Text>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={Lock} text="Change password" onPress={() => SheetManager.show('change-password-sheet')} />
-          </View>
-          <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
           </View>
         </View>
@@ -356,6 +391,20 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
+  containerX: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  input: {
+    width: '100%',
+    fontSize: 20,
+    padding: 10,
+    maxHeight: 200,
+    backgroundColor: 'lightgray',
+  },
+  // above is just for testing
+
   container: {
     backgroundColor: '#FEF7EA',
     flex: 1,

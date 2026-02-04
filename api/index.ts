@@ -2,20 +2,23 @@ import { first, isDefined, last, pickBy } from 'remeda';
 import { client } from '@/api/client';
 import { getDatesFromISOWeek } from '@/date-tools';
 import { ensure } from '@/utils';
-import { GroceryItemDTO } from '@/api/groceries';
+import { AisleCategory, GroceryItemDTO } from '@/api/groceries';
 import { RecipeDTO, RecipeFormData } from '@/api/recipes';
 import { ScheduleDayDTO, ScheduleDayInput, MealType } from '@/api/schedules';
 import { AuthResponse, CurrentUserDTO } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
-import { IngredientOption } from '@/api/search';
+import { IngredientOption } from '@/api/food-items';
 
 export const api = {
   auth: {
     login: (data: { email: string; password: string }) => {
       return client.post<AuthResponse>('/login', data);
     },
-    signup: (data: { name: string; email: string; password: string }) => {
-      return client.post<AuthResponse>('/signup', data);
+    loginAsGuest: () => {
+      return client.post<AuthResponse>('/guest');
+    },
+    convertGuest: (data: { name: string; email: string; password: string }) => {
+      return client.post('/convert_guest', data);
     },
     getCurrentUser: () => {
       return client.get<CurrentUserDTO>('/me');
@@ -112,12 +115,15 @@ export const api = {
       return client.post('/leave_family');
     },
   },
-  search: {
+  foodItems: {
     byQuery: (query: string) => {
-      return client.get<IngredientOption[]>(`/search?q=${encodeURIComponent(query)}`);
+      return client.get<IngredientOption[]>(`/food_items?q=${encodeURIComponent(query)}`);
+    },
+    createIfNeeded: (body: { name: string; aisle: AisleCategory }) => {
+      return client.post<IngredientOption>('/food_items', body);
     },
     delete: (id: string) => {
-      return client.delete(`/search/${id}`);
+      return client.delete(`/food_items/${id}`);
     },
   },
 };

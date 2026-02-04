@@ -1,7 +1,6 @@
 import { SheetProvider } from 'react-native-actions-sheet';
 import { Sheets } from '@/sheets';
 import { DevToolsBubble } from 'react-native-react-query-devtools';
-import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -10,7 +9,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { useEffect, useState } from 'react';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
+// import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SessionProvider, useSession } from '@/contexts/session';
 import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
 import { asyncStoragePersister, queryClient, WEEK_IN_MS } from '@/query-client';
@@ -35,22 +34,12 @@ export default function Layout() {
   const splashScreenRequirements = useAtomValue(splashScreenRequirementsAtom);
   const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
 
-  // do these things static-ly later -- start
-  const [fontsHaveLoaded] = useFonts({
-    'Satoshi-Black': require('../assets/fonts/Satoshi-Black.otf'),
-    'Satoshi-Bold': require('../assets/fonts/Satoshi-Bold.otf'),
-    'Satoshi-Medium': require('../assets/fonts/Satoshi-Medium.otf'),
-    'Satoshi-Regular': require('../assets/fonts/Satoshi-Regular.otf'),
-  });
-  StatusBar.setBarStyle('dark-content');
-  // -- end
-
   useEffect(() => {
-    const checks = Object.values({ ...splashScreenRequirements, fontsHaveLoaded });
+    const checks = Object.values({ ...splashScreenRequirements });
     const allCompleted = checks.every((value) => value === true);
     if (!allCompleted) return;
     SplashScreen.hide();
-  }, [fontsHaveLoaded, splashScreenRequirements]);
+  }, [splashScreenRequirements]);
 
   return (
     <QueryErrorBoundary>
@@ -77,6 +66,7 @@ export default function Layout() {
           </GestureHandlerRootView>
         </SessionProvider>
       </PersistQueryClientProvider>
+      <StatusBar barStyle="dark-content" />
     </QueryErrorBoundary>
   );
 }

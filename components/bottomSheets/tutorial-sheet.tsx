@@ -1,0 +1,127 @@
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { Text } from '@/components/Text';
+import { colors } from '@/constants/colors';
+import { useRouter } from 'expo-router';
+import { Check, ArrowRight } from 'lucide-react-native';
+import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
+
+const ChecklistItem = ({ title, isDone, onPress }: { title: string; isDone: boolean; onPress: () => void }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.itemContainer, isDone && styles.itemContainerDone]}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.iconContainer, isDone ? styles.iconContainerDone : styles.iconContainerTodo]}>
+      <Check size={16} color="white" strokeWidth={3} />
+    </View>
+    <Text style={[styles.itemText, isDone && styles.itemTextDone]}>{title}</Text>
+    {!isDone && <ArrowRight size={20} color={colors.brown[900]} />}
+  </TouchableOpacity>
+);
+
+export const TutorialSheet = (props: SheetProps<'tutorial-sheet'>) => {
+  const router = useRouter();
+  const { hasRecipes, hasSchedule, hasGroceries } = useTutorialProgress();
+
+  const navigateTo = (route: string) => {
+    SheetManager.hide(props.sheetId);
+    router.push(route as any);
+  };
+
+  return (
+    <BaseSheet id={props.sheetId}>
+      <View style={styles.content}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Let&apos;s show you around</Text>
+          <Text style={styles.headerSubtitle}>The only 3 things you need</Text>
+        </View>
+        <View style={styles.listContainer}>
+          <ChecklistItem
+            title="Create your first recipe"
+            isDone={hasRecipes}
+            onPress={() => navigateTo('/(app)/(tabs)/recipes')}
+          />
+          <ChecklistItem
+            title="Plan a meal for tomorrow"
+            isDone={hasSchedule}
+            onPress={() => navigateTo('/(app)/(tabs)/')}
+          />
+          <ChecklistItem
+            title="Generate your grocery list"
+            isDone={hasGroceries}
+            onPress={() => navigateTo('/(app)/(tabs)/groceries')}
+          />
+        </View>
+      </View>
+    </BaseSheet>
+  );
+};
+
+const styles = StyleSheet.create({
+  content: {
+    gap: 24,
+  },
+  headerContainer: {
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: 'Satoshi-Bold',
+    color: colors.brown[900],
+  },
+  headerSubtitle: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 16,
+    color: colors.brown[800],
+    lineHeight: 16 * 1.3,
+  },
+  listContainer: {
+    gap: 12,
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.cream[50],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderBottomWidth: 2,
+    borderColor: colors.brown[900],
+    gap: 12,
+  },
+  itemContainerDone: {
+    backgroundColor: 'rgba(97, 170, 100, 0.1)',
+    borderColor: colors.green[600],
+  },
+  iconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderBottomWidth: 2,
+  },
+  iconContainerTodo: {
+    borderColor: colors.brown[900],
+  },
+  iconContainerDone: {
+    backgroundColor: colors.green[500],
+    borderColor: colors.green[600],
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Satoshi-Bold',
+    color: colors.brown[900],
+  },
+  itemTextDone: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
+  },
+  footer: {
+    marginTop: 8,
+  },
+});

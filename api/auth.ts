@@ -1,6 +1,6 @@
 import { api } from '@/api';
 import { useSession } from '@/contexts/session';
-import { queryOptions, useMutation, useQuery } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type UserDTO = {
   email: string;
@@ -31,14 +31,23 @@ export const useLogin = () => {
   });
 };
 
-export const useSignup = () => {
+export const useLoginAsGuest = () => {
   const { setSessionToken } = useSession();
   return useMutation({
-    mutationKey: ['signUp'],
-    mutationFn: api.auth.signup,
+    mutationKey: ['logInAsGuest'],
+    mutationFn: api.auth.loginAsGuest,
     onSuccess: (response) => {
       if (response.status === 'success') setSessionToken(response.session_token);
     },
+  });
+};
+
+export const useConvertGuest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['convertGuest'],
+    mutationFn: api.auth.convertGuest,
+    onSuccess: () => queryClient.invalidateQueries(currentUserOptions),
   });
 };
 
@@ -49,6 +58,15 @@ export const useChangePassword = () => {
   });
 };
 
+export const useChangeDetails = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['changeDetails'],
+    mutationFn: api.auth.changeDetails,
+    onSuccess: () => queryClient.invalidateQueries(currentUserOptions),
+  });
+};
+
 export const currentUserOptions = queryOptions({
   queryKey: ['currentUser'],
   queryFn: api.auth.getCurrentUser,
@@ -56,5 +74,6 @@ export const currentUserOptions = queryOptions({
 });
 
 export const useCurrentUser = () => {
-  return useQuery(currentUserOptions);
+  const { token } = useSession();
+  return useQuery({ ...currentUserOptions, enabled: !!token });
 };

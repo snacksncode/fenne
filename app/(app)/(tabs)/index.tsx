@@ -5,9 +5,12 @@ import { RouteTitle } from '@/components/RouteTitle';
 import { View } from 'react-native';
 import { Button } from '@/components/button';
 import { SheetManager } from 'react-native-actions-sheet';
-import { WeeklyScreen } from '@/components/menu/weekly-screen';
+import { hasWeeklyScreenLoadedAtom, WeeklyScreen } from '@/components/menu/weekly-screen';
 import { MonthlyScreen } from '@/components/menu/monthly-screen';
 import { CalendarPlus } from 'lucide-react-native';
+import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
+import { useEffect, useRef } from 'react';
+import { useAtomValue } from 'jotai';
 
 export type TabParamList = {
   Weekly: undefined;
@@ -16,8 +19,28 @@ export type TabParamList = {
 
 const Tab = createMaterialTopTabNavigator<TabParamList>();
 
+const usePopupTutorialSheet = () => {
+  const hasWeeklyScreenLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
+  const { isGuest, isComplete } = useTutorialProgress();
+  const preComplete = useRef(false);
+  const postComplete = useRef(false);
+
+  useEffect(() => {
+    if (!hasWeeklyScreenLoaded || !isGuest) return;
+    if (!isComplete && !preComplete.current) {
+      preComplete.current = true;
+      SheetManager.show('tutorial-sheet');
+    }
+    if (isComplete && !postComplete.current) {
+      postComplete.current = true;
+      setTimeout(() => SheetManager.show('convert-guest-sheet'), 500);
+    }
+  }, [hasWeeklyScreenLoaded, isComplete, isGuest]);
+};
+
 const Index = () => {
   const insets = useSafeAreaInsets();
+  usePopupTutorialSheet();
 
   const showSelectDateSheet = () => {
     SheetManager.show('select-date-sheet');

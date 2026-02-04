@@ -1,6 +1,6 @@
 import { ComponentProps, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { IngredientOption, useIngredientSearch, useDeleteCustomIngredient } from '@/api/search';
+import { IngredientOption, useIngredientSearch, useDeleteCustomIngredient } from '@/api/food-items';
 import { colors } from '@/constants/colors';
 import { AisleIcon } from '@/components/aisle-header';
 import { FlashList, FlashListRef } from '@shopify/flash-list';

@@ -1,4 +1,4 @@
-import { RecipeDTO, useDeleteRecipe } from '@/api/recipes';
+import { useDeleteRecipe } from '@/api/recipes';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';

@@ -1,10 +1,12 @@
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Text } from '@/components/Text';
 import { useRouter } from 'expo-router';
-import { Cog } from 'lucide-react-native';
+import { Cog, ListTodo } from 'lucide-react-native';
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SheetManager } from 'react-native-actions-sheet';
+import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
 
 type Props = {
   text: string;
@@ -14,8 +16,15 @@ type Props = {
 export const RouteTitle = ({ text, footerSlot }: Props) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isGuest, completedSteps, totalSteps, isComplete } = useTutorialProgress();
 
-  const onPress = () => router.push('/settings');
+  const onPress = () => {
+    if (isGuest) {
+      SheetManager.show('tutorial-sheet');
+    } else {
+      router.push('/settings');
+    }
+  };
 
   return (
     <View
@@ -42,9 +51,13 @@ export const RouteTitle = ({ text, footerSlot }: Props) => {
               fontSize: 14,
             }}
           >
-            Settings
+            {isGuest ? `Tutorial ${isComplete ? 'complete!' : `(${completedSteps}/${totalSteps})`}` : 'Settings'}
           </Text>
-          <Cog color="#4A3E36" strokeWidth={2} size={24} />
+          {isGuest ? (
+            <ListTodo color="#4A3E36" strokeWidth={2} size={24} />
+          ) : (
+            <Cog color="#4A3E36" strokeWidth={2} size={24} />
+          )}
         </PressableWithHaptics>
       </View>
       {footerSlot}
