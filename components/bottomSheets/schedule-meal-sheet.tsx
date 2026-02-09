@@ -1,7 +1,7 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Option, SegmentedSelect } from '@/components/Select';
 import { Pancake } from '@/components/svgs/pancake';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { parseISO } from '@/date-tools';
 import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
 import { format } from 'date-fns';
@@ -73,16 +73,9 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
         <View style={{ backgroundColor: colors.cream[100] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
             <CalendarClock color="#4A3E36" size={20} strokeWidth={2.5} />
-            <Text
-              style={{
-                color: '#4A3E36',
-                fontFamily: 'Satoshi-Bold',
-                fontSize: 20,
-                lineHeight: 20 * 1.25,
-              }}
-            >
+            <Typography variant="heading-sm" weight="bold">
               {format(parseISO(payload.dateString), 'EEEE, MMM d')}
-            </Text>
+            </Typography>
             <PressableWithHaptics onPress={handleRestaurantSwitch} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
               <ChefHat color={colors.brown[900]} />
             </PressableWithHaptics>
@@ -105,27 +98,12 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
             >
               <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
               <View style={{ alignItems: 'center', gap: 4 }}>
-                <Text
-                  style={{
-                    fontFamily: 'Satoshi-Bold',
-                    fontSize: 18,
-                    color: colors.brown[900],
-                    textAlign: 'center',
-                  }}
-                >
+                <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
                   No recipes found
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Satoshi-Medium',
-                    fontSize: 14,
-                    color: colors.brown[700],
-                    textAlign: 'center',
-                    marginBottom: 8,
-                  }}
-                >
+                </Typography>
+                <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginBottom: 8 }}>
                   Add some recipes to start planning your meals
-                </Text>
+                </Typography>
               </View>
               <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />
             </View>

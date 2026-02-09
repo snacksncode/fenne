@@ -1,6 +1,6 @@
 import { TabParamList } from '@/app/(app)/(tabs)';
 import { Button } from '@/components/button';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { hasWeeklyScreenLoadedAtom, scrollTargetAtom } from './weekly-screen';
 import { ScheduleDayDTO, useSchedule } from '@/api/schedules';
 import { formatDateToISO, getISOWeekString, parseISO } from '@/date-tools';
@@ -46,17 +46,9 @@ const Item = memo(function Item({
   return (
     <View>
       <View style={{ alignSelf: 'center', marginBottom: 12 }}>
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontSize: 20,
-            lineHeight: 20 * 1.25,
-            fontFamily: 'Satoshi-Bold',
-            textAlign: 'center',
-          }}
-        >
+        <Typography variant="heading-sm" weight="bold" style={{ textAlign: 'center' }}>
           {format(startOfMonthDate, 'MMMM yyyy')}
-        </Text>
+        </Typography>
         {isThisMonth(parseISO(dateString)) ? (
           <View
             style={{

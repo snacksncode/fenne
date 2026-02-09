@@ -1,4 +1,4 @@
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -100,16 +100,9 @@ const ItemSkeleton = ({ date }: { date: Date }) => {
   return (
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-        <Text
-          style={{
-            fontFamily: 'Satoshi-Bold',
-            fontSize: 20,
-            lineHeight: 20 * 1.5,
-            color: '#4A3E36',
-          }}
-        >
+        <Typography variant="heading-sm" weight="bold">
           {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
-        </Text>
+        </Typography>
         {isToday(date) ? (
           <View
             style={{
@@ -124,15 +117,9 @@ const ItemSkeleton = ({ date }: { date: Date }) => {
               justifyContent: 'center',
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'Satoshi-Bold',
-                fontSize: 11,
-                color: 'white',
-              }}
-            >
+            <Typography variant="body-xs" weight="bold" color="white">
               Today
-            </Text>
+            </Typography>
           </View>
         ) : null}
       </View>
@@ -190,16 +177,9 @@ const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealTy
     scaleTo={0.985}
   >
     <MealTypeKicker type={entry.mealType} />
-    <Text
-      style={{
-        color: '#4A3E36',
-        fontFamily: 'Satoshi-Black',
-        fontSize: 20,
-        lineHeight: 20 * 1.25,
-      }}
-    >
+    <Typography variant="heading-sm" weight="black">
       {entry.type === 'recipe' ? entry.recipe.name : entry.name}
-    </Text>
+    </Typography>
   </PressableWithHaptics>
 );
 
@@ -296,15 +276,9 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
               >
                 <Animated.View style={[{ flexDirection: 'row', gap: 4 }]}>
                   <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
-                  <Text
-                    style={{
-                      color: '#4A3E36',
-                      fontFamily: 'Satoshi-Bold',
-                      fontSize: 14,
-                    }}
-                  >
+                  <Typography variant="body-sm" weight="bold">
                     Another Meal?
-                  </Text>
+                  </Typography>
                 </Animated.View>
               </PressableWithHaptics>
             </Animated.View>
@@ -336,28 +310,12 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
           }}
         >
           <Soup size={24} color="#4A3E36" />
-          <Text
-            style={{
-              marginTop: 8,
-              fontFamily: 'Satoshi-Black',
-              fontSize: 16,
-              lineHeight: 16 * 1.25,
-              color: '#4A3E36',
-            }}
-          >
+          <Typography variant="body-base" weight="black" style={{ marginTop: 8 }}>
             No meals planned
-          </Text>
-          <Text
-            style={{
-              marginTop: 2,
-              fontFamily: 'Satoshi-Bold',
-              fontSize: 14,
-              lineHeight: 14,
-              color: '#4A3E36',
-            }}
-          >
+          </Typography>
+          <Typography variant="body-sm" weight="bold" style={{ marginTop: 2 }}>
             Tap to add a meal
-          </Text>
+          </Typography>
         </View>
       </PressableWithHaptics>
     </Animated.View>
@@ -387,16 +345,9 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
         style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
         layout={hasLoaded ? LayoutTransition : undefined}
       >
-        <Text
-          style={{
-            fontFamily: 'Satoshi-Bold',
-            fontSize: 20,
-            lineHeight: 20 * 1.5,
-            color: '#4A3E36',
-          }}
-        >
+        <Typography variant="heading-sm" weight="bold">
           {format(date, 'EEEE')}
-        </Text>
+        </Typography>
         {isToday(date) ? (
           <View
             style={{
@@ -411,15 +362,9 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
               justifyContent: 'center',
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'Satoshi-Bold',
-                fontSize: 11,
-                color: 'white',
-              }}
-            >
+            <Typography variant="body-xs" weight="bold" color="white">
               Today
-            </Text>
+            </Typography>
           </View>
         ) : null}
         {data?.is_shopping_day ? (
@@ -439,18 +384,9 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
             <Tag color="#FEF7EA" size={14} />
           </View>
         ) : null}
-        <Text
-          style={{
-            flex: 1,
-            textAlign: 'right',
-            fontFamily: 'Satoshi-Bold',
-            fontSize: 14,
-            lineHeight: 14 * 1.5,
-            color: colors.brown[700],
-          }}
-        >
+        <Typography variant="body-sm" weight="bold" color={colors.brown[700]} style={{ flex: 1, textAlign: 'right' }}>
           {format(date, 'd MMM')}
-        </Text>
+        </Typography>
       </Animated.View>
       <Day data={data} dateString={dateString} />
     </View>

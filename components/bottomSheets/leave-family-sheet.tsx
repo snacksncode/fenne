@@ -1,20 +1,22 @@
 import { useLeaveFamily } from '@/api/invitations';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { LogOut } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 export const LeaveFamilySheet = (props: SheetProps<'leave-family-sheet'>) => {
   const leaveFamily = useLeaveFamily();
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Leave your family?</Text>
-      <Text style={styles.label}>
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+        Leave your family?
+      </Typography>
+      <Typography variant="body-base" weight="medium">
         Are you sure you want to leave your family? You&apos;ll need an invite to re-join
-      </Text>
+      </Typography>
       <View style={{ marginTop: 24 }}>
         <Button
           text="Leave"
@@ -27,19 +29,3 @@ export const LeaveFamilySheet = (props: SheetProps<'leave-family-sheet'>) => {
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 12,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Medium',
-    fontSize: 16,
-    lineHeight: 16 * 1.5,
-  },
-});

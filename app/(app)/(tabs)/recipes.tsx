@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { isEmpty } from 'remeda';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager } from 'react-native-actions-sheet';
 import { BookMarked, SquarePlus } from 'lucide-react-native';
 
@@ -17,8 +17,12 @@ const EmptyList = () => (
     <View style={styles.iconContainer}>
       <BookMarked size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
     </View>
-    <Text style={styles.emptyHeading}>No recipes yet</Text>
-    <Text style={styles.emptySubheading}>Create your first recipe to get started</Text>
+    <Typography variant="heading-md" weight="black" style={{ marginTop: 10 }}>
+      No recipes yet
+    </Typography>
+    <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginTop: 4 }}>
+      Create your first recipe to get started
+    </Typography>
   </Animated.View>
 );
 
@@ -135,21 +139,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     paddingVertical: 12,
     borderRadius: 999,
-  },
-  emptyHeading: {
-    fontFamily: 'Satoshi-Black',
-    fontSize: 24,
-    lineHeight: 24 * 1.5,
-    color: '#4A3E36',
-    marginTop: 10,
-  },
-  emptySubheading: {
-    fontFamily: 'Satoshi-Medium',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-    textAlign: 'center',
-    color: '#4A3E36',
-    marginTop: 4,
   },
 });
 

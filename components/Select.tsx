@@ -1,9 +1,10 @@
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { findIndex } from 'remeda';
+import { colors } from '@/constants/colors';
 
 const BORDER = '#4A3E36';
 const R = 999;
@@ -36,8 +37,10 @@ const Options = <TValue extends string>(props: OptionsProps<TValue>) => {
     <View style={styles.rowInner}>
       {props.options.map((option, index) => (
         <Pressable onPress={() => handlePress(option)} key={index} style={styles.item}>
-          <option.icon color={isMask ? '#FEF7EA' : '#4A3E36'} size={16} />
-          <Text style={[styles.itemText, { color: isMask ? '#FEF7EA' : '#4A3E36' }]}>{option.text}</Text>
+          <option.icon color={isMask ? colors.cream[100] : colors.brown[900]} size={16} />
+          <Typography variant="body-xs" weight="bold" color={isMask ? colors.cream[100] : colors.brown[900]}>
+            {option.text}
+          </Typography>
         </Pressable>
       ))}
     </View>
@@ -120,11 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: R,
-  },
-
-  itemText: {
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 12,
   },
 
   pillMask: {

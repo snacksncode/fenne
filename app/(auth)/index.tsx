@@ -1,6 +1,6 @@
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
-import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { TextInput } from '@/components/input';
@@ -66,7 +66,9 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
   return (
     <View style={{ paddingHorizontal: 24, marginTop: 'auto' }}>
       <View style={{ gap: 8 }}>
-        <Typography variant="body-base" weight="bold">Email</Typography>
+        <Typography variant="body-base" weight="bold">
+          Email
+        </Typography>
         <TextInput
           value={email}
           onChangeText={setEmail}
@@ -77,7 +79,9 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
         />
       </View>
       <View style={{ marginTop: 12, gap: 8 }}>
-        <Typography variant="body-base" weight="bold">Password</Typography>
+        <Typography variant="body-base" weight="bold">
+          Password
+        </Typography>
         <TextInput
           value={password}
           onChangeText={setPassword}
@@ -104,6 +108,8 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
     </View>
   );
 };
+
+const AnimatedTypography = Animated.createAnimatedComponent(Typography);
 
 const TransitionYOnly = (values: LayoutAnimationsValues) => {
   'worklet';
@@ -152,24 +158,36 @@ const WelcomeScreen = () => {
             />
             <Animated.View layout={isFirstRender ? undefined : TransitionYOnly}>
               {mode === 'landing' ? (
-                <Animated.Text
+                <AnimatedTypography
                   key="landing"
                   layout={isFirstRender ? undefined : LinearTransition.springify()}
                   entering={FadeIn}
-                  style={styles.heading}
+                  variant="heading-lg"
+                  weight="black"
+                  style={{
+                    textAlign: 'center',
+                    color: colors.brown[900],
+                    marginBottom: 16,
+                  }}
                 >
                   Welcome to Fenne
-                </Animated.Text>
+                </AnimatedTypography>
               ) : null}
               {mode === 'log-in' ? (
-                <Animated.Text
+                <AnimatedTypography
                   key="log-in"
                   layout={isFirstRender ? undefined : LinearTransition.springify()}
                   entering={FadeIn}
-                  style={styles.heading}
+                  variant="heading-lg"
+                  weight="black"
+                  style={{
+                    textAlign: 'center',
+                    color: colors.brown[900],
+                    marginBottom: 16,
+                  }}
                 >
                   Log in
-                </Animated.Text>
+                </AnimatedTypography>
               ) : null}
             </Animated.View>
           </Animated.View>
@@ -179,17 +197,5 @@ const WelcomeScreen = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  heading: {
-    textAlign: 'center',
-    fontFamily: 'Satoshi-Black',
-    fontSize: 32,
-    lineHeight: 32 * 1.5,
-    color: colors.brown[900],
-    marginBottom: 16,
-  },
-
-});
 
 export default WelcomeScreen;

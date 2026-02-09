@@ -3,11 +3,11 @@ import { usePostInvite } from '@/api/invitations';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { MailPlus } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { isEmpty } from 'remeda';
 
 export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-sheet'>) => {
@@ -16,10 +16,14 @@ export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Expand your family</Text>
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+        Expand your family
+      </Typography>
       <View style={{ gap: 16 }}>
         <View>
-          <Text style={styles.label}>Email</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Email
+          </Typography>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -53,20 +57,3 @@ export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 12,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
-});

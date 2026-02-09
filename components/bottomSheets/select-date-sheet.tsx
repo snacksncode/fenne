@@ -2,14 +2,14 @@ import { useSchedule } from '@/api/schedules';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
@@ -34,9 +34,13 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Select a day</Text>
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
+        Select a day
+      </Typography>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
+        <Typography variant="body-base" weight="bold">
+          {format(currentMonthDate, 'MMMM yyyy')}
+        </Typography>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <GestureDetector gesture={leftArrow.gesture}>
             <Animated.View style={leftArrow.scaleStyle}>
@@ -60,19 +64,3 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 16,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  currentMonth: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.25,
-  },
-});

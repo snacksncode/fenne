@@ -1,9 +1,9 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
+import { Button } from '@/components/button';
 
 export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'fl_oz' | 'cup' | 'tbsp' | 'tsp' | 'pt' | 'qt' | 'oz' | 'lb' | 'count';
 
@@ -24,27 +24,6 @@ export const UNITS: { value: Unit; label: LabelFn }[] = [
   { value: 'lb', label: () => 'Pounds' },
 ];
 
-const UnitOption = ({
-  isSelected,
-  unit,
-  onSelect,
-}: {
-  isSelected: boolean;
-  unit: { value: Unit; label: LabelFn };
-  onSelect: (unit: Unit) => void;
-}) => (
-  <PressableWithHaptics onPress={() => onSelect(unit.value)}>
-    <View
-      style={[
-        styles.unitOption,
-        isSelected && { borderColor: colors.orange[600], backgroundColor: colors.orange[500] },
-      ]}
-    >
-      <Text style={[styles.unitText, isSelected && { color: colors.cream[100] }]}>{unit.label({ count: 1 })}</Text>
-    </View>
-  </PressableWithHaptics>
-);
-
 export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
   const selectedUnit = props.payload?.unit;
 
@@ -53,40 +32,25 @@ export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
   };
 
   return (
-    <BaseSheet id={props.sheetId} snapPoints={[60]}>
+    <BaseSheet id={props.sheetId}>
       <ScrollView>
-        <Text style={styles.header}>Select unit</Text>
-        <View style={{ gap: 12, paddingBottom: 20 }}>
+        <View style={{ backgroundColor: colors.cream[100] }}>
+          <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
+            Select unit
+          </Typography>
+        </View>
+        <View style={{ gap: 8, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
           {UNITS.map((unit) => (
-            <UnitOption key={unit.value} isSelected={unit.value === selectedUnit} unit={unit} onSelect={handleSelect} />
+            <Button
+              key={unit.value}
+              variant={unit.value === selectedUnit ? 'primary' : 'outlined'}
+              onPress={() => handleSelect(unit.value)}
+              text={unit.label({ count: 1 })}
+              size="small"
+            />
           ))}
         </View>
       </ScrollView>
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 16,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  unitOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#FEF2DD',
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: '#4A3E36',
-  },
-  unitText: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
-});

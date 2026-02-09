@@ -2,11 +2,11 @@ import { useConvertGuest } from '@/api/auth';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { CheckCircle, User } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { colors } from '@/constants/colors';
 
 export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
@@ -27,7 +27,8 @@ export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
         onSuccess: () => {
           SheetManager.hide(props.sheetId);
         },
-        onError: (error) => alert(`Failed to convert account (${error?.data?.error})`),
+        onError: (error) =>
+          alert(`Failed to convert account (${error instanceof Error ? error.message : 'Unknown error'})`),
       }
     );
   };
@@ -36,26 +37,24 @@ export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
     <BaseSheet id={props.sheetId} containerStyle={{ paddingTop: 24 }} closable={false} gestureEnabled={false}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <CheckCircle color="#4A3E36" size={20} strokeWidth={3} />
-        <Text
-          style={{
-            color: '#4A3E36',
-            fontFamily: 'Satoshi-Bold',
-            fontSize: 24,
-          }}
-        >
+        <Typography variant="heading-md" weight="bold">
           Finish setting up
-        </Text>
+        </Typography>
       </View>
-      <Text style={styles.headerSubtitle}>
+      <Typography variant="body-base" weight="regular" style={{ color: colors.brown[800], marginBottom: 16 }}>
         Almost done. Save your work and start collaborating with your household.
-      </Text>
+      </Typography>
       <View style={{ gap: 16 }}>
         <View>
-          <Text style={styles.label}>Display name</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Display name
+          </Typography>
           <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
         </View>
         <View>
-          <Text style={styles.label}>Email</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Email
+          </Typography>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -65,7 +64,9 @@ export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
           />
         </View>
         <View>
-          <Text style={styles.label}>Password</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Password
+          </Typography>
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -88,20 +89,3 @@ export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  headerSubtitle: {
-    fontFamily: 'Satoshi-Regular',
-    fontSize: 16,
-    color: colors.brown[800],
-    lineHeight: 16 * 1.3,
-    marginBottom: 16,
-  },
-  label: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
-});

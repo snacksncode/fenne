@@ -1,6 +1,6 @@
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import plur from 'plur';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { RecipeDTO, useEditRecipe } from '@/api/recipes';
 import { colors } from '@/constants/colors';
@@ -28,8 +28,8 @@ const MealTypeDots = (props: { mealTypes: MealType[] }) => {
               mealType === 'breakfast'
                 ? colors.green[500]
                 : mealType === 'lunch'
-                ? colors.orange[500]
-                : colors.brown[700],
+                  ? colors.orange[500]
+                  : colors.brown[700],
             ...(index > 0 && { marginLeft: -2 }),
           }}
         />
@@ -84,41 +84,31 @@ export const Recipe = ({
           {...(liked ? { color: colors.orange[600], fill: colors.orange[500] } : { color: colors.brown[900] })}
         />
       </PressableWithHaptics>
-      <View style={{ gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
-        <Text style={styles.title}>{name}</Text>
+      <View style={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
+        <Typography variant="heading-sm" weight="black" style={{ marginRight: 24 }}>
+          {name}
+        </Typography>
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
             <MealTypeDots mealTypes={meal_types} />
-            <Text style={styles.description}>{meal_types.length > 1 ? 'Versatile' : toTitleCase(meal_types[0])}</Text>
+            <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+              {meal_types.length > 1 ? 'Versatile' : toTitleCase(meal_types[0])}
+            </Typography>
           </View>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
             <Timer color={colors.brown[800]} width={14} height={14} strokeWidth={2.5} />
-            <Text style={styles.description}>{formattedDuration}</Text>
+            <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+              {formattedDuration}
+            </Typography>
           </View>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
             <CookingPot color={colors.brown[800]} width={14} height={14} strokeWidth={2.5} />
-            <Text style={styles.description}>
+            <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
               {ingredients.length} ingredient{ingredients.length > 1 ? 's' : ''}
-            </Text>
+            </Typography>
           </View>
         </View>
       </View>
     </PressableWithHaptics>
   );
 };
-
-const styles = StyleSheet.create({
-  description: {
-    color: colors.brown[800],
-    fontFamily: 'Satoshi-Medium',
-    fontSize: 14,
-    lineHeight: 14 * 1.125,
-  },
-  title: {
-    marginRight: 24,
-    color: colors.brown[900],
-    fontFamily: 'Satoshi-Black',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-});

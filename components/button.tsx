@@ -1,4 +1,4 @@
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { FunctionComponent } from 'react';
 import { StyleProp, StyleSheet, ViewStyle, ActivityIndicator, View } from 'react-native';
 import { filter, isTruthy } from 'remeda';
@@ -17,7 +17,7 @@ type Props = {
     size?: number;
   };
   style?: StyleProp<ViewStyle>;
-  size?: 'base' | 'small' | 'pill';
+  size?: 'base' | 'small';
   variant: 'primary' | 'secondary' | 'outlined' | 'green' | 'red-outlined';
   isLoading?: boolean;
 };
@@ -33,7 +33,7 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
       style={filter(
         [
           styles.container,
-          (size === 'small' || size === 'pill') && styles.small,
+          size === 'small' && styles.small,
           variant === 'primary' && styles.primaryColors,
           variant === 'secondary' && styles.secondaryColors,
           variant === 'outlined' && styles.outlinedColors,
@@ -58,27 +58,20 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
         {leftIcon ? (
           <leftIcon.Icon
             {...leftIcon}
-            size={leftIcon.size ?? size === 'small' ? 16 : 20}
+            size={leftIcon.size ?? (size === 'small' ? 16 : 20)}
             color={textColor}
             strokeWidth={2.25}
           />
         ) : null}
         {text ? (
-          <Text
-            style={[
-              styles.text,
-              { color: textColor },
-              size === 'small' && styles.smallText,
-              size === 'pill' && styles.pillText,
-            ]}
-          >
+          <Typography variant={size === 'small' ? 'body-sm' : 'body-base'} weight="bold" color={textColor}>
             {text}
-          </Text>
+          </Typography>
         ) : null}
         {rightIcon ? (
           <rightIcon.Icon
             {...rightIcon}
-            size={rightIcon.size ?? size === 'small' ? 16 : 20}
+            size={rightIcon.size ?? (size === 'small' ? 16 : 20)}
             color={textColor}
             strokeWidth={2.25}
           />
@@ -133,16 +126,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderBottomWidth: 2,
-  },
-  pillText: {
-    fontSize: 14,
-  },
-  text: {
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-  },
-  smallText: {
-    fontSize: 16,
   },
   disabled: {
     opacity: 0.6,

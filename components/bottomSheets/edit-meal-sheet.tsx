@@ -1,11 +1,11 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowLeftRight, MapPin, Trash2 } from 'lucide-react-native';
 import { FunctionComponent } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { MealEntryDTO, MealType, useDeleteScheduleEntry } from '@/api/schedules';
@@ -26,7 +26,9 @@ const Action = ({ onPress, text, icon: Icon }: ActionProps) => {
         <View style={{ backgroundColor: '#493D34', padding: 4, borderRadius: 4 }}>
           <Icon color="#FEF7EA" size={20} />
         </View>
-        <Text style={styles.actionText}>{text}</Text>
+        <Typography variant="body-base" weight="bold">
+          {text}
+        </Typography>
       </Animated.View>
     </GestureDetector>
   );
@@ -44,10 +46,19 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>
-        What to do with{'\n'}
-        <Text style={{ backgroundColor: colors.orange[100] }}>&ldquo;{mealName}&rdquo;</Text>?
-      </Text>
+      <View style={{ marginBottom: 24 }}>
+        <Typography variant="heading-sm" weight="bold">
+          What to do with{' '}
+          <Typography
+            variant="heading-sm"
+            weight="bold"
+            style={{ backgroundColor: colors.orange[100], paddingHorizontal: 4, paddingVertical: 2, marginTop: 4 }}
+          >
+            &ldquo;{mealName}&rdquo;
+          </Typography>
+          ?
+        </Typography>
+      </View>
       <View style={{ gap: 16, marginBottom: 12 }}>
         {isDiningOut && (
           <Action
@@ -81,19 +92,3 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 24,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  actionText: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.25,
-  },
-});

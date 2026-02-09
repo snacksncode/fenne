@@ -1,9 +1,11 @@
 import { ComponentProps, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Typography } from '@/components/Typography';
 import { IngredientOption, useIngredientSearch, useDeleteCustomIngredient } from '@/api/food-items';
 import { colors } from '@/constants/colors';
 import { AisleIcon } from '@/components/aisle-header';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
+import { ScrollView } from 'react-native-actions-sheet';
 import { X } from 'lucide-react-native';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 
@@ -52,14 +54,19 @@ export const AutocompleteInput = ({ value, onChangeText, onSelect, ...props }: A
           ref={listRef}
           indicatorStyle="black"
           data={options}
+          renderScrollComponent={ScrollView}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={{ flexDirection: 'row' }}>
               <Pressable style={styles.option} onPress={() => handleSelect(item)}>
                 <AisleIcon type={item.aisle} />
                 <View style={styles.optionContent}>
-                  <Text style={styles.optionText}>{item.name}</Text>
-                  <Text style={styles.optionMeta}>{item.aisle.replace('_', ' ')}</Text>
+                  <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+                    {item.name}
+                  </Typography>
+                  <Typography variant="body-xs" weight="regular" color={colors.brown[700]} style={{ marginTop: -4 }}>
+                    {item.aisle.replace('_', ' ')}
+                  </Typography>
                 </View>
               </Pressable>
               {item.custom && (
@@ -73,7 +80,7 @@ export const AutocompleteInput = ({ value, onChangeText, onSelect, ...props }: A
             </View>
           )}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ ...styles.list }}
+          contentContainerStyle={styles.list}
           style={{ ...styles.dropdown, width: inputWidth + 16 }}
         />
       )}
@@ -90,7 +97,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderColor: '#493D34',
     color: '#493D34',
-    fontFamily: 'Satoshi-Bold',
     height: 48,
     zIndex: 1,
   },
@@ -108,29 +114,18 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 0,
+    paddingVertical: 6,
   },
   option: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingLeft: 16,
   },
   optionContent: {
     flex: 1,
-  },
-  optionText: {
-    color: '#493D34',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 18,
-  },
-  optionMeta: {
-    color: '#958270',
-    fontFamily: 'Satoshi-Regular',
-    fontSize: 12,
-    lineHeight: 14,
   },
 });
 

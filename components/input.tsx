@@ -1,3 +1,4 @@
+import { colors } from '@/constants/colors';
 import { ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
@@ -13,9 +14,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderBottomWidth: 2,
-    borderColor: '#493D34',
-    color: '#493D34',
-    fontFamily: 'Satoshi-Bold',
+    borderColor: colors.brown[900],
+    color: colors.brown[900],
+    fontFamily: 'Satoshi-Medium',
     height: 48,
   },
 });

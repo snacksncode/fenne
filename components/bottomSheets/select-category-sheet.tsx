@@ -2,9 +2,9 @@ import { AisleCategory } from '@/api/groceries';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 const aisles: AisleCategory[] = [
   'produce',
@@ -32,7 +32,9 @@ export const SelectCategorySheet = (props: SheetProps<'select-category-sheet'>) 
   return (
     <BaseSheet id={props.sheetId} snapPoints={[60]}>
       <ScrollView>
-        <Text style={styles.header}>Select a category</Text>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+          Select a category
+        </Typography>
         <View style={{ paddingBottom: 20 }}>
           {aisles.map((aisle) => (
             <PressableWithHaptics style={{ paddingVertical: 6 }} onPress={() => handleSelect(aisle)} key={aisle}>
@@ -44,13 +46,3 @@ export const SelectCategorySheet = (props: SheetProps<'select-category-sheet'>) 
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 12,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-});

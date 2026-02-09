@@ -1,10 +1,10 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { CalendarPlus, CalendarSearch } from 'lucide-react-native';
 import { FunctionComponent } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { Tag } from '@/components/svgs/tag';
@@ -28,7 +28,9 @@ const Action = (props: {
         <View style={{ backgroundColor: '#493D34', padding: 4, borderRadius: 4 }}>
           <props.icon color="#FEF7EA" size={20} />
         </View>
-        <Text style={styles.actionText}>{props.text}</Text>
+        <Typography variant="body-base" weight="bold">
+          {props.text}
+        </Typography>
       </Animated.View>
     </GestureDetector>
   );
@@ -45,13 +47,19 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>
-        What to do with{'\n'}
-        <Text style={{ backgroundColor: colors.orange[100] }}>
-          &ldquo;{format(parseISO(dateString), 'EEEE, d MMMM')}&rdquo;
-        </Text>
-        ?
-      </Text>
+      <View style={{ marginBottom: 24 }}>
+        <Typography variant="heading-sm" weight="bold">
+          What to do with{'\n'}
+          <Typography
+            variant="heading-sm"
+            weight="bold"
+            style={{ backgroundColor: colors.orange[100], paddingHorizontal: 4, paddingVertical: 2, marginTop: 4 }}
+          >
+            &ldquo;{format(parseISO(dateString), 'EEEE, d MMMM')}&rdquo;
+          </Typography>
+          ?
+        </Typography>
+      </View>
       <View style={{ gap: 16, marginBottom: 12 }}>
         <Action
           text="Schedule meal"
@@ -87,19 +95,3 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 24,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  actionText: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.25,
-  },
-});

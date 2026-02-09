@@ -9,7 +9,7 @@ import {
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Button } from '@/components/button';
 import { RouteTitle } from '@/components/RouteTitle';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { CirclePlus, ListPlus, Pen, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
@@ -53,11 +53,13 @@ const EmptyList = () => {
       <View style={styles.basket}>
         <ShoppingBasket size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
       </View>
-      <Text style={styles.heading}>Your grocery list is empty</Text>
-      <Text style={styles.subheading}>
+      <Typography variant="heading-md" weight="black" style={{ marginTop: 10 }}>
+        Your grocery list is empty
+      </Typography>
+      <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginTop: 4 }}>
         Start planning your meals to fill it up,{'\n'}
         or add items directly.
-      </Text>
+      </Typography>
       <View style={{ marginTop: 24, gap: 12 }}>
         <Button
           text="Add Your First Item"
@@ -235,6 +237,7 @@ const Checkbox = (props: { isChecked: boolean; progress: SharedValue<number> }) 
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedTypography = Animated.createAnimatedComponent(Typography);
 
 const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void; onRemove: () => void }) => {
   const [width, setWidth] = useState(0);
@@ -329,11 +332,9 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
         <Animated.View style={scaleStyle}>
           <Checkbox isChecked={isCompleted} progress={progress} />
         </Animated.View>
-        <Animated.Text
-          style={[{ flex: 1, fontFamily: 'Satoshi-Bold', fontSize: 16, lineHeight: 16 * 1.5 }, textStyles]}
-        >
+        <AnimatedTypography variant="body-base" weight="bold" style={[{ flex: 1 }, textStyles]}>
           {item.name}
-        </Animated.Text>
+        </AnimatedTypography>
         {!(item.quantity === 1 && item.unit === 'count') && (
           <View
             style={{
@@ -346,16 +347,10 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
               borderColor: colors.orange[600],
             }}
           >
-            <Text
-              style={{
-                color: colors.cream[100],
-                fontFamily: 'Satoshi-Bold',
-                fontSize: 14,
-              }}
-            >
+            <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
               {item.quantity}
               {unitFormatters[item.unit]({ count: item.quantity })}
-            </Text>
+            </Typography>
           </View>
         )}
       </ReanimatedSwipeable>
@@ -513,31 +508,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 999,
   },
-  heading: {
-    fontFamily: 'Satoshi-Black',
-    fontSize: 24,
-    lineHeight: 24 * 1.5,
-    color: '#4A3E36',
-    marginTop: 10,
-  },
-  subheading: {
-    fontFamily: 'Satoshi-Medium',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-    textAlign: 'center',
-    color: '#4A3E36',
-    marginTop: 4,
-  },
+
   leftActionContainer: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
-  },
-  deleteText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
   },
 });
 

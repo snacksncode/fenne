@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { useAtomValue } from 'jotai';
 import { connectionStatusAtom, ConnectionStatus as Status } from '@/hooks/useInvalidationChannel';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useNetworkState } from 'expo-network';
@@ -25,12 +25,16 @@ export const ConnectionStatus = () => {
       {!isConnected ? (
         <View style={styles.pill}>
           <View style={[styles.dot, { backgroundColor: statusConfig.disconnected.color }]} />
-          <Text style={styles.label}>Offline</Text>
+          <Typography variant="body-xs" weight="black" color={colors.cream[100]} style={{ fontSize: 10 }}>
+            Offline
+          </Typography>
         </View>
       ) : (
         <View style={styles.pill}>
           <View style={[styles.dot, { backgroundColor: config.color }]} />
-          <Text style={styles.label}>Sync</Text>
+          <Typography variant="body-xs" weight="black" color={colors.cream[100]} style={{ fontSize: 10 }}>
+            Sync
+          </Typography>
           <View style={{ width: 1, marginHorizontal: 4, backgroundColor: colors.brown[700], height: 12 }} />
           <View
             style={[
@@ -38,7 +42,9 @@ export const ConnectionStatus = () => {
               { backgroundColor: (isUpdating ? statusConfig.connecting : statusConfig.connected).color },
             ]}
           />
-          <Text style={styles.label}>Up to date</Text>
+          <Typography variant="body-xs" weight="black" color={colors.cream[100]} style={{ fontSize: 10 }}>
+            Up to date
+          </Typography>
         </View>
       )}
     </View>
@@ -68,10 +74,5 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  label: {
-    fontFamily: 'Satoshi-Black',
-    color: colors.cream[100],
-    fontSize: 10,
   },
 });

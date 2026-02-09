@@ -236,7 +236,9 @@ const Settings = () => {
         }}
       >
         <ChevronLeft />
-        <Typography variant="heading-sm" weight="bold">Settings</Typography>
+        <Typography variant="heading-sm" weight="bold">
+          Settings
+        </Typography>
       </Pressable>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: 'center', marginTop: 24 }}>
@@ -262,7 +264,9 @@ const Settings = () => {
           </View>
         </View>
         <View style={{ marginTop: 24 }}>
-          <Typography variant="body-base" weight="bold">ACCOUNT</Typography>
+          <Typography variant="body-base" weight="bold">
+            ACCOUNT
+          </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={User} text="Edit profile" onPress={() => SheetManager.show('change-details-sheet')} />
           </View>
@@ -273,7 +277,9 @@ const Settings = () => {
 
         {invitations.data && !isEmptyish(invitations.data.received) ? (
           <View style={{ marginTop: 24 }}>
-            <Typography variant="body-base" weight="bold">RECEIVED INVITATIONS</Typography>
+            <Typography variant="body-base" weight="bold">
+              RECEIVED INVITATIONS
+            </Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {invitations.data.received.map((invitation) => (
                 <ReceivedInvitation key={invitation.id} invitation={invitation} />
@@ -284,7 +290,9 @@ const Settings = () => {
 
         {invitations.data && !isEmptyish(invitations.data.sent) ? (
           <View style={{ marginTop: 24 }}>
-            <Typography variant="body-base" weight="bold">SENT INVITATIONS</Typography>
+            <Typography variant="body-base" weight="bold">
+              SENT INVITATIONS
+            </Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {invitations.data.sent.map((invitation) => (
                 <SentInvitation key={invitation.id} invitation={invitation} />
@@ -295,7 +303,9 @@ const Settings = () => {
 
         {family ? (
           <View style={{ marginTop: 24 }}>
-            <Typography variant="body-base" weight="bold">FAMILY</Typography>
+            <Typography variant="body-base" weight="bold">
+              FAMILY
+            </Typography>
             <View style={{ gap: 12, marginTop: 12 }}>
               {sortMembers(family.members).map((member) => (
                 <Member key={member.id} user={member} />
@@ -323,7 +333,9 @@ const Settings = () => {
         ) : null}
 
         <View style={{ marginTop: 24 }}>
-          <Typography variant="body-base" weight="bold">ACTIONS</Typography>
+          <Typography variant="body-base" weight="bold">
+            ACTIONS
+          </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
           </View>
@@ -353,7 +365,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-
 });
 
 export default Settings;

@@ -16,7 +16,7 @@ import {
 
 import { bottleSpray, bottleToothbrushComb, pepperChilli } from '@lucide/lab';
 import { View } from 'react-native';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { AisleCategory } from '@/api/groceries';
 import { colors } from '@/constants/colors';
 
@@ -65,9 +65,9 @@ export const AisleHeader = ({ type }: { type: AisleCategory }) => {
   return (
     <View style={{ gap: 8, flexDirection: 'row', alignItems: 'center' }}>
       <AisleIcon type={type} />
-      <Text style={{ color: '#795339', fontFamily: 'Satoshi-Bold', fontSize: 20, lineHeight: 20 * 1.25 }}>
+      <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
         {getText()}
-      </Text>
+      </Typography>
     </View>
   );
 };

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { Component, ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text } from './Text';
+import { Typography } from '@/components/Typography';
 import { Button } from './button';
 import { colors } from '@/constants/colors';
 import * as SecureStore from 'expo-secure-store';
@@ -49,10 +49,12 @@ export class QueryErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
+          <Typography variant="heading-md" weight="bold">
+            Something went wrong
+          </Typography>
+          <Typography variant="body-base" weight="regular" style={styles.message}>
             The app encountered an error. Try clearing the app data to recover. This will log you out!
-          </Text>
+          </Typography>
           <Button
             variant="primary"
             text="Clear Cache & Retry"
@@ -75,17 +77,9 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: colors.cream[100],
   },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Satoshi-Bold',
-    color: colors.brown[900],
-    marginBottom: 12,
-  },
   message: {
-    fontSize: 16,
-    fontFamily: 'Satoshi-Regular',
-    color: colors.brown[700],
     textAlign: 'center',
     marginBottom: 24,
+    marginTop: 12,
   },
 });

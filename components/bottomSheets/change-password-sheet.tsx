@@ -2,11 +2,11 @@ import { useChangePassword } from '@/api/auth';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { RotateCcwKey } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) => {
   const changePassword = useChangePassword();
@@ -15,10 +15,14 @@ export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) 
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Change password</Text>
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+        Change password
+      </Typography>
       <View style={{ gap: 16 }}>
         <View>
-          <Text style={styles.label}>Current password</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Current password
+          </Typography>
           <TextInput
             value={currentPassword}
             onChangeText={setCurrentPassword}
@@ -28,7 +32,9 @@ export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) 
           />
         </View>
         <View>
-          <Text style={styles.label}>New password</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            New password
+          </Typography>
           <TextInput
             value={newPassword}
             onChangeText={setNewPassword}
@@ -58,20 +64,3 @@ export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) 
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 12,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
-});

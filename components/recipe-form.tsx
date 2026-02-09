@@ -6,7 +6,8 @@ import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
+import { View, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
+import { Typography } from '@/components/Typography';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SheetManager } from 'react-native-actions-sheet';
@@ -97,12 +98,14 @@ const IngredientItem = ({
         }}
       >
         <Animated.View style={scaleStyle}>
-          <Text style={styles.ingredientName}>{ingredient.name}</Text>
+          <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+            {ingredient.name}
+          </Typography>
           {ingredient.quantity && (
-            <Text style={styles.ingredientQuantity}>
+            <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
               {ingredient.quantity}{' '}
               {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseFloat(ingredient.quantity) })}
-            </Text>
+            </Typography>
           )}
         </Animated.View>
       </ReanimatedSwipeable>
@@ -126,28 +129,12 @@ const EmptyIngredientsList = () => (
     }}
   >
     <CookingPot size={24} color="#4A3E36" />
-    <Text
-      style={{
-        marginTop: 8,
-        fontFamily: 'Satoshi-Black',
-        fontSize: 16,
-        lineHeight: 16 * 1.25,
-        color: '#4A3E36',
-      }}
-    >
+    <Typography variant="body-base" weight="black" color={colors.brown[900]} style={{ marginTop: 8 }}>
       No ingredients
-    </Text>
-    <Text
-      style={{
-        marginTop: 2,
-        fontFamily: 'Satoshi-Bold',
-        fontSize: 14,
-        lineHeight: 14,
-        color: '#4A3E36',
-      }}
-    >
+    </Typography>
+    <Typography variant="body-sm" weight="bold" color={colors.brown[800]}>
       Tap to add one
-    </Text>
+    </Typography>
   </View>
 );
 
@@ -281,11 +268,15 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
         }}
       >
         <ChevronLeft />
-        <Text style={styles.header}>{recipe ? 'Edit Recipe' : 'New Recipe'}</Text>
+        <Typography variant="heading-sm" weight="bold" color="#4A3E36">
+          {recipe ? 'Edit Recipe' : 'New Recipe'}
+        </Typography>
       </Pressable>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 20 }}>
         <View>
-          <Text style={styles.label}>Name</Text>
+          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+            Name
+          </Typography>
           <TextInput
             ref={nameInputRef}
             placeholder="e.g. Avocado Toast"
@@ -294,7 +285,9 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           />
         </View>
         <View>
-          <Text style={styles.label}>Cooking time (in minutes)</Text>
+          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+            Cooking time (in minutes)
+          </Typography>
           <TextInput
             value={timeInMinutes}
             onChangeText={setTimeInMinutes}
@@ -303,7 +296,9 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           />
         </View>
         <View>
-          <Text style={styles.label}>Meal type</Text>
+          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+            Meal type
+          </Typography>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button
               onPress={() => {
@@ -314,7 +309,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Pancake }}
               text="Breakfast"
               variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
-              size="pill"
+              size="small"
               style={{ flex: 1 }}
             />
             <Button
@@ -326,7 +321,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Salad }}
               text="Lunch"
               variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
-              size="pill"
+              size="small"
               style={{ flex: 1 }}
             />
             <Button
@@ -338,13 +333,15 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
               leftIcon={{ Icon: Ham }}
               text="Dinner"
               variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
-              size="pill"
+              size="small"
               style={{ flex: 1 }}
             />
           </View>
         </View>
         <View>
-          <Text style={styles.label}>Ingredients</Text>
+          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+            Ingredients
+          </Typography>
           <IngredientsList
             ingredients={ingredients}
             handleAddIngredient={handleAddIngredient}
@@ -387,32 +384,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF7EA',
     flex: 1,
     paddingHorizontal: 20,
-  },
-  header: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
-  ingredientName: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.5,
-  },
-  ingredientQuantity: {
-    color: '#867a6e',
-    fontFamily: 'Satoshi-Medium',
-    fontSize: 12,
-    lineHeight: 12 * 1.5,
-    marginTop: 2,
   },
   deleteActionContainer: {
     alignItems: 'center',

@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, TouchableOpacity, Platform, StyleSheet, LayoutChangeEvent, Animated as RNAnimated } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import type { MaterialTopTabBarProps } from '@react-navigation/material-top-tabs';
+import { Typography } from '@/components/Typography';
 
 const PILL = '#4A3E36';
 const TEXT_ACTIVE = '#FEF7EA';
@@ -31,7 +32,7 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
 
   const labels = state.routes.map((route) => {
     const { options } = descriptors[route.key];
-    const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : options.title ?? route.name;
+    const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : (options.title ?? route.name);
     return { key: route.key, name: route.name, params: route.params, label };
   });
 
@@ -46,9 +47,9 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
           <View style={styles.rowInner}>
             {labels.map((l) => (
               <View key={l.key} style={styles.item}>
-                <RNAnimated.Text style={[styles.itemText, { color: TEXT_INACTIVE }]} numberOfLines={1}>
+                <Typography variant="body-sm" weight="bold" color={TEXT_INACTIVE} numberOfLines={1}>
                   {l.label}
-                </RNAnimated.Text>
+                </Typography>
               </View>
             ))}
           </View>
@@ -67,9 +68,9 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
             <View style={styles.rowInner}>
               {labels.map((l) => (
                 <View key={l.key} style={styles.item}>
-                  <RNAnimated.Text style={[styles.itemText, { color: TEXT_ACTIVE }]} numberOfLines={1}>
+                  <Typography variant="body-sm" weight="bold" color={TEXT_ACTIVE} numberOfLines={1}>
                     {l.label}
-                  </RNAnimated.Text>
+                  </Typography>
                 </View>
               ))}
             </View>
@@ -162,8 +163,6 @@ const styles = StyleSheet.create({
   },
 
   itemTouch: { flex: 1, height: 34 },
-
-  itemText: { fontFamily: 'Satoshi-Bold', fontSize: 14 },
 
   pillMask: {
     position: 'absolute',

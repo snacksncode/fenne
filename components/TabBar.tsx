@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, LayoutChangeEvent } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, { useSharedValue, useDerivedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { NavigationRoute, ParamListBase } from '@react-navigation/native';
@@ -21,7 +21,7 @@ const Tab = ({
   descriptors: BottomTabBarProps['descriptors'];
 }) => {
   const { options } = descriptors[route.key];
-  const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : options.title ?? route.name;
+  const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : (options.title ?? route.name);
 
   const onPress = () => {
     const event = navigation.emit({
@@ -47,7 +47,9 @@ const Tab = ({
                 color: colors.cream[100],
               })
             : null}
-          <Text style={styles.tabText}>{label}</Text>
+          <Typography variant="body-xs" weight="bold" color={colors.cream[100]}>
+            {label}
+          </Typography>
         </Animated.View>
       </View>
     </GestureDetector>
@@ -134,11 +136,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-  },
-  tabText: {
-    color: colors.cream[100],
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 13,
-    includeFontPadding: false,
   },
 });

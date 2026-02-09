@@ -1,6 +1,6 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Option, SegmentedSelect } from '@/components/Select';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { MealType, useUpdateScheduleDay } from '@/api/schedules';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
@@ -45,16 +45,9 @@ export const SelectRestaurantSheet = (props: SheetProps<'select-restaurant-sheet
       <View style={{ backgroundColor: colors.cream[100] }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
           <ChefHat color="#4A3E36" size={20} strokeWidth={2.5} />
-          <Text
-            style={{
-              color: '#4A3E36',
-              fontFamily: 'Satoshi-Bold',
-              fontSize: 20,
-              lineHeight: 20 * 1.25,
-            }}
-          >
+          <Typography variant="heading-sm" weight="bold">
             {defaultRestaurant ? 'Edit dining out?' : 'Dining out?'}
-          </Text>
+          </Typography>
           <PressableWithHaptics onPress={handleSwitchToRecipesPress} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
             <BookMarked color={colors.brown[900]} />
           </PressableWithHaptics>

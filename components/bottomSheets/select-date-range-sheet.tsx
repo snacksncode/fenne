@@ -4,7 +4,7 @@ import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
@@ -71,22 +71,24 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>Which days?</Text>
-      <Text style={styles.info}>
-        Shopping list is for the <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.green[600] }}>green</Text>{' '}
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 4 }}>
+        Which days?
+      </Typography>
+      <Typography variant="body-base" weight="regular" style={{ marginBottom: 16, lineHeight: 16 * 1.4 }}>
+        Shopping list is for the{' '}
+        <Typography variant="body-base" weight="bold" style={{ color: colors.green[600] }}>
+          green
+        </Typography>{' '}
         days only{'\n'}
-        <Text
-          style={{
-            fontFamily: 'Satoshi-Bold',
-            color: colors.orange[600],
-          }}
-        >
+        <Typography variant="body-base" weight="bold" style={{ color: colors.orange[600] }}>
           Pro tip:
-        </Text>{' '}
+        </Typography>{' '}
         Tap on a day to expand the selection!
-      </Text>
+      </Typography>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Text style={styles.currentMonth}>{format(currentMonthDate, 'MMMM yyyy')}</Text>
+        <Typography variant="body-base" weight="bold">
+          {format(currentMonthDate, 'MMMM yyyy')}
+        </Typography>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <PressableWithHaptics
             onPress={() => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1)))}
@@ -125,28 +127,3 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
     </BaseSheet>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-
-  info: {
-    marginBottom: 16,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Regular',
-    fontSize: 16,
-    lineHeight: 16 * 1.4,
-  },
-
-  currentMonth: {
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 16,
-    lineHeight: 16 * 1.25,
-  },
-});

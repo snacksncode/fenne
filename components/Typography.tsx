@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text as RNText, StyleSheet, TextStyle } from 'react-native';
+import { Text, StyleSheet, TextStyle, StyleProp } from 'react-native';
 import { colors } from '@/constants/colors';
 
 export type TypographyVariant =
@@ -37,13 +37,13 @@ type TypographyProps = {
   weight: TypographyWeight;
   color?: string;
   numberOfLines?: number;
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   children: React.ReactNode;
 };
 
 export function Typography({ variant, weight, color, numberOfLines, style, children }: TypographyProps) {
   return (
-    <RNText
+    <Text
       style={[
         s.base,
         variantStyles[variant],
@@ -53,7 +53,7 @@ export function Typography({ variant, weight, color, numberOfLines, style, child
       numberOfLines={numberOfLines}
     >
       {children}
-    </RNText>
+    </Text>
   );
 }
 

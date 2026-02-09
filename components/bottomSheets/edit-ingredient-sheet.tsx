@@ -6,7 +6,7 @@ import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Text } from '@/components/Text';
+import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowRight } from 'lucide-react-native';
 import { nanoid } from 'nanoid/non-secure';
@@ -50,10 +50,14 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Text style={styles.header}>{initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}</Text>
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
+        {initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}
+      </Typography>
       <View style={{ gap: 16 }}>
         <View>
-          <Text style={styles.label}>Name</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Name
+          </Typography>
           <AutocompleteInput
             value={ingredient.name}
             onChangeText={(name) => setIngredient((prev) => ({ ...prev, name }))}
@@ -63,7 +67,9 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
         </View>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Quantity</Text>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Quantity
+            </Typography>
             <TextInput
               value={ingredient.quantity.toString()}
               onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
@@ -72,18 +78,22 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Unit</Text>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Unit
+            </Typography>
             <PressableWithHaptics onPress={handleOpenUnitSheet}>
               <View style={styles.unitButton}>
-                <Text style={styles.unitText}>
+                <Typography variant="body-sm" weight="medium">
                   {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseFloat(ingredient.quantity) })}
-                </Text>
+                </Typography>
               </View>
             </PressableWithHaptics>
           </View>
         </View>
         <View>
-          <Text style={styles.label}>Category</Text>
+          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+            Category
+          </Typography>
           <PressableWithHaptics onPress={handleOpenCategorySheet}>
             <AisleHeader type={ingredient.aisle} />
           </PressableWithHaptics>
@@ -97,20 +107,6 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
 };
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 24,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
-  },
-  label: {
-    marginBottom: 4,
-    color: '#4A3E36',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.5,
-  },
   unitButton: {
     borderRadius: 8,
     fontSize: 14,
@@ -120,11 +116,5 @@ const styles = StyleSheet.create({
     borderColor: '#493D34',
     height: 48,
     justifyContent: 'center',
-  },
-  unitText: {
-    color: '#493D34',
-    fontFamily: 'Satoshi-Bold',
-    fontSize: 14,
-    lineHeight: 14 * 1.25,
   },
 });
