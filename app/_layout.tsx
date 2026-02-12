@@ -1,6 +1,5 @@
 import { SheetProvider } from 'react-native-actions-sheet';
 import { Sheets } from '@/sheets';
-import { DevToolsBubble } from 'react-native-react-query-devtools';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,7 +8,6 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { useEffect, useState } from 'react';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
-// import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SessionProvider, useSession } from '@/contexts/session';
 import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
 import { asyncStoragePersister, queryClient, WEEK_IN_MS } from '@/query-client';
@@ -17,6 +15,7 @@ import { useOnAppActive } from '@/hooks/use-on-app-active';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLogout } from '@/hooks/use-logout';
 import { authSignal } from '@/api/auth-event';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -56,13 +55,13 @@ export default function Layout() {
       >
         <SessionProvider>
           <GestureHandlerRootView>
-            <InvalidationChannel />
-            {/* <ConnectionStatus /> */}
-            <SheetProvider>
-              <Sheets />
-              <RootLayout />
-            </SheetProvider>
-            <DevToolsBubble queryClient={queryClient} />
+            <KeyboardProvider>
+              <SheetProvider>
+                <Sheets />
+                <InvalidationChannel />
+                <RootLayout />
+              </SheetProvider>
+            </KeyboardProvider>
           </GestureHandlerRootView>
         </SessionProvider>
       </PersistQueryClientProvider>

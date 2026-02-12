@@ -1,6 +1,7 @@
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
-import { KeyboardAvoidingView, View } from 'react-native';
+import { View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { TextInput } from '@/components/input';
@@ -137,7 +138,7 @@ const WelcomeScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream[100] }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="position" contentContainerStyle={{ flex: 1 }}>
+      <KeyboardAvoidingView contentContainerStyle={{ flex: 1 }} style={{ flex: 1 }} behavior="position">
         <View style={{ zIndex: 1, marginBottom: 12, flex: 1 }}>
           <Animated.View
             layout={isFirstRender ? undefined : LinearTransition.springify()}

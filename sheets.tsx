@@ -22,6 +22,7 @@ import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-rang
 import { SelectRestaurantSheet } from '@/components/bottomSheets/select-restaurant-sheet';
 import { TutorialSheet } from '@/components/bottomSheets/tutorial-sheet';
 import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet';
+import { LinkInputSheet } from '@/components/bottomSheets/link-input-sheet';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 declare module 'react-native-actions-sheet' {
@@ -74,6 +75,10 @@ declare module 'react-native-actions-sheet' {
       };
     }>;
     'tutorial-sheet': SheetDefinition;
+    'link-input-sheet': SheetDefinition<{
+      payload: { selectedText?: string; existingUrl?: string };
+      returnValue: string | undefined;
+    }>;
   }
 }
 
@@ -97,6 +102,7 @@ export const Sheets = () => (
       'select-date-range-sheet': SelectDateRangeSheet,
       'select-restaurant-sheet': SelectRestaurantSheet,
       'tutorial-sheet': TutorialSheet,
+      'link-input-sheet': LinkInputSheet,
     }}
   />
 );

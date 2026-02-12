@@ -12,6 +12,7 @@ export type RecipeDTO = {
   ingredients: IngredientDTO[];
   time_in_minutes: number;
   liked: boolean;
+  notes?: string;
 };
 
 export type RecipeFormData = Omit<RecipeDTO, 'id' | 'ingredients'> & {

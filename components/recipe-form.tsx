@@ -6,9 +6,12 @@ import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, Keyboard, ScrollView, StyleProp, ViewStyle } from 'react-native';
+import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Typography } from '@/components/Typography';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
+import { NotesEditor } from '@/components/notes-editor';
+import { EnrichedTextInputInstance } from 'react-native-enriched';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SheetManager } from 'react-native-actions-sheet';
 import Animated, {
@@ -203,6 +206,7 @@ const getIngredients = (recipe: RecipeDTO | undefined) => {
 export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const navigation = useNavigation();
   const nameInputRef = useRef<TextInputType>(null);
+  const notesEditorRef = useRef<EnrichedTextInputInstance>(null);
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
   const [recipeName, setRecipeName] = useState(recipe?.name ?? '');
@@ -237,11 +241,13 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
 
   const handleDeleteIngredient = (id: string) => setIngredients((prev) => prev.filter((item) => item._id !== id));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     Keyboard.dismiss();
     if (!recipeName.trim() || mealTypes.length === 0 || ingredients.length === 0 || !+timeInMinutes) {
       return alert('Please fill in all required fields');
     }
+
+    const notesHtml = await notesEditorRef.current?.getHTML();
 
     const recipeData: RecipeFormData = {
       name: recipeName,
@@ -249,6 +255,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       ingredients: ingredients,
       time_in_minutes: +timeInMinutes,
       liked: recipe?.liked ?? false,
+      notes: notesHtml || undefined,
     };
     const handleSuccess = () => navigation.goBack();
     if (recipe) return editRecipe.mutate({ id: recipe.id, ...recipeData }, { onSuccess: handleSuccess });
@@ -272,7 +279,12 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           {recipe ? 'Edit Recipe' : 'New Recipe'}
         </Typography>
       </Pressable>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 20 }}>
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="interactive"
+        contentContainerStyle={{ gap: 16, paddingBottom: 20 }}
+        bottomOffset={150}
+      >
         <View>
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
             Name
@@ -349,7 +361,13 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
             onIngredientDelete={handleDeleteIngredient}
           />
         </View>
-      </ScrollView>
+        <View>
+          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+            Notes
+          </Typography>
+          <NotesEditor ref={notesEditorRef} defaultValue={recipe?.notes} />
+        </View>
+      </KeyboardAwareScrollView>
       <View
         style={{
           marginTop: 'auto',
