@@ -66,8 +66,8 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
             icon={MapPin}
             onPress={async () => {
               await SheetManager.hide('edit-meal-sheet');
-              SheetManager.show('select-restaurant-sheet', {
-                payload: { dateString, defaultMealType: mealType, defaultRestaurant: entry.name },
+              SheetManager.show('schedule-meal-sheet', {
+                payload: { type: 'restaurant', dateString, defaultMealType: mealType, defaultRestaurant: entry.name },
               });
             }}
           />
@@ -77,7 +77,7 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
           icon={ArrowLeftRight}
           onPress={async () => {
             await SheetManager.hide('edit-meal-sheet');
-            SheetManager.show('schedule-meal-sheet', { payload: { dateString, mealType } });
+            SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString, mealType } });
           }}
         />
         <Action

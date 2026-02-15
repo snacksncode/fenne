@@ -68,6 +68,7 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             await SheetManager.hide(props.sheetId);
             SheetManager.show('schedule-meal-sheet', {
               payload: {
+                type: 'meal',
                 dateString,
                 mealType: scheduleDay ? getFirstMissingMealType(scheduleDay) : undefined,
               },

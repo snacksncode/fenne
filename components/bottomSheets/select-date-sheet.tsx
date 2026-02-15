@@ -20,7 +20,7 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
 
   const handleDaySelect = async ({ dateString }: { dateString: string }) => {
     await SheetManager.hide(props.sheetId);
-    SheetManager.show('schedule-meal-sheet', { payload: { dateString } });
+    SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString } });
   };
 
   const leftArrow = useOnPressWithFeedback({

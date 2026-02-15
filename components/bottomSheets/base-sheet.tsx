@@ -5,11 +5,12 @@ import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BaseSheetProps = Partial<ActionSheetProps> & {
+  noBottomGutter?: boolean;
   children: ReactNode;
   id: string;
 };
 
-export const BaseSheet = ({ children, containerStyle, ...props }: BaseSheetProps) => {
+export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, ...props }: BaseSheetProps) => {
   const insets = useSafeAreaInsets();
   return (
     <ActionSheet
@@ -21,7 +22,7 @@ export const BaseSheet = ({ children, containerStyle, ...props }: BaseSheetProps
       useBottomSafeAreaPadding={false}
       {...props}
     >
-      <View style={[styles.innerContainer, { paddingBottom: insets.bottom }]}>{children}</View>
+      <View style={[styles.innerContainer, { paddingBottom: noBottomGutter ? 0 : insets.bottom }]}>{children}</View>
     </ActionSheet>
   );
 };

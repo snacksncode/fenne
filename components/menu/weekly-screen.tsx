@@ -202,7 +202,7 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
 
   const onPress = () => {
     SheetManager.show('schedule-meal-sheet', {
-      payload: { dateString: data.date, mealType: getFirstMissingMealType(data) },
+      payload: { type: 'meal', dateString: data.date, mealType: getFirstMissingMealType(data) },
     });
   };
 
@@ -327,7 +327,7 @@ const Day = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | 
 
   if (!data.breakfast && !data.lunch && !data.dinner) {
     const onPress = () => {
-      SheetManager.show('schedule-meal-sheet', { payload: { dateString } });
+      SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString } });
     };
     return <EmptyDayCard onPress={onPress} />;
   }

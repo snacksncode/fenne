@@ -19,7 +19,6 @@ import { EditMealSheet } from '@/components/bottomSheets/edit-meal-sheet';
 import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
 import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
 import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
-import { SelectRestaurantSheet } from '@/components/bottomSheets/select-restaurant-sheet';
 import { TutorialSheet } from '@/components/bottomSheets/tutorial-sheet';
 import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet';
 import { LinkInputSheet } from '@/components/bottomSheets/link-input-sheet';
@@ -42,7 +41,9 @@ declare module 'react-native-actions-sheet' {
       payload: { grocery?: GroceryItemDTO };
     }>;
     'schedule-meal-sheet': SheetDefinition<{
-      payload: { dateString: string; mealType?: MealType };
+      payload:
+        | { type: 'meal'; dateString: string; mealType?: MealType }
+        | { type: 'restaurant'; dateString: string; defaultMealType?: MealType; defaultRestaurant?: string };
     }>;
     'recipe-options-sheet': SheetDefinition<{
       payload: { recipe: RecipeDTO };
@@ -67,13 +68,7 @@ declare module 'react-native-actions-sheet' {
       payload: undefined;
     }>;
     'select-date-range-sheet': SheetDefinition;
-    'select-restaurant-sheet': SheetDefinition<{
-      payload: {
-        dateString: string;
-        defaultMealType?: MealType;
-        defaultRestaurant?: string;
-      };
-    }>;
+
     'tutorial-sheet': SheetDefinition;
     'link-input-sheet': SheetDefinition<{
       payload: { selectedText?: string; existingUrl?: string };
@@ -100,7 +95,6 @@ export const Sheets = () => (
       'invite-family-member-sheet': InviteFamilyMemberSheet,
       'select-date-sheet': SelectDateSheet,
       'select-date-range-sheet': SelectDateRangeSheet,
-      'select-restaurant-sheet': SelectRestaurantSheet,
       'tutorial-sheet': TutorialSheet,
       'link-input-sheet': LinkInputSheet,
     }}

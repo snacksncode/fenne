@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Fenne",
-    "slug": "fenne",
+    "slug": "fenne-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -34,8 +34,12 @@
         {
           "fonts": [
             "./assets/fonts/Satoshi-Black.otf",
+            "./assets/fonts/Satoshi-BlackItalic.otf",
             "./assets/fonts/Satoshi-Bold.otf",
+            "./assets/fonts/Satoshi-BoldItalic.otf",
+            "./assets/fonts/Satoshi-Italic.otf",
             "./assets/fonts/Satoshi-Medium.otf",
+            "./assets/fonts/Satoshi-MediumItalic.otf",
             "./assets/fonts/Satoshi-Regular.otf"
           ]
         }
@@ -46,6 +50,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5cb54c30-4b41-48ba-8fba-6ac880e1d471"
+      }
+    },
+    "owner": "fenne-organization"
   }
 }
