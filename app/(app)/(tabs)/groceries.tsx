@@ -256,7 +256,7 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
   );
 };
 
-const unitFormatters: Record<Unit, (data: { count: number }) => string> = {
+export const unitFormatters: Record<Unit, (data: { count: number }) => string> = {
   count: () => '',
   g: () => ' g',
   kg: () => ' kg',

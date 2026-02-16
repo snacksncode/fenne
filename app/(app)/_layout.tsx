@@ -5,6 +5,8 @@ const AppLayout = () => {
     <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="new-recipe" />
+      <Stack.Screen name="edit-recipe/[id]" />
+      <Stack.Screen name="recipe/[id]" />
       <Stack.Screen name="settings" />
     </Stack>
   );

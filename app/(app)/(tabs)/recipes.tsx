@@ -66,7 +66,7 @@ const RecipeItem = ({ recipe }: { recipe: RecipeDTO }) => {
     <Animated.View layout={LinearTransition.springify()} entering={FadeIn} exiting={FadeOut}>
       <Recipe
         recipe={recipe}
-        onPress={() => router.push({ pathname: '/edit-recipe/[id]', params: { id: recipe.id } })}
+        onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id } })}
         onLongPress={() => SheetManager.show('recipe-options-sheet', { payload: { recipe } })}
       />
     </Animated.View>

@@ -9,7 +9,7 @@ export function useOptimisticUpdate() {
 
   async function update<
     TaggedQueryKey extends readonly unknown[] & AnyDataTag,
-    TData = TaggedQueryKey[typeof dataTagSymbol]
+    TData = TaggedQueryKey[typeof dataTagSymbol],
   >({ queryKey, updateFn }: { queryKey: TaggedQueryKey; updateFn: Producer<TData> }) {
     await queryClient.cancelQueries({ queryKey });
     const previousData = queryClient.getQueryData(queryKey);

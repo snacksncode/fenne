@@ -247,7 +247,9 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       return alert('Please fill in all required fields');
     }
 
-    const notesHtml = await notesEditorRef.current?.getHTML();
+    const notesHtml = ((await notesEditorRef.current?.getHTML()) ?? '')
+      .replaceAll(/<h[456]>/g, '<p>')
+      .replaceAll(/<\/h[456]>/g, '</p>');
 
     const recipeData: RecipeFormData = {
       name: recipeName,
@@ -255,7 +257,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       ingredients: ingredients,
       time_in_minutes: +timeInMinutes,
       liked: recipe?.liked ?? false,
-      notes: notesHtml || undefined,
+      notes: notesHtml ?? '',
     };
     const handleSuccess = () => navigation.goBack();
     if (recipe) return editRecipe.mutate({ id: recipe.id, ...recipeData }, { onSuccess: handleSuccess });

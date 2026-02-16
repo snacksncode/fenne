@@ -12,7 +12,7 @@ export type RecipeDTO = {
   ingredients: IngredientDTO[];
   time_in_minutes: number;
   liked: boolean;
-  notes?: string;
+  notes: string;
 };
 
 export type RecipeFormData = Omit<RecipeDTO, 'id' | 'ingredients'> & {
@@ -88,28 +88,39 @@ export const useEditRecipe = () => {
     mutationKey: ['editRecipe'],
     mutationFn: api.recipes.edit,
     onMutate: async (newRecipeData) => {
-      const { previousData } = await update({
+      const optimisticUpdateRecipe = (recipe: RecipeDTO) => {
+        Object.assign(recipe, omit(newRecipeData, ['ingredients']));
+
+        if (newRecipeData.ingredients) {
+          recipe.ingredients = newRecipeData.ingredients.map((ing) => ({
+            ...ing,
+            id: tempId(),
+            quantity: +ing.quantity,
+          }));
+        }
+      };
+
+      const recipesContext = await update({
         queryKey: recipesOptions.queryKey,
         updateFn: (draft) => {
           const recipe = draft.find((r) => r.id === newRecipeData.id);
-          if (!recipe) return;
-
-          Object.assign(recipe, omit(newRecipeData, ['ingredients']));
-
-          if (newRecipeData.ingredients) {
-            recipe.ingredients = newRecipeData.ingredients.map((ing) => ({
-              ...ing,
-              id: tempId(),
-              quantity: +ing.quantity,
-            }));
-          }
+          if (recipe) optimisticUpdateRecipe(recipe);
         },
       });
 
-      return { previousData, queryKey: recipesOptions.queryKey };
+      const recipeContext = await update({
+        queryKey: recipeOptions(newRecipeData.id).queryKey,
+        updateFn: (draft) => optimisticUpdateRecipe(draft),
+      });
+
+      return {
+        recipesContext: { queryKey: recipesOptions.queryKey, previousData: recipesContext.previousData },
+        recipeContext: { queryKey: recipeOptions(newRecipeData.id).queryKey, previousData: recipeContext.previousData },
+      };
     },
     onError: (_err, _vars, context) => {
-      if (context) revert(context);
+      if (context?.recipeContext) revert(context.recipeContext);
+      if (context?.recipesContext) revert(context.recipesContext);
     },
     onSettled: () => queryClient.invalidateQueries(recipesOptions),
   });

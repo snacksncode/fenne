@@ -14,7 +14,7 @@ export type TypographyVariant =
 
 export type TypographyWeight = 'black' | 'bold' | 'medium' | 'regular';
 
-const variantStyles: Record<TypographyVariant, { fontSize: number; lineHeight: number }> = {
+const variantStyles = {
   'heading-xl': { fontSize: 36, lineHeight: 36 * 1.25 },
   'heading-lg': { fontSize: 32, lineHeight: 32 * 1.25 },
   'heading-md': { fontSize: 24, lineHeight: 24 * 1.25 },

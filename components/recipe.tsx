@@ -14,7 +14,7 @@ type Props = {
   onLongPress?: () => void;
 };
 
-const MealTypeDots = (props: { mealTypes: MealType[] }) => {
+export const MealTypeDots = (props: { mealTypes: MealType[] }) => {
   return (
     <View style={{ flexDirection: 'row' }}>
       {props.mealTypes.map((mealType, index) => (
@@ -38,12 +38,17 @@ const MealTypeDots = (props: { mealTypes: MealType[] }) => {
   );
 };
 
-const formatRecipeDuration = (totalMins: number) => {
+export const formatRecipeDuration = (totalMins: number) => {
   const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   if (h > 0 && m > 0) return `${h} ${plur('hr', h)} ${m} ${plur('min', m)}`;
   if (h > 0) return `${h} ${plur('hour', h)}`;
   return `${m} ${plur('minute', m)}`;
+};
+
+export const formatRecipeMealTypes = (types: MealType[]): string => {
+  if (types.length > 1) return 'Versatile';
+  return toTitleCase(types[0]);
 };
 
 export const Recipe = ({
@@ -92,7 +97,7 @@ export const Recipe = ({
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
             <MealTypeDots mealTypes={meal_types} />
             <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
-              {meal_types.length > 1 ? 'Versatile' : toTitleCase(meal_types[0])}
+              {formatRecipeMealTypes(meal_types)}
             </Typography>
           </View>
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
