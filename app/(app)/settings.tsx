@@ -303,6 +303,7 @@ const Settings = () => {
           </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
+            <Action icon={Trash2} text="Delete account" onPress={() => SheetManager.show('delete-account-sheet')} />
           </View>
         </View>
       </ScrollView>

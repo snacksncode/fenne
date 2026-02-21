@@ -1,5 +1,6 @@
 import { api } from '@/api';
 import { useSession } from '@/contexts/session';
+import { useLogout } from '@/hooks/use-logout';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type UserDTO = {
@@ -28,6 +29,15 @@ export const useLogin = () => {
     onSuccess: (response) => {
       if (response.status === 'success') setSessionToken(response.session_token);
     },
+  });
+};
+
+export const useDeleteAccount = () => {
+  const { logOut } = useLogout();
+  return useMutation({
+    mutationKey: ['deleteAccount'],
+    mutationFn: api.auth.deleteAccount,
+    onSuccess: logOut,
   });
 };
 

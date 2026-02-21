@@ -29,6 +29,9 @@ export const api = {
     changeDetails: (data: { name?: string; email?: string }) => {
       return client.post('/change_details', { data });
     },
+    deleteAccount: () => {
+      return client.delete('/delete_account');
+    },
   },
   groceries: {
     getAll: () => {

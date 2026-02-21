@@ -22,6 +22,7 @@ import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-rang
 import { TutorialSheet } from '@/components/bottomSheets/tutorial-sheet';
 import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet';
 import { LinkInputSheet } from '@/components/bottomSheets/link-input-sheet';
+import { DeleteAccountSheet } from '@/components/bottomSheets/delete-account-sheet';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 declare module 'react-native-actions-sheet' {
@@ -74,6 +75,7 @@ declare module 'react-native-actions-sheet' {
       payload: { selectedText?: string; existingUrl?: string };
       returnValue: string | undefined;
     }>;
+    'delete-account-sheet': SheetDefinition;
   }
 }
 
@@ -97,6 +99,7 @@ export const Sheets = () => (
       'select-date-range-sheet': SelectDateRangeSheet,
       'tutorial-sheet': TutorialSheet,
       'link-input-sheet': LinkInputSheet,
+      'delete-account-sheet': DeleteAccountSheet,
     }}
   />
 );

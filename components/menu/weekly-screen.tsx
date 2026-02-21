@@ -313,7 +313,7 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
           <Typography variant="body-base" weight="black" style={{ marginTop: 8 }}>
             No meals planned
           </Typography>
-          <Typography variant="body-sm" weight="bold" style={{ marginTop: 2 }}>
+          <Typography variant="body-sm" weight="bold">
             Tap to add a meal
           </Typography>
         </View>
