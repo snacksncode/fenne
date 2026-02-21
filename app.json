@@ -58,6 +58,12 @@
         "projectId": "5cb54c30-4b41-48ba-8fba-6ac880e1d471"
       }
     },
-    "owner": "fenne-organization"
+    "owner": "fenne-organization",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5cb54c30-4b41-48ba-8fba-6ac880e1d471"
+    }
   }
 }
