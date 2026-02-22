@@ -46,6 +46,8 @@ export const AutocompleteInput = ({ value, onChangeText, onSelect, ...props }: A
         onChangeText={handleTextChange}
         style={styles.input}
         placeholderTextColor="#958270"
+        autoCorrect={false}
+        spellCheck={false}
         onBlur={() => setForceHidePopup(true)}
         {...props}
       />

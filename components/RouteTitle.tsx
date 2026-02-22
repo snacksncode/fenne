@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SheetManager } from 'react-native-actions-sheet';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
 import { colors } from '@/constants/colors';
+import { Button } from '@/components/button';
 
 type Props = {
   text: string;
@@ -17,7 +18,7 @@ type Props = {
 export const RouteTitle = ({ text, footerSlot }: Props) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isGuest, completedSteps, totalSteps, isComplete } = useTutorialProgress();
+  const { isGuest } = useTutorialProgress();
 
   const onPress = () => {
     if (isGuest) {
@@ -46,16 +47,17 @@ export const RouteTitle = ({ text, footerSlot }: Props) => {
         <Typography variant="heading-lg" weight="black">
           {text}
         </Typography>
-        <PressableWithHaptics onPress={onPress} style={styles.button}>
-          <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>
-            {isGuest ? `Tutorial ${isComplete ? 'complete!' : `(${completedSteps}/${totalSteps})`}` : 'Settings'}
-          </Typography>
-          {isGuest ? (
-            <ListTodo color={colors.brown[900]} strokeWidth={2} size={24} />
-          ) : (
+        {!isGuest && (
+          <PressableWithHaptics hitSlop={20} scaleTo={0.9} onPress={onPress} style={styles.button}>
+            <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>
+              Settings
+            </Typography>
             <Cog color={colors.brown[900]} strokeWidth={2} size={24} />
-          )}
-        </PressableWithHaptics>
+          </PressableWithHaptics>
+        )}
+        {isGuest && (
+          <Button onPress={onPress} variant="primary" size="small" text={`Todo list`} leftIcon={{ Icon: ListTodo }} />
+        )}
       </View>
       {footerSlot}
     </View>

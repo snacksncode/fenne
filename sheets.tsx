@@ -75,7 +75,10 @@ declare module 'react-native-actions-sheet' {
       payload: { selectedText?: string; existingUrl?: string };
       returnValue: string | undefined;
     }>;
-    'delete-account-sheet': SheetDefinition;
+    'delete-account-sheet': SheetDefinition<{
+      payload: { variant?: 'account' | 'guest' };
+      returnValue: boolean | undefined;
+    }>;
   }
 }
 

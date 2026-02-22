@@ -4,7 +4,15 @@ import { StyleSheet } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
 
 export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>) => {
-  return <_TextInput style={[styles.input, style]} placeholderTextColor="#958270" {...props} />;
+  return (
+    <_TextInput
+      style={[styles.input, style]}
+      placeholderTextColor="#958270"
+      autoCorrect={false}
+      spellCheck={false}
+      {...props}
+    />
+  );
 };
 
 const styles = StyleSheet.create({

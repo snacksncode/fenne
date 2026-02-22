@@ -2,10 +2,11 @@ import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
-import { Check, ArrowRight } from 'lucide-react-native';
+import { Check, ArrowRight, Trash2 } from 'lucide-react-native';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
+import { Button } from '@/components/button';
 
 const ChecklistItem = ({ title, isDone, onPress }: { title: string; isDone: boolean; onPress: () => void }) => (
   <TouchableOpacity
@@ -16,7 +17,9 @@ const ChecklistItem = ({ title, isDone, onPress }: { title: string; isDone: bool
     <View style={[styles.iconContainer, isDone ? styles.iconContainerDone : styles.iconContainerTodo]}>
       <Check size={16} color="white" strokeWidth={3} />
     </View>
-    <Typography variant="body-base" weight="bold" style={isDone ? { flex: 1, ...styles.itemTextDone } : { flex: 1 }}>{title}</Typography>
+    <Typography variant="body-base" weight="bold" style={isDone ? { flex: 1, ...styles.itemTextDone } : { flex: 1 }}>
+      {title}
+    </Typography>
     {!isDone && <ArrowRight size={20} color={colors.brown[900]} />}
   </TouchableOpacity>
 );
@@ -30,12 +33,21 @@ export const TutorialSheet = (props: SheetProps<'tutorial-sheet'>) => {
     router.push(route as any);
   };
 
+  const handleExitTutorial = async () => {
+    const deleted = await SheetManager.show('delete-account-sheet', { payload: { variant: 'guest' } });
+    if (deleted) SheetManager.hide(props.sheetId);
+  };
+
   return (
     <BaseSheet id={props.sheetId}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <Typography variant="heading-md" weight="bold">Let&apos;s show you around</Typography>
-          <Typography variant="body-base" weight="regular" color={colors.brown[800]}>The only 3 things you need</Typography>
+          <Typography variant="heading-md" weight="bold">
+            Let&apos;s show you around
+          </Typography>
+          <Typography variant="body-base" weight="regular" color={colors.brown[800]}>
+            The only 3 things you need
+          </Typography>
         </View>
         <View style={styles.listContainer}>
           <ChecklistItem
@@ -52,6 +64,32 @@ export const TutorialSheet = (props: SheetProps<'tutorial-sheet'>) => {
             title="Generate your grocery list"
             isDone={hasGroceries}
             onPress={() => navigateTo('/(app)/(tabs)/groceries')}
+          />
+          <View style={{ position: 'relative', alignItems: 'center' }}>
+            <View
+              style={{
+                position: 'absolute',
+                width: '100%',
+                top: '50%',
+                transform: 'translateY(1px)',
+                height: 1,
+                backgroundColor: colors.brown[900],
+              }}
+            />
+            <Typography
+              variant="body-base"
+              weight="medium"
+              style={{ backgroundColor: colors.cream[100], paddingHorizontal: 8 }}
+            >
+              or
+            </Typography>
+          </View>
+          <Button
+            onPress={handleExitTutorial}
+            variant="red-outlined"
+            size="small"
+            text="Exit tutorial"
+            leftIcon={{ Icon: Trash2 }}
           />
         </View>
       </View>

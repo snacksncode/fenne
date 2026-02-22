@@ -9,10 +9,19 @@ import { View } from 'react-native';
 
 export const DeleteAccountSheet = (props: SheetProps<'delete-account-sheet'>) => {
   const deleteAccount = useDeleteAccount();
+  const variant = props.payload?.variant ?? 'account';
+
+  const title = variant === 'guest' ? 'Exit tutorial?' : 'Delete your account?';
+  const body =
+    variant === 'guest'
+      ? 'This will delete your guest account and erase all your progress. You can always try again later.'
+      : 'Are you sure? This cannot be undone. All your data will be permanently deleted.';
+  const buttonText = variant === 'guest' ? 'Exit tutorial' : 'Delete account';
 
   const handlePress = () => {
-    deleteAccount.mutate();
-    SheetManager.hide(props.sheetId);
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => SheetManager.hide(props.sheetId, { payload: true }),
+    });
   };
 
   return (
@@ -32,14 +41,14 @@ export const DeleteAccountSheet = (props: SheetProps<'delete-account-sheet'>) =>
         </View>
       </View>
       <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        Delete your account?
+        {title}
       </Typography>
       <Typography variant="body-base" weight="medium">
-        Are you sure? This cannot be undone. All your data will be permanently deleted.
+        {body}
       </Typography>
       <View style={{ marginTop: 24 }}>
         <Button
-          text="Delete account"
+          text={buttonText}
           variant="red-outlined"
           rightIcon={{ Icon: Trash2 }}
           onPress={handlePress}
