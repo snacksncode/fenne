@@ -108,14 +108,23 @@ export const useEditRecipe = () => {
         },
       });
 
-      const recipeContext = await update({
-        queryKey: recipeOptions(newRecipeData.id).queryKey,
-        updateFn: (draft) => optimisticUpdateRecipe(draft),
-      });
+      const existingRecipeData = queryClient.getQueryData(recipeOptions(newRecipeData.id).queryKey);
+      let recipeContext;
+      if (existingRecipeData) {
+        recipeContext = await update({
+          queryKey: recipeOptions(newRecipeData.id).queryKey,
+          updateFn: (draft) => optimisticUpdateRecipe(draft),
+        });
+      }
 
       return {
         recipesContext: { queryKey: recipesOptions.queryKey, previousData: recipesContext.previousData },
-        recipeContext: { queryKey: recipeOptions(newRecipeData.id).queryKey, previousData: recipeContext.previousData },
+        ...(recipeContext && {
+          recipeContext: {
+            queryKey: recipeOptions(newRecipeData.id).queryKey,
+            previousData: recipeContext.previousData,
+          },
+        }),
       };
     },
     onError: (_err, _vars, context) => {

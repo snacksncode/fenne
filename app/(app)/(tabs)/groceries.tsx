@@ -36,7 +36,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { scheduleOnUI } from 'react-native-worklets';
-import { doNothing, entries, groupBy, isEmpty, map, sortBy } from 'remeda';
+import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
@@ -46,6 +46,8 @@ type AisleDTO = {
   aisle: AisleCategory;
   items: GroceryItemDTO[];
 };
+
+type ListItem = ({ type: 'aisle' } & AisleDTO) | { type: 'separator' } | ({ type: 'bought-aisle' } & AisleDTO);
 
 const EmptyList = () => {
   return (
@@ -360,12 +362,44 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
 
 const GAP_SIZE = 24;
 
+const CompletedSeparator = () => (
+  <Animated.View
+    entering={FadeIn}
+    exiting={FadeOut}
+    layout={LinearTransition.springify()}
+    style={{ position: 'relative', zIndex: -1, alignItems: 'center', gap: 8 }}
+  >
+    <View
+      style={{
+        top: '50%',
+        left: 0,
+        right: 0,
+        position: 'absolute',
+        width: '100%',
+        borderBottomWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: '#867a6e',
+      }}
+    />
+    <Typography
+      style={{ backgroundColor: colors.cream[100], paddingHorizontal: 4 }}
+      variant="body-sm"
+      weight="medium"
+      color="#867a6e"
+    >
+      Completed
+    </Typography>
+  </Animated.View>
+);
+
 const Aisle = ({
   aisle: { aisle, items },
   enterAnimationsEnabled,
+  isBought = false,
 }: {
   aisle: AisleDTO;
   enterAnimationsEnabled: boolean;
+  isBought?: boolean;
 }) => (
   <Animated.View
     style={{ gap: 12 }}
@@ -388,7 +422,7 @@ const Aisle = ({
     >
       {items.map((item) => (
         <Animated.View
-          key={item.id}
+          key={isBought ? `${item.id}-bought` : item.id}
           layout={LinearTransition.springify()}
           exiting={FadeOut}
           {...(enterAnimationsEnabled && { entering: FadeIn })}
@@ -400,7 +434,7 @@ const Aisle = ({
   </Animated.View>
 );
 
-const parseAisles = (groceries: GroceryItemDTO[]) => {
+const parseAisles = (groceries: GroceryItemDTO[]): ListItem[] => {
   const aisleOrder: Record<AisleCategory, number> = {
     produce: 0,
     bakery: 1,
@@ -419,9 +453,25 @@ const parseAisles = (groceries: GroceryItemDTO[]) => {
     other: 14,
   };
 
-  const grouped = groupBy(groceries, (item) => item.aisle);
-  const aisles = map(entries(grouped), ([aisle, items]) => ({ aisle, items }));
-  return sortBy(aisles, ({ aisle }) => aisleOrder[aisle] ?? 999);
+  const pending = groceries.filter((i) => i.status === 'pending');
+  const completed = groceries.filter((i) => i.status === 'completed');
+
+  const processGroceries = (groceries: GroceryItemDTO[], type: 'aisle' | 'bought-aisle' = 'aisle'): ListItem[] => {
+    return pipe(
+      groceries,
+      groupBy((i) => i.aisle),
+      entries(),
+      map(([aisle, items]) => ({ type, aisle, items }) as ListItem),
+      sortBy((item) => ('aisle' in item ? (aisleOrder[item.aisle] ?? 999) : 999))
+    );
+  };
+
+  const pendingAisles = processGroceries(pending);
+  const completedAisles = processGroceries(completed, 'bought-aisle');
+
+  if (completedAisles.length === 0) return pendingAisles;
+  if (pendingAisles.length === 0) return completedAisles;
+  return [...pendingAisles, { type: 'separator' }, ...completedAisles];
 };
 
 const PageContent = () => {
@@ -434,13 +484,15 @@ const PageContent = () => {
   useEffect(() => {
     if (!groceries.data) return;
     const id = setTimeout(() => setEnterAnimationsEnabled(true), 500);
-    return () => clearTimeout(id);
+    return () => {
+      setEnterAnimationsEnabled(false);
+      clearTimeout(id);
+    };
   }, [groceries.data]);
 
   if (!groceries.data) return <GroceriesSkeleton />;
   if (isEmpty(groceries.data)) return <EmptyList />;
-  const hasAtLeastOneChecked = !!groceries.data.some((item) => item.status === 'completed');
-
+  const hasAtLeastOneChecked = groceries.data.some((item) => item.status === 'completed');
   const aisles = parseAisles(groceries.data);
 
   const handleCheckout = () => groceryCheckout.mutate();
@@ -449,9 +501,19 @@ const PageContent = () => {
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
       <FlatList
         data={aisles}
-        renderItem={({ item: aisle }) => <Aisle aisle={aisle} enterAnimationsEnabled={enterAnimationsEnabled} />}
+        renderItem={({ item }) => {
+          if (item.type === 'separator') {
+            return <CompletedSeparator />;
+          }
+          if (item.type === 'bought-aisle') {
+            return <Aisle aisle={item} isBought enterAnimationsEnabled={enterAnimationsEnabled} />;
+          }
+          return <Aisle aisle={item} enterAnimationsEnabled={enterAnimationsEnabled} />;
+        }}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
-        keyExtractor={(item) => item.aisle}
+        keyExtractor={(item) =>
+          item.type === 'aisle' ? item.aisle : item.type === 'bought-aisle' ? `${item.aisle}-bought` : 'separator'
+        }
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
         contentContainerStyle={{
           ...(isEmpty(groceries.data) && { flex: 1 }),

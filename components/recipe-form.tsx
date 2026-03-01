@@ -4,7 +4,7 @@ import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, ListPlus, Pencil, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, Trash2, Save } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -388,9 +388,9 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           onPress={handleAddIngredient}
         />
         <Button
-          text={recipe ? 'Edit recipe' : 'Add recipe'}
+          text="Save recipe"
           variant="primary"
-          leftIcon={{ Icon: recipe ? Pencil : ListPlus }}
+          leftIcon={{ Icon: Save }}
           onPress={handleSubmit}
           isLoading={addRecipe.isPending || editRecipe.isPending}
         />
