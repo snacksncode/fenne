@@ -7,7 +7,7 @@ export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>
   return (
     <_TextInput
       style={[styles.input, style]}
-      placeholderTextColor="#958270"
+      placeholderTextColor={colors.brown[800]}
       autoCorrect={false}
       spellCheck={false}
       {...props}
