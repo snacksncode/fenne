@@ -33,6 +33,7 @@ import { useMount } from '@/hooks/use-mount';
 import { nanoid } from 'nanoid/non-secure';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { parseLocaleFloat } from '@/utils';
 
 const SCREEN_TRANSITION_DURATION_MS = 600;
 
@@ -107,7 +108,7 @@ const IngredientItem = ({
           {ingredient.quantity && (
             <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
               {ingredient.quantity}{' '}
-              {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseFloat(ingredient.quantity) })}
+              {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseLocaleFloat(ingredient.quantity) })}
             </Typography>
           )}
         </Animated.View>
@@ -243,7 +244,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
 
   const handleSubmit = async () => {
     Keyboard.dismiss();
-    if (!recipeName.trim() || mealTypes.length === 0 || ingredients.length === 0 || !+timeInMinutes) {
+    if (!recipeName.trim() || mealTypes.length === 0 || ingredients.length === 0 || !parseLocaleFloat(timeInMinutes)) {
       return alert('Please fill in all required fields');
     }
 
@@ -255,7 +256,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       name: recipeName,
       meal_types: mealTypes,
       ingredients: ingredients,
-      time_in_minutes: +timeInMinutes,
+      time_in_minutes: parseLocaleFloat(timeInMinutes),
       liked: recipe?.liked ?? false,
       notes: notesHtml ?? '',
     };

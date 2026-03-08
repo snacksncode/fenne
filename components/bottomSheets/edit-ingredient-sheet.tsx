@@ -13,6 +13,7 @@ import { nanoid } from 'nanoid/non-secure';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { useCreateCustomIngredient } from '@/api/food-items';
+import { parseLocaleFloat } from '@/utils';
 
 export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) => {
   const initialIngredient = props.payload?.ingredient;
@@ -84,7 +85,9 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             <PressableWithHaptics onPress={handleOpenUnitSheet}>
               <View style={styles.unitButton}>
                 <Typography variant="body-sm" weight="medium">
-                  {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseFloat(ingredient.quantity) })}
+                  {UNITS.find((u) => u.value === ingredient.unit)?.label({
+                    count: parseLocaleFloat(ingredient.quantity),
+                  })}
                 </Typography>
               </View>
             </PressableWithHaptics>

@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { useCreateCustomIngredient } from '@/api/food-items';
+import { parseLocaleFloat } from '@/utils';
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const createCustomIngredient = useCreateCustomIngredient();
@@ -95,7 +96,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
             </Typography>
             <TextInput
               value={grocery.quantity.toString()}
-              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: parseFloat(quantity) || 0 }))}
+              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: parseLocaleFloat(quantity) }))}
               placeholder="e.g. 2"
               keyboardType="decimal-pad"
             />

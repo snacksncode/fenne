@@ -4,6 +4,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 import { omit } from 'remeda';
 import { queryClient } from '@/query-client';
+import { parseLocaleFloat } from '@/utils';
 
 export type RecipeDTO = {
   id: string;
@@ -52,7 +53,7 @@ const recipeFormDataToDTO = (recipe: RecipeFormData): RecipeDTO => ({
   ingredients: recipe.ingredients.map((ingredient) => ({
     ...omit(ingredient, ['_id']),
     id: tempId(),
-    quantity: parseInt(ingredient.quantity),
+    quantity: parseLocaleFloat(ingredient.quantity),
   })),
 });
 
