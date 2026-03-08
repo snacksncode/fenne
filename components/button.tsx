@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderColor: colors.red[500],
   },
   outlinedColors: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.cream[100],
     borderColor: '#493D34',
   },
   small: {

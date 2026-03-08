@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { useCreateCustomIngredient } from '@/api/food-items';
 import { parseLocaleFloat } from '@/utils';
+import { QuantityShortcuts } from '@/components/quantity-shortcuts';
 
 export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) => {
   const initialIngredient = props.payload?.ingredient;
@@ -93,6 +94,11 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             </PressableWithHaptics>
           </View>
         </View>
+        <QuantityShortcuts
+          unit={ingredient.unit}
+          currentValue={parseLocaleFloat(ingredient.quantity)}
+          onSelect={(value) => setIngredient((prev) => ({ ...prev, quantity: value.toString() }))}
+        />
         <View>
           <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
             Category

@@ -39,7 +39,7 @@ import { scheduleOnUI } from 'react-native-worklets';
 import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { unitFormatters } from '@/utils/unit-formatters';
 import { SheetManager } from 'react-native-actions-sheet';
 
 type AisleDTO = {
@@ -258,22 +258,6 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
   );
 };
 
-export const unitFormatters: Record<Unit, (data: { count: number }) => string> = {
-  count: () => '',
-  g: () => ' g',
-  kg: () => ' kg',
-  ml: () => ' ml',
-  l: () => ' l',
-  fl_oz: () => ' fl oz',
-  cup: ({ count }) => (count === 1 ? ' cup' : ' cups'),
-  tbsp: () => ' tbsp',
-  tsp: () => ' tsp',
-  pt: ({ count }) => (count === 1 ? ' pt' : ' pts'),
-  qt: ({ count }) => (count === 1 ? ' qt' : ' qts'),
-  oz: () => ' oz',
-  lb: () => ' lb',
-};
-
 const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
   const swipeRef = useRef<SwipeableMethods>(null);
   const editGroceryItem = useEditGroceryItem();
@@ -350,8 +334,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
             }}
           >
             <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-              {item.quantity}
-              {unitFormatters[item.unit]({ count: item.quantity })}
+              {item.quantity} {unitFormatters[item.unit]({ count: item.quantity })}
             </Typography>
           </View>
         )}

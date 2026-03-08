@@ -2,6 +2,7 @@ import { GroceryItemDTO, useAddGroceryItem, useEditGroceryItem } from '@/api/gro
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { QuantityShortcuts } from '@/components/quantity-shortcuts';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -114,6 +115,11 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
             </PressableWithHaptics>
           </View>
         </View>
+        <QuantityShortcuts
+          unit={grocery.unit}
+          currentValue={grocery.quantity}
+          onSelect={(value) => setGrocery((prev) => ({ ...prev, quantity: value }))}
+        />
         <View>
           <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
             Category
