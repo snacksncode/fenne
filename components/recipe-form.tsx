@@ -12,7 +12,7 @@ import { Typography } from '@/components/Typography';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
 import { EnrichedTextInputInstance } from 'react-native-enriched';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SheetManager } from 'react-native-actions-sheet';
 import Animated, {
   Extrapolation,
@@ -208,6 +208,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const navigation = useNavigation();
   const nameInputRef = useRef<TextInputType>(null);
   const notesEditorRef = useRef<EnrichedTextInputInstance>(null);
+  const insets = useSafeAreaInsets();
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
   const [recipeName, setRecipeName] = useState(recipe?.name ?? '');
@@ -231,11 +232,15 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   };
 
   const handleAddIngredient = async () => {
+    // Keyboard.dismiss();
+    // notesEditorRef.current?.blur();
     const result = await SheetManager.show('edit-ingredient-sheet');
     if (result) handleSaveIngredient(result);
   };
 
   const handleEditIngredient = async (ingredient: IngredientFormData) => {
+    // Keyboard.dismiss();
+    // notesEditorRef.current?.blur();
     const result = await SheetManager.show('edit-ingredient-sheet', { payload: { ingredient } });
     if (result) handleSaveIngredient(result);
   };
@@ -266,7 +271,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <Pressable
         onPress={() => navigation.goBack()}
         style={{
@@ -284,7 +289,8 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       </Pressable>
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
-        keyboardDismissMode="interactive"
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: 16, paddingBottom: 20 }}
         bottomOffset={150}
       >
@@ -363,6 +369,13 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
             onIngredientEdit={handleEditIngredient}
             onIngredientDelete={handleDeleteIngredient}
           />
+          <Button
+            text="Add ingredient"
+            variant="outlined"
+            leftIcon={{ Icon: CirclePlus }}
+            onPress={handleAddIngredient}
+            style={{ marginTop: 8 }}
+          />
         </View>
         <View>
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
@@ -374,20 +387,13 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
       <View
         style={{
           marginTop: 'auto',
-          gap: 12,
-          paddingTop: 20,
+          paddingTop: 16,
           marginHorizontal: -20,
           paddingHorizontal: 20,
           borderTopWidth: 1,
           borderColor: colors.brown[800],
         }}
       >
-        <Button
-          text="Add ingredient"
-          variant="outlined"
-          leftIcon={{ Icon: CirclePlus }}
-          onPress={handleAddIngredient}
-        />
         <Button
           text="Save recipe"
           variant="primary"
@@ -396,7 +402,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           isLoading={addRecipe.isPending || editRecipe.isPending}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

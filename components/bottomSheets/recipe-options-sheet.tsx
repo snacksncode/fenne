@@ -1,35 +1,12 @@
 import { useDeleteRecipe } from '@/api/recipes';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { SheetAction } from '@/components/sheet-action';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { useRouter } from 'expo-router';
 import { Edit2, Trash2 } from 'lucide-react-native';
-import { FunctionComponent } from 'react';
 import { View } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
-
-const Action = (props: {
-  onPress: () => void;
-  text: string;
-  icon: FunctionComponent<{ size: number; color: string }>;
-}) => {
-  const { gesture, scaleStyle } = useOnPressWithFeedback({ onPress: props.onPress, scaleTo: 0.985 });
-  return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={[{ flexDirection: 'row', gap: 12, alignItems: 'center' }, scaleStyle]}>
-        <View style={{ backgroundColor: '#493D34', padding: 4, borderRadius: 4 }}>
-          <props.icon color="#FEF7EA" size={20} />
-        </View>
-        <Typography variant="body-base" weight="bold">
-          {props.text}
-        </Typography>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
 
 export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) => {
   const recipe = props.payload?.recipe;
@@ -54,7 +31,7 @@ export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) =>
         </Typography>
       </View>
       <View style={{ gap: 16, marginBottom: 12 }}>
-        <Action
+        <SheetAction
           text="Edit"
           icon={Edit2}
           onPress={() => {
@@ -62,7 +39,7 @@ export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) =>
             router.push({ pathname: '/edit-recipe/[id]', params: { id: recipe.id } });
           }}
         />
-        <Action
+        <SheetAction
           text="Remove"
           icon={Trash2}
           onPress={() => {

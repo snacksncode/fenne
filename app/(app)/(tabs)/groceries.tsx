@@ -506,18 +506,46 @@ const PageContent = () => {
         }}
       />
       <LayoutAnimationConfig skipEntering>
-        <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16 }}>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16, flexDirection: 'row', gap: 8 }}>
           {hasAtLeastOneChecked ? (
-            <Animated.View key="checkout" entering={SlideInRight.springify()} exiting={SlideOutRight.springify()}>
+            <Animated.View
+              key="checkout"
+              style={{ flexDirection: 'row', gap: 8 }}
+              entering={SlideInRight.springify()}
+              exiting={SlideOutRight.springify()}
+            >
+              <Button
+                variant="outlined"
+                onPress={() => SheetManager.show('grocery-item-sheet')}
+                leftIcon={{ Icon: CirclePlus }}
+                style={{ paddingHorizontal: 0, width: 48 }}
+              />
+              <Button
+                variant="outlined"
+                onPress={() => SheetManager.show('select-date-range-sheet')}
+                leftIcon={{ Icon: WandSparkles }}
+                style={{ paddingHorizontal: 0, width: 48 }}
+              />
               <Button
                 variant="secondary"
                 onPress={handleCheckout}
-                text={'Checkout!'}
+                text="Checkout!"
                 leftIcon={{ Icon: ShoppingBasket }}
               />
             </Animated.View>
           ) : (
-            <Animated.View key="add" entering={SlideInRight.springify()} exiting={SlideOutRight.springify()}>
+            <Animated.View
+              key="add"
+              style={{ flexDirection: 'row', gap: 8 }}
+              entering={SlideInRight.springify()}
+              exiting={SlideOutRight.springify()}
+            >
+              <Button
+                variant="outlined"
+                onPress={() => SheetManager.show('select-date-range-sheet')}
+                leftIcon={{ Icon: WandSparkles }}
+                style={{ paddingHorizontal: 0, width: 48 }}
+              />
               <Button
                 variant="primary"
                 onPress={() => SheetManager.show('grocery-item-sheet')}

@@ -1,12 +1,9 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { SheetAction } from '@/components/sheet-action';
 import { Typography } from '@/components/Typography';
-import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { CalendarPlus, CalendarSearch } from 'lucide-react-native';
-import { FunctionComponent } from 'react';
 import { View } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
 import { Tag } from '@/components/svgs/tag';
 import { format } from 'date-fns';
 import { getISOWeekString, parseISO } from '@/date-tools';
@@ -15,26 +12,6 @@ import { useSetAtom } from 'jotai';
 import { getFirstMissingMealType, scrollTargetAtom } from '@/components/menu/weekly-screen';
 import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
 import { ensure } from '@/utils';
-
-const Action = (props: {
-  onPress: () => void;
-  text: string;
-  icon: FunctionComponent<{ size: number; color: string }>;
-}) => {
-  const { gesture, scaleStyle } = useOnPressWithFeedback({ onPress: props.onPress, scaleTo: 0.985 });
-  return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={[{ flexDirection: 'row', gap: 12, alignItems: 'center' }, scaleStyle]}>
-        <View style={{ backgroundColor: '#493D34', padding: 4, borderRadius: 4 }}>
-          <props.icon color="#FEF7EA" size={20} />
-        </View>
-        <Typography variant="body-base" weight="bold">
-          {props.text}
-        </Typography>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
 
 export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'>) => {
   const { dateString, navigation } = ensure(props.payload);
@@ -61,7 +38,7 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
         </Typography>
       </View>
       <View style={{ gap: 16, marginBottom: 12 }}>
-        <Action
+        <SheetAction
           text="Schedule meal"
           icon={CalendarPlus}
           onPress={async () => {
@@ -75,7 +52,7 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             });
           }}
         />
-        <Action
+        <SheetAction
           text='Find in "Weekly"'
           icon={CalendarSearch}
           onPress={() => {
@@ -84,7 +61,7 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             SheetManager.hide(props.sheetId);
           }}
         />
-        <Action
+        <SheetAction
           text={is_shopping_day ? 'Unmark as shopping day' : 'Mark as shopping day'}
           icon={Tag}
           onPress={() => {

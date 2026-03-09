@@ -194,8 +194,7 @@ export default function RecipePreview() {
                     }}
                   >
                     <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-                      {ingredient.quantity}
-                      {ensure(unitFormatters[ingredient.unit])({ count: ingredient.quantity })}
+                      {ingredient.quantity} {ensure(unitFormatters[ingredient.unit])({ count: ingredient.quantity })}
                     </Typography>
                   </View>
                 )}
