@@ -1,4 +1,3 @@
-import { useGenerateGroceryItems } from '@/api/groceries';
 import { useSchedule } from '@/api/schedules';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
@@ -8,6 +7,7 @@ import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { useRouter } from 'expo-router';
 import {
   addMonths,
   addWeeks,
@@ -19,11 +19,12 @@ import {
   startOfMonth,
   startOfToday,
   startOfTomorrow,
-} from 'date-fns';
+  } from 'date-fns';
 import { ChevronLeft, ChevronRight, WandSparkles } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { filter, find, pipe, values } from 'remeda';
+
 
 type Range = {
   startDateString: string;
@@ -31,7 +32,7 @@ type Range = {
 };
 
 export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'>) => {
-  const generateGroceryItems = useGenerateGroceryItems();
+  const router = useRouter();
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const [range, setRange] = useState<Range>();
@@ -63,10 +64,11 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
 
   const handleGenerate = () => {
     if (!range) return;
-    generateGroceryItems.mutate(
-      { start: range.startDateString, end: range.endDateString },
-      { onSuccess: () => SheetManager.hide(props.sheetId) }
-    );
+    SheetManager.hide(props.sheetId);
+    router.push({
+      pathname: '/generate-preview',
+      params: { startDate: range.startDateString, endDate: range.endDateString },
+    });
   };
 
   return (
@@ -114,7 +116,6 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
         style={{ marginTop: 32 }}
         variant="primary"
         onPress={handleGenerate}
-        isLoading={generateGroceryItems.isPending}
         text="Generate"
         leftIcon={{ Icon: WandSparkles }}
       />

@@ -8,6 +8,7 @@ const AppLayout = () => {
       <Stack.Screen name="edit-recipe/[id]" />
       <Stack.Screen name="recipe/[id]" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="generate-preview" />
     </Stack>
   );
 };
