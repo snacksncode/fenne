@@ -10,7 +10,7 @@ import { isEmpty, isEmptyish } from 'remeda';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
 import { Typography } from '@/components/Typography';
 import { SheetManager } from 'react-native-actions-sheet';
-import { BookMarked, SlidersHorizontal, SquarePlus } from 'lucide-react-native';
+import { BookMarked, Plus, SlidersHorizontal } from 'lucide-react-native';
 import { useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { colors } from '@/constants/colors';
@@ -35,7 +35,7 @@ const EmptyList = () => {
         <Button
           text="Add Recipe"
           variant="primary"
-          leftIcon={{ Icon: SquarePlus }}
+          leftIcon={{ Icon: Plus }}
           onPress={() => router.push('/new-recipe')}
         />
       </View>
@@ -157,10 +157,7 @@ const Recipes = () => {
               value={search}
               onChangeText={setSearch}
               placeholder="Search recipes..."
-              placeholderTextColor={colors.brown[800]}
               style={styles.searchInput}
-              autoCorrect={false}
-              spellCheck={false}
             />
             <Button
               onPress={openFilterSheet}
@@ -168,12 +165,7 @@ const Recipes = () => {
               leftIcon={{ Icon: SlidersHorizontal }}
               style={{ paddingHorizontal: 0, width: 48 }}
             />
-            <Button
-              onPress={() => router.push('/new-recipe')}
-              variant="primary"
-              leftIcon={{ Icon: SquarePlus }}
-              style={{ paddingHorizontal: 0, width: 48 }}
-            />
+            <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
           </Animated.View>
         ) : null}
       </View>
@@ -196,12 +188,9 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderRadius: 999,
-    paddingHorizontal: 20,
     borderWidth: 2,
     borderBottomWidth: 3,
     color: colors.brown[900],
-    height: 48,
-    backgroundColor: colors.cream[100],
   },
 });
 
