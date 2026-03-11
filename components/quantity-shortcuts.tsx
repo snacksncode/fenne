@@ -58,7 +58,6 @@ export function getPresetsForUnit(unit: Unit): Preset[] {
     case 'tbsp':
     case 'tsp':
     case 'fl_oz':
-    case 'pt':
     case 'qt':
       return FRACTION_PRESETS;
     case 'g':
@@ -75,18 +74,13 @@ export function getPresetsForUnit(unit: Unit): Preset[] {
   }
 }
 
-
 type QuantityShortcutsProps = {
   unit: Unit;
   currentValue: number;
   onSelect: (value: number) => void;
 };
 
-export const QuantityShortcuts = ({
-  unit,
-  currentValue,
-  onSelect,
-}: QuantityShortcutsProps) => {
+export const QuantityShortcuts = ({ unit, currentValue, onSelect }: QuantityShortcutsProps) => {
   const presets = getPresetsForUnit(unit);
 
   return (

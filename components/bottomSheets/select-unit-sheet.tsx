@@ -5,7 +5,7 @@ import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet
 import { View } from 'react-native';
 import { Button } from '@/components/button';
 
-export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'fl_oz' | 'cup' | 'tbsp' | 'tsp' | 'pt' | 'qt' | 'oz' | 'lb' | 'count';
+export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'fl_oz' | 'cup' | 'tbsp' | 'tsp' | 'qt' | 'oz' | 'lb' | 'count';
 
 type LabelFn = (data: { count: number }) => string;
 export const UNITS: { value: Unit; label: LabelFn }[] = [
@@ -18,7 +18,6 @@ export const UNITS: { value: Unit; label: LabelFn }[] = [
   { value: 'cup', label: ({ count }) => (count === 1 ? 'Cup' : 'Cups') },
   { value: 'tbsp', label: ({ count }) => (count === 1 ? 'Tablespoon' : 'Tablespoons') },
   { value: 'tsp', label: ({ count }) => (count === 1 ? 'Teaspoon' : 'Teaspoons') },
-  { value: 'pt', label: ({ count }) => (count === 1 ? 'Pint' : 'Pints') },
   { value: 'qt', label: ({ count }) => (count === 1 ? 'Quart' : 'Quarts') },
   { value: 'oz', label: () => 'Ounces' },
   { value: 'lb', label: () => 'Pounds' },

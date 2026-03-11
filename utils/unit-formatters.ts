@@ -10,7 +10,6 @@ export const unitFormatters: Record<Unit, (data: { count: number }) => string> =
   cup: ({ count }) => (count === 1 ? 'cup' : 'cups'),
   tbsp: () => 'tbsp',
   tsp: () => 'tsp',
-  pt: ({ count }) => (count === 1 ? 'pt' : 'pts'),
   qt: ({ count }) => (count === 1 ? 'qt' : 'qts'),
   oz: () => 'oz',
   lb: () => 'lb',
