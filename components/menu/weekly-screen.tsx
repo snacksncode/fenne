@@ -42,6 +42,7 @@ import { ScheduleDayDTO, MealType, useSchedule, MealEntryDTO } from '@/api/sched
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
 import { useRouter } from 'expo-router';
+import { useOnAppActive } from '@/hooks/use-on-app-active';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
@@ -452,6 +453,7 @@ export const hasWeeklyScreenLoadedAtom = atom(false);
 
 export const WeeklyScreen = () => {
   const [hasLoaded, setHasWeeklyScreenLoaded] = useAtom(hasWeeklyScreenLoadedAtom);
+  const [, setFocusCount] = useState(0);
   const weeklyListRef = useRef<FlashListRef<string>>(null);
   const insets = useSafeAreaInsets();
   const hasScrolledRef = useRef(false);
@@ -460,6 +462,8 @@ export const WeeklyScreen = () => {
   const backToToday = useBackToToday();
   const { scheduleMap, isInitialLoading } = useSchedule({ weeks });
   const days = weeks.flatMap(getDatesFromISOWeek);
+
+  useOnAppActive(() => setFocusCount((c) => c + 1));
 
   useMount(() => {
     // unmount happens during logout
