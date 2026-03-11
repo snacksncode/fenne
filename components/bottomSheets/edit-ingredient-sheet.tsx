@@ -4,7 +4,7 @@ import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-i
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
-import { NumberInput, TextInput } from '@/components/input';
+import { NumberInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
@@ -31,6 +31,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
   };
 
   const handleOpenUnitSheet = async () => {
+    Keyboard.dismiss();
     const unit = await SheetManager.show('select-unit-sheet', {
       payload: { unit: ingredient.unit },
     });
@@ -40,6 +41,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
   };
 
   const handleOpenCategorySheet = async () => {
+    Keyboard.dismiss();
     const aisle = await SheetManager.show('select-category-sheet');
     if (aisle) {
       setIngredient((prev) => ({ ...prev, aisle }));

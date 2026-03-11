@@ -4,7 +4,7 @@ import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { QuantityShortcuts } from '@/components/quantity-shortcuts';
 import { Button } from '@/components/button';
-import { NumberInput, TextInput } from '@/components/input';
+import { NumberInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { nanoid } from 'nanoid/non-secure';
@@ -14,7 +14,6 @@ import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { useCreateCustomIngredient } from '@/api/food-items';
-import { parseLocaleFloat } from '@/utils';
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const createCustomIngredient = useCreateCustomIngredient();
@@ -60,11 +59,13 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   };
 
   const handleOpenUnitSheet = async () => {
+    Keyboard.dismiss();
     const unit = await SheetManager.show('select-unit-sheet', { payload: { ...grocery, unit: grocery.unit } });
     if (unit) setGrocery((prev) => ({ ...prev, unit }));
   };
 
   const handleOpenCategorySheet = async () => {
+    Keyboard.dismiss();
     const aisle = await SheetManager.show('select-category-sheet');
     if (aisle) setGrocery((prev) => ({ ...prev, aisle }));
   };

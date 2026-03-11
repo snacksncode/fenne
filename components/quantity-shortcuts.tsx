@@ -87,6 +87,7 @@ export const QuantityShortcuts = ({ unit, currentValue, onSelect }: QuantityShor
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       style={{ marginHorizontal: -20 }}
       contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}
     >
