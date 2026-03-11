@@ -232,15 +232,15 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   };
 
   const handleAddIngredient = async () => {
-    // Keyboard.dismiss();
-    // notesEditorRef.current?.blur();
+    Keyboard.dismiss();
+    notesEditorRef.current?.blur();
     const result = await SheetManager.show('edit-ingredient-sheet');
     if (result) handleSaveIngredient(result);
   };
 
   const handleEditIngredient = async (ingredient: IngredientFormData) => {
-    // Keyboard.dismiss();
-    // notesEditorRef.current?.blur();
+    Keyboard.dismiss();
+    notesEditorRef.current?.blur();
     const result = await SheetManager.show('edit-ingredient-sheet', { payload: { ingredient } });
     if (result) handleSaveIngredient(result);
   };
