@@ -24,6 +24,7 @@ import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet
 import { LinkInputSheet } from '@/components/bottomSheets/link-input-sheet';
 import { DeleteAccountSheet } from '@/components/bottomSheets/delete-account-sheet';
 import { RecipeFilterSheet, MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
+import { AddFromRecipeSheet } from '@/components/bottomSheets/add-from-recipe-sheet';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 declare module 'react-native-actions-sheet' {
@@ -84,6 +85,7 @@ declare module 'react-native-actions-sheet' {
       payload: { current: MealFilter };
       returnValue: MealFilter | undefined;
     }>;
+    'add-from-recipe-sheet': SheetDefinition;
   }
 }
 
@@ -109,6 +111,7 @@ export const Sheets = () => (
       'link-input-sheet': LinkInputSheet,
       'delete-account-sheet': DeleteAccountSheet,
       'recipe-filter-sheet': RecipeFilterSheet,
+      'add-from-recipe-sheet': AddFromRecipeSheet,
     }}
   />
 );

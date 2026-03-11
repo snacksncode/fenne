@@ -96,7 +96,7 @@ export const useEditRecipe = () => {
           recipe.ingredients = newRecipeData.ingredients.map((ing) => ({
             ...ing,
             id: tempId(),
-            quantity: +ing.quantity,
+            quantity: parseLocaleFloat(ing.quantity),
           }));
         }
       };

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
 import { isEmpty, isEmptyish } from 'remeda';
+import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
 import { Typography } from '@/components/Typography';
 import { SheetManager } from 'react-native-actions-sheet';
 import { BookMarked, SlidersHorizontal, SquarePlus } from 'lucide-react-native';
@@ -98,9 +99,7 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
   if (!recipes.data) return <RecipesSkeleton />;
   if (isEmpty(recipes.data)) return <EmptyList />;
 
-  const filteredRecipes = recipes.data
-    .filter((r) => mealFilter === 'all' || r.meal_types.includes(mealFilter))
-    .filter((r) => !search || r.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredRecipes = sortRecipes(filterRecipes(recipes.data, { mealFilter, search }));
 
   return (
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>

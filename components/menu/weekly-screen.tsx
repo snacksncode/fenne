@@ -41,6 +41,7 @@ import { colors } from '@/constants/colors';
 import { ScheduleDayDTO, MealType, useSchedule, MealEntryDTO } from '@/api/schedules';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
+import { useRouter } from 'expo-router';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
@@ -166,22 +167,30 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealType }; dateString: string }) => (
-  <PressableWithHaptics
-    onLongPress={() => {
-      SheetManager.show('edit-meal-sheet', {
-        payload: { data: { ...entry, dateString } },
-      });
-    }}
-    style={{ gap: 2 }}
-    scaleTo={0.985}
-  >
-    <MealTypeKicker type={entry.mealType} />
-    <Typography variant="heading-sm" weight="black">
-      {entry.type === 'recipe' ? entry.recipe.name : entry.name}
-    </Typography>
-  </PressableWithHaptics>
-);
+const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealType }; dateString: string }) => {
+  const router = useRouter();
+  return (
+    <PressableWithHaptics
+      onPress={
+        entry.type === 'recipe'
+          ? () => router.push({ pathname: '/recipe/[id]', params: { id: entry.recipe.id } })
+          : undefined
+      }
+      onLongPress={() => {
+        SheetManager.show('edit-meal-sheet', {
+          payload: { data: { ...entry, dateString } },
+        });
+      }}
+      style={{ gap: 2 }}
+      scaleTo={0.985}
+    >
+      <MealTypeKicker type={entry.mealType} />
+      <Typography variant="heading-sm" weight="black">
+        {entry.type === 'recipe' ? entry.recipe.name : entry.name}
+      </Typography>
+    </PressableWithHaptics>
+  );
+};
 
 export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDayDTO) => {
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];

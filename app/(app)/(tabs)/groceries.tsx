@@ -7,12 +7,14 @@ import {
   useGroceryCheckout,
 } from '@/api/groceries';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { Button } from '@/components/button';
+import { Checkbox, useCheckbox } from '@/components/checkbox';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Typography } from '@/components/Typography';
 import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
-import { CirclePlus, ListPlus, Pen, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
+import { CirclePlus, CookingPot, ListPlus, Pen, Plus, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -21,7 +23,6 @@ import Animated, {
   interpolateColor,
   LinearTransition,
   SharedValue,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -32,10 +33,10 @@ import Animated, {
   SlideInRight,
   SlideOutRight,
   LayoutAnimationConfig,
+  FadeInDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import { scheduleOnUI } from 'react-native-worklets';
+import { scheduleOnUI, scheduleOnRN } from 'react-native-worklets';
 import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
@@ -62,20 +63,6 @@ const EmptyList = () => {
         Start planning your meals to fill it up,{'\n'}
         or add items directly.
       </Typography>
-      <View style={{ marginTop: 24, gap: 12 }}>
-        <Button
-          text="Add Your First Item"
-          variant="outlined"
-          leftIcon={{ Icon: CirclePlus }}
-          onPress={() => SheetManager.show('grocery-item-sheet')}
-        />
-        <Button
-          text="Auto-Generate from Menu"
-          variant="primary"
-          leftIcon={{ Icon: WandSparkles }}
-          onPress={() => SheetManager.show('select-date-range-sheet')}
-        />
-      </View>
     </Animated.View>
   );
 };
@@ -191,53 +178,6 @@ const GroceriesSkeleton = () => {
   );
 };
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-const Checkbox = (props: { isChecked: boolean; progress: SharedValue<number> }) => {
-  const animatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(props.progress.value, [0, 0.5], ['#FEF2DD', '#F9974F']),
-  }));
-
-  const animatedProps = useAnimatedProps(() => {
-    return {
-      strokeDashoffset: interpolate(props.progress.value, [0, 1], [24, 0]),
-      opacity: interpolate(props.progress.value, [0, 0.1, 1], [0, 1, 1]),
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: 24,
-          height: 24,
-          borderRadius: 5,
-          borderWidth: 1,
-          borderBottomWidth: 2,
-          borderColor: '#EC8032',
-          backgroundColor: '#F9974F',
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        animatedStyle,
-      ]}
-    >
-      <Svg width={16} height={16} viewBox="0 0 24 24">
-        <AnimatedPath
-          d="M4 12 9 17 20 6"
-          stroke="#FEF7EA"
-          strokeWidth={4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          strokeDasharray={24}
-          animatedProps={animatedProps}
-        />
-      </Svg>
-    </Animated.View>
-  );
-};
-
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedTypography = Animated.createAnimatedComponent(Typography);
 
@@ -266,11 +206,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCompleted = item.status === 'completed';
-  const progress = useSharedValue(isCompleted ? 1 : 0);
-
-  useEffect(() => {
-    progress.value = withSpring(isCompleted ? 1 : 0);
-  }, [isCompleted, progress]);
+  const { progress } = useCheckbox(isCompleted);
 
   const vibrate = () => {
     const style = Haptics.ImpactFeedbackStyle.Light;
@@ -279,7 +215,13 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
 
   const handlePress = () => {
     vibrate();
-    editGroceryItem.mutate({ id: _item.id, status: item.status === 'pending' ? 'completed' : 'pending' });
+    progress.value = withSpring(isCompleted ? 0 : 1);
+    setTimeout(() => {
+      editGroceryItem.mutate({
+        id: _item.id,
+        status: item.status === 'pending' ? 'completed' : 'pending',
+      });
+    }, 500);
   };
 
   const closeSwipeable = () => swipeRef.current?.close();
@@ -316,7 +258,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
         }}
       >
         <Animated.View style={scaleStyle}>
-          <Checkbox isChecked={isCompleted} progress={progress} />
+          <Checkbox progress={progress} />
         </Animated.View>
         <AnimatedTypography variant="body-base" weight="bold" style={[{ flex: 1 }, textStyles]}>
           {item.name}
@@ -457,7 +399,7 @@ const parseAisles = (groceries: GroceryItemDTO[]): ListItem[] => {
   return [...pendingAisles, { type: 'separator' }, ...completedAisles];
 };
 
-const PageContent = () => {
+const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIsExpanded: (v: boolean) => void }) => {
   const insets = useSafeAreaInsets();
   const groceries = useGroceries();
   const groceryCheckout = useGroceryCheckout();
@@ -473,8 +415,16 @@ const PageContent = () => {
     };
   }, [groceries.data]);
 
+  const expand = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsExpanded(true);
+  };
+
+  const swipeUp = Gesture.Fling()
+    .direction(Directions.UP)
+    .onEnd(() => scheduleOnRN(expand));
+
   if (!groceries.data) return <GroceriesSkeleton />;
-  if (isEmpty(groceries.data)) return <EmptyList />;
   const hasAtLeastOneChecked = groceries.data.some((item) => item.status === 'completed');
   const aisles = parseAisles(groceries.data);
 
@@ -484,6 +434,7 @@ const PageContent = () => {
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
       <FlatList
         data={aisles}
+        ListEmptyComponent={EmptyList}
         renderItem={({ item }) => {
           if (item.type === 'separator') {
             return <CompletedSeparator />;
@@ -502,9 +453,17 @@ const PageContent = () => {
           ...(isEmpty(groceries.data) && { flex: 1 }),
           paddingHorizontal: 20,
           paddingTop: insets.top + 76,
-          paddingBottom: insets.bottom + 152,
+          paddingBottom: insets.bottom + (isEmpty(aisles) ? 72 : 152),
         }}
       />
+      {isExpanded && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
+          <Pressable
+            style={{ flex: 1, backgroundColor: 'rgba(254, 247, 234, 0.85)' }}
+            onPress={() => setIsExpanded(false)}
+          />
+        </Animated.View>
+      )}
       <LayoutAnimationConfig skipEntering>
         <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16, flexDirection: 'row', gap: 8 }}>
           {hasAtLeastOneChecked ? (
@@ -521,38 +480,63 @@ const PageContent = () => {
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
               <Button
-                variant="outlined"
-                onPress={() => SheetManager.show('select-date-range-sheet')}
-                leftIcon={{ Icon: WandSparkles }}
-                style={{ paddingHorizontal: 0, width: 48 }}
-              />
-              <Button
                 variant="secondary"
                 onPress={handleCheckout}
                 text="Checkout!"
                 leftIcon={{ Icon: ShoppingBasket }}
               />
             </Animated.View>
-          ) : (
+          ) : isExpanded ? (
             <Animated.View
-              key="add"
-              style={{ flexDirection: 'row', gap: 8 }}
-              entering={SlideInRight.springify()}
+              key="expanded"
+              style={{ gap: 8, alignItems: 'flex-end' }}
               exiting={SlideOutRight.springify()}
             >
-              <Button
-                variant="outlined"
-                onPress={() => SheetManager.show('select-date-range-sheet')}
-                leftIcon={{ Icon: WandSparkles }}
-                style={{ paddingHorizontal: 0, width: 48 }}
-              />
-              <Button
-                variant="primary"
-                onPress={() => SheetManager.show('grocery-item-sheet')}
-                text="What's Missing?"
-                leftIcon={{ Icon: ListPlus }}
-              />
+              <Animated.View entering={FadeInDown.springify().delay(100)}>
+                <Button
+                  variant="outlined"
+                  onPress={() => {
+                    setIsExpanded(false);
+                    SheetManager.show('add-from-recipe-sheet');
+                  }}
+                  text="Add from Recipe"
+                  leftIcon={{ Icon: CookingPot }}
+                />
+              </Animated.View>
+              <Animated.View entering={FadeInDown.springify().delay(50)}>
+                <Button
+                  variant="outlined"
+                  onPress={() => {
+                    setIsExpanded(false);
+                    SheetManager.show('select-date-range-sheet');
+                  }}
+                  text="Generate from Menu"
+                  leftIcon={{ Icon: WandSparkles }}
+                />
+              </Animated.View>
+              <Animated.View entering={FadeInDown.springify()}>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    setIsExpanded(false);
+                    SheetManager.show('grocery-item-sheet');
+                  }}
+                  text="What's missing?"
+                  leftIcon={{ Icon: ListPlus }}
+                />
+              </Animated.View>
             </Animated.View>
+          ) : (
+            <GestureDetector gesture={swipeUp}>
+              <Animated.View
+                key="add"
+                style={{ flexDirection: 'row', gap: 8 }}
+                entering={SlideInRight.springify()}
+                exiting={SlideOutRight.springify()}
+              >
+                <Button variant="primary" onPress={() => setIsExpanded(true)} leftIcon={{ Icon: Plus }} />
+              </Animated.View>
+            </GestureDetector>
           )}
         </View>
       </LayoutAnimationConfig>
@@ -561,10 +545,11 @@ const PageContent = () => {
 };
 
 const Groceries = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
       <RouteTitle text="Groceries" />
-      <PageContent />
+      <PageContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
     </View>
   );
 };

@@ -1,73 +1,58 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSchedule, IngredientDTO } from '@/api/schedules';
+import { useSchedule, IngredientDTO, MealType } from '@/api/schedules';
+import { useGenerateGroceryItems } from '@/api/groceries';
 import { RecipeDTO } from '@/api/recipes';
 import { getISOWeeksForDateRange, parseISO } from '@/date-tools';
 import { Typography } from '@/components/Typography';
 import { Button } from '@/components/button';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { Checkbox, useCheckbox } from '@/components/checkbox';
+import { scheduleOnUI } from 'react-native-worklets';
 import { colors } from '@/constants/colors';
 import { unitFormatters } from '@/utils/unit-formatters';
 import { ensure } from '@/utils';
-import { ChevronLeft, WandSparkles } from 'lucide-react-native';
+import { Pancake } from '@/components/svgs/pancake';
+import { ChevronLeft, WandSparkles, Ham, Salad } from 'lucide-react-native';
 import { format, isAfter, isBefore } from 'date-fns';
-import Svg, { Path } from 'react-native-svg';
-import Animated, {
-  interpolate,
-  interpolateColor,
-  useAnimatedProps,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  SharedValue,
-} from 'react-native-reanimated';
-import { useState, useEffect, useMemo } from 'react';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useState, useEffect, useRef } from 'react';
 import { values } from 'remeda';
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+// ─── Recipe Icon ──────────────────────────────────────────────────────────────
 
-// ─── Checkbox ─────────────────────────────────────────────────────────────────
-
-const Checkbox = ({ progress }: { progress: SharedValue<number> }) => {
-  const animatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 0.5], ['#FEF2DD', '#F9974F']),
-  }));
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: interpolate(progress.value, [0, 1], [24, 0]),
-    opacity: interpolate(progress.value, [0, 0.1, 1], [0, 1, 1]),
-  }));
-
+const RecipeIcon = ({ mealType }: { mealType: MealType }) => {
+  const iconProps = { color: '#CD7E34', size: 24 };
   return (
-    <Animated.View
-      style={[
-        {
-          width: 24,
-          height: 24,
-          borderRadius: 5,
-          borderWidth: 1,
-          borderBottomWidth: 2,
-          borderColor: '#EC8032',
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        animatedStyle,
-      ]}
+    <View style={{ padding: 4, backgroundColor: colors.orange[100], borderRadius: 8 }}>
+      {mealType === 'breakfast' ? (
+        <Pancake {...iconProps} />
+      ) : mealType === 'lunch' ? (
+        <Salad {...iconProps} />
+      ) : (
+        <Ham {...iconProps} />
+      )}
+    </View>
+  );
+};
+
+const Count = ({ count }: { count: number }) => {
+  return (
+    <View
+      style={{
+        padding: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 32,
+        height: 32,
+        backgroundColor: colors.orange[100],
+        borderRadius: 8,
+      }}
     >
-      <Svg width={16} height={16} viewBox="0 0 24 24">
-        <AnimatedPath
-          d="M4 12 9 17 20 6"
-          stroke="#FEF7EA"
-          strokeWidth={4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          strokeDasharray={24}
-          animatedProps={animatedProps}
-        />
-      </Svg>
-    </Animated.View>
+      <Typography variant="body-sm" weight="black" color="#CD7E34">
+        x{count}
+      </Typography>
+    </View>
   );
 };
 
@@ -77,71 +62,68 @@ type IngredientRowProps = {
   ingredient: IngredientDTO;
   isChecked: boolean;
   onToggle: (id: string) => void;
-  isFirst: boolean;
 };
 
-const IngredientRow = ({ ingredient, isChecked, onToggle, isFirst }: IngredientRowProps) => {
-  const progress = useSharedValue(isChecked ? 1 : 0);
-
-  useEffect(() => {
-    progress.value = withSpring(isChecked ? 1 : 0);
-  }, [isChecked, progress]);
+const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) => {
+  const { progress } = useCheckbox(isChecked);
+  const scale = useSharedValue(1);
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const opacityStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0.4, 1]),
+  }));
 
   return (
-    <PressableWithHaptics
-      onPress={() => onToggle(ingredient.id)}
-      style={[
-        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
-        !isFirst && { borderTopWidth: 1, borderColor: colors.brown[900] },
-      ]}
-    >
-      <Checkbox progress={progress} />
-      <Typography
-        variant="body-base"
-        weight="bold"
-        color={isChecked ? colors.brown[900] : colors.brown[700]}
-        style={{ flex: 1 }}
+    <Animated.View style={opacityStyle}>
+      <Pressable
+        onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.9)))}
+        onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
+        onPress={() => onToggle(ingredient.id)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}
       >
-        {ingredient.name}
-      </Typography>
-      {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
-        <View
-          style={{
-            borderRadius: 999,
-            height: 24,
-            paddingHorizontal: 6,
-            backgroundColor: colors.orange[500],
-            borderWidth: 2,
-            borderBottomWidth: 3,
-            borderColor: colors.orange[600],
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-            {ingredient.quantity} {ensure(unitFormatters[ingredient.unit])({ count: ingredient.quantity })}
-          </Typography>
-        </View>
-      )}
-    </PressableWithHaptics>
+        <Animated.View style={scaleStyle}>
+          <Checkbox progress={progress} />
+        </Animated.View>
+        <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
+          {ingredient.name}
+        </Typography>
+        {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
+          <View
+            style={{
+              borderRadius: 999,
+              height: 24,
+              paddingHorizontal: 6,
+              backgroundColor: colors.orange[500],
+              borderWidth: 2,
+              borderBottomWidth: 3,
+              borderColor: colors.orange[600],
+              justifyContent: 'center',
+            }}
+          >
+            <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
+              {ingredient.quantity} {ensure(unitFormatters[ingredient.unit])({ count: ingredient.quantity })}
+            </Typography>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 };
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function GeneratePreview() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startDate, endDate } = useLocalSearchParams<{ startDate: string; endDate: string }>();
 
-  const weeks = useMemo(() => getISOWeeksForDateRange(startDate, endDate), [startDate, endDate]);
+  const weeks = getISOWeeksForDateRange(startDate, endDate);
   const { scheduleMap, isLoading } = useSchedule({ weeks });
 
   // Extract unique recipes + occurrence counts from the date range
-  const recipesWithCounts = useMemo(() => {
+  const recipesWithCounts = (() => {
     if (isLoading) return [];
 
     const occurrenceMap = new Map<string, number>();
     const recipeMap = new Map<string, RecipeDTO>();
+    const mealTypeMap = new Map<string, MealType>();
 
     for (const day of values(scheduleMap)) {
       const dayDate = parseISO(day.date);
@@ -151,25 +133,38 @@ export default function GeneratePreview() {
       // Inclusive range check
       if (isBefore(dayDate, start) || isAfter(dayDate, end)) continue;
 
-      for (const entry of [day.breakfast, day.lunch, day.dinner]) {
+      const meals: { entry: typeof day.breakfast; mealType: MealType }[] = [
+        { entry: day.breakfast, mealType: 'breakfast' },
+        { entry: day.lunch, mealType: 'lunch' },
+        { entry: day.dinner, mealType: 'dinner' },
+      ];
+
+      for (const { entry, mealType } of meals) {
         if (!entry || entry.type !== 'recipe') continue;
         const { recipe } = entry;
         occurrenceMap.set(recipe.id, (occurrenceMap.get(recipe.id) ?? 0) + 1);
         recipeMap.set(recipe.id, recipe);
+        if (!mealTypeMap.has(recipe.id)) mealTypeMap.set(recipe.id, mealType);
       }
     }
 
     return Array.from(recipeMap.entries())
-      .map(([id, recipe]) => ({ recipe, count: occurrenceMap.get(id) ?? 1 }))
+      .map(([id, recipe]) => ({
+        recipe,
+        count: occurrenceMap.get(id) ?? 1,
+        mealType: mealTypeMap.get(id) ?? ('dinner' as MealType),
+      }))
       .sort((a, b) => a.recipe.name.localeCompare(b.recipe.name));
-  }, [scheduleMap, isLoading, startDate, endDate]);
+  })();
 
   // All ingredient IDs checked by default
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const initializedRef = useRef(false);
 
-  // Initialize selectedIds once recipes are loaded
+  // Initialize selectedIds once recipes are loaded (one-time only)
   useEffect(() => {
-    if (recipesWithCounts.length === 0) return;
+    if (recipesWithCounts.length === 0 || initializedRef.current) return;
+    initializedRef.current = true;
     const allIds = recipesWithCounts.flatMap(({ recipe }) => recipe.ingredients.map((i: IngredientDTO) => i.id));
     setSelectedIds(new Set(allIds));
   }, [recipesWithCounts]);
@@ -186,17 +181,23 @@ export default function GeneratePreview() {
     });
   };
 
+  const generateGroceryItems = useGenerateGroceryItems();
+
   const handleSubmit = () => {
-    const payload: Record<string, number> = {};
+    const ingredients: Record<string, number> = {};
     for (const { recipe, count } of recipesWithCounts) {
       for (const ingredient of recipe.ingredients) {
         if (selectedIds.has(ingredient.id)) {
-          payload[ingredient.id] = count;
+          ingredients[ingredient.id] = count;
         }
       }
     }
-    console.log('Generation payload:', payload);
-    router.back();
+    generateGroceryItems.mutate(
+      { start: startDate, end: endDate, ingredients },
+      {
+        onSuccess: () => router.back(),
+      }
+    );
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -258,40 +259,31 @@ export default function GeneratePreview() {
           Review items
         </Typography>
         <Typography variant="body-base" weight="regular" color={colors.brown[800]}>
-          {format(parseISO(startDate), 'MMM d')} – {format(parseISO(endDate), 'MMM d, yyyy')}
+          {format(parseISO(startDate), 'EEEE, MMM d')} – {format(parseISO(endDate), 'EEEE, MMM d')}
         </Typography>
       </View>
 
       {/* Recipe list */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, gap: 24, paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, gap: 32, paddingBottom: insets.bottom + 100 }}
       >
-        {recipesWithCounts.map(({ recipe, count }) => (
+        {recipesWithCounts.map(({ recipe, count, mealType }) => (
           <View key={recipe.id} style={{ gap: 4 }}>
             {/* Recipe header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
-              <Typography variant="body-sm" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
+            <View style={{ gap: 8, flexDirection: 'row', alignItems: 'center', flex: 1, marginBottom: 4 }}>
+              <Typography
+                variant="heading-sm"
+                weight="bold"
+                color={colors.brown[800]}
+                style={{ flex: 1, marginRight: '25%' }}
+              >
                 {recipe.name}
               </Typography>
-              {count > 1 && (
-                <View
-                  style={{
-                    borderRadius: 999,
-                    paddingHorizontal: 6,
-                    height: 20,
-                    backgroundColor: colors.orange[500],
-                    borderWidth: 1,
-                    borderBottomWidth: 2,
-                    borderColor: colors.orange[600],
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-                    ×{count}
-                  </Typography>
-                </View>
-              )}
+              <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-end' }}>
+                <RecipeIcon mealType={mealType} />
+                {count > 1 && <Count count={count} />}
+              </View>
             </View>
 
             {/* Ingredients box */}
@@ -305,13 +297,12 @@ export default function GeneratePreview() {
                 overflow: 'hidden',
               }}
             >
-              {recipe.ingredients.map((ingredient: IngredientDTO, index: number) => (
+              {recipe.ingredients.map((ingredient: IngredientDTO) => (
                 <IngredientRow
                   key={ingredient.id}
                   ingredient={ingredient}
                   isChecked={selectedIds.has(ingredient.id)}
                   onToggle={toggleIngredient}
-                  isFirst={index === 0}
                 />
               ))}
             </View>
@@ -327,12 +318,20 @@ export default function GeneratePreview() {
           left: 0,
           right: 0,
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 16,
+          paddingBottom: insets.bottom,
           paddingTop: 12,
           backgroundColor: '#FEF7EA',
+          borderTopWidth: 1,
+          borderColor: colors.brown[800],
         }}
       >
-        <Button variant="primary" text="Generate" leftIcon={{ Icon: WandSparkles }} onPress={handleSubmit} />
+        <Button
+          variant="primary"
+          text="Generate"
+          leftIcon={{ Icon: WandSparkles }}
+          onPress={handleSubmit}
+          isLoading={generateGroceryItems.isPending}
+        />
       </View>
     </View>
   );

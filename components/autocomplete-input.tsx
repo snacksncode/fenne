@@ -1,5 +1,5 @@
 import { ComponentProps, useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Typography } from '@/components/Typography';
 import { IngredientOption, useIngredientSearch, useDeleteCustomIngredient } from '@/api/food-items';
 import { colors } from '@/constants/colors';
@@ -8,6 +8,7 @@ import { FlashList, FlashListRef } from '@shopify/flash-list';
 import { ScrollView } from 'react-native-actions-sheet';
 import { X } from 'lucide-react-native';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { TextInput } from '@/components/input';
 
 interface AutocompleteInputProps extends Omit<ComponentProps<typeof TextInput>, 'onChangeText'> {
   value: string;
