@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
 import { MealType } from '@/api/schedules';
+import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 
 export type AisleCategory =
   | 'produce'
@@ -25,7 +26,7 @@ export type GroceryItemDTO = {
   id: string;
   name: string;
   quantity: number;
-  unit: string;
+  unit: Unit;
   status: 'pending' | 'completed';
   aisle: AisleCategory;
 };
@@ -34,7 +35,7 @@ export type PreviewIngredientDTO = {
   id: string;
   name: string;
   quantity: number;
-  unit: string;
+  unit: Unit;
 };
 
 export type PreviewRecipeDTO = {

@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useState } from 'react';
 import { isEmptyish } from 'remeda';
+import { prettyUnit } from '@/utils/unit-formatters';
 
 // ─── Recipe Icon ──────────────────────────────────────────────────────────────
 
@@ -83,22 +84,24 @@ const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) 
         <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
           {ingredient.name}
         </Typography>
-        <View
-          style={{
-            borderRadius: 999,
-            height: 24,
-            paddingHorizontal: 6,
-            backgroundColor: colors.orange[500],
-            borderWidth: 2,
-            borderBottomWidth: 3,
-            borderColor: colors.orange[600],
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-            {ingredient.quantity} {ingredient.unit}
-          </Typography>
-        </View>
+        {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
+          <View
+            style={{
+              borderRadius: 999,
+              height: 24,
+              paddingHorizontal: 6,
+              backgroundColor: colors.orange[500],
+              borderWidth: 2,
+              borderBottomWidth: 3,
+              borderColor: colors.orange[600],
+              justifyContent: 'center',
+            }}
+          >
+            <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
+              {ingredient.quantity} {prettyUnit(ingredient)}
+            </Typography>
+          </View>
+        )}
       </Pressable>
     </Animated.View>
   );

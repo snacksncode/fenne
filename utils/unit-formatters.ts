@@ -14,3 +14,18 @@ export const unitFormatters: Record<Unit, (data: { count: number }) => string> =
   oz: () => 'oz',
   lb: () => 'lb',
 };
+
+export function prettyUnit({ quantity, unit }: { quantity: number; unit: Unit }): string {
+  switch (unit) {
+    case 'count':
+      return quantity === 1 ? 'pc' : 'pcs';
+    case 'fl_oz':
+      return 'fl oz';
+    case 'cup':
+      return quantity === 1 ? 'cup' : 'cups';
+    case 'qt':
+      return quantity === 1 ? 'qt' : 'qts';
+    default:
+      return unit;
+  }
+}

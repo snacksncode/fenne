@@ -14,6 +14,26 @@ export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>
   );
 };
 
+type NumberInputProps = Omit<ComponentProps<typeof TextInput>, 'onChangeText' | 'keyboardType'> & {
+  onChangeText: (value: string) => void;
+};
+
+export const NumberInput = ({ onChangeText, onBlur, ...props }: NumberInputProps) => {
+  const normalize = (raw: string) => {
+    if (raw === '') return '0';
+    const normalized = raw.replace(',', '.');
+    const stripped = normalized.replace(/^0+/, '');
+    return stripped === '' || stripped.startsWith('.') ? '0' + stripped : stripped;
+  };
+
+  const handleBlur = (e: Parameters<Exclude<typeof onBlur, undefined>>[0]) => {
+    onChangeText(normalize(props.value?.toString() ?? ''));
+    onBlur?.(e);
+  };
+
+  return <TextInput keyboardType="decimal-pad" onChangeText={onChangeText} onBlur={handleBlur} {...props} />;
+};
+
 const styles = StyleSheet.create({
   input: {
     borderRadius: 8,

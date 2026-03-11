@@ -40,6 +40,7 @@ import { scheduleOnUI, scheduleOnRN } from 'react-native-worklets';
 import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
+import { prettyUnit } from '@/utils/unit-formatters';
 import { SheetManager } from 'react-native-actions-sheet';
 
 type AisleDTO = {
@@ -275,7 +276,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
             }}
           >
             <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-              {item.quantity} {item.unit}
+              {item.quantity} {prettyUnit(item)}
             </Typography>
           </View>
         )}

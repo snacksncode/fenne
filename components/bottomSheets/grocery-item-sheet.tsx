@@ -1,10 +1,10 @@
 import { GroceryItemDTO, useAddGroceryItem, useEditGroceryItem } from '@/api/groceries';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { QuantityShortcuts } from '@/components/quantity-shortcuts';
 import { Button } from '@/components/button';
-import { TextInput } from '@/components/input';
+import { NumberInput, TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { nanoid } from 'nanoid/non-secure';
@@ -25,7 +25,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
       id: nanoid(),
       name: '',
       quantity: 1,
-      unit: 'count' as Unit,
+      unit: 'count',
       aisle: 'other',
       status: 'pending',
     };
@@ -60,7 +60,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   };
 
   const handleOpenUnitSheet = async () => {
-    const unit = await SheetManager.show('select-unit-sheet', { payload: { ...grocery, unit: grocery.unit as Unit } });
+    const unit = await SheetManager.show('select-unit-sheet', { payload: { ...grocery, unit: grocery.unit } });
     if (unit) setGrocery((prev) => ({ ...prev, unit }));
   };
 
@@ -95,11 +95,10 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
               Quantity
             </Typography>
-            <TextInput
+            <NumberInput
               value={grocery.quantity.toString()}
-              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: parseLocaleFloat(quantity) }))}
+              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: +quantity }))}
               placeholder="e.g. 2"
-              keyboardType="decimal-pad"
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -116,7 +115,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
           </View>
         </View>
         <QuantityShortcuts
-          unit={grocery.unit as Unit}
+          unit={grocery.unit}
           currentValue={grocery.quantity}
           onSelect={(value) => setGrocery((prev) => ({ ...prev, quantity: value }))}
         />

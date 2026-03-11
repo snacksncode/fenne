@@ -2,9 +2,9 @@ import { IngredientFormData } from '@/api/schedules';
 import { AisleHeader } from '@/components/aisle-header';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
-import { UNITS, Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
-import { TextInput } from '@/components/input';
+import { NumberInput, TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
@@ -32,7 +32,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
 
   const handleOpenUnitSheet = async () => {
     const unit = await SheetManager.show('select-unit-sheet', {
-      payload: { unit: ingredient.unit as Unit },
+      payload: { unit: ingredient.unit },
     });
     if (unit) {
       setIngredient((prev) => ({ ...prev, unit }));
@@ -72,11 +72,10 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
               Quantity
             </Typography>
-            <TextInput
+            <NumberInput
               value={ingredient.quantity.toString()}
               onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
               placeholder="e.g. 2"
-              keyboardType="decimal-pad"
             />
           </View>
           <View style={{ flex: 1 }}>

@@ -1,7 +1,7 @@
 import { RecipeDTO, RecipeFormData, useAddRecipe, useEditRecipe } from '@/api/recipes';
 import { IngredientFormData, MealType } from '@/api/schedules';
 import { Button } from '@/components/button';
-import { TextInput } from '@/components/input';
+import { NumberInput, TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, Trash2, Save } from 'lucide-react-native';
@@ -309,12 +309,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
             Cooking time (in minutes)
           </Typography>
-          <TextInput
-            value={timeInMinutes}
-            onChangeText={setTimeInMinutes}
-            placeholder="e.g. 30"
-            keyboardType="decimal-pad"
-          />
+          <NumberInput value={timeInMinutes} onChangeText={setTimeInMinutes} placeholder="e.g. 30" />
         </View>
         <View>
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>

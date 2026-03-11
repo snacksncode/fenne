@@ -11,8 +11,7 @@ import { useRecipe, useEditRecipe } from '@/api/recipes';
 import { isHtmlEmpty } from '@/utils/is-html-empty';
 import { colors } from '@/constants/colors';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { unitFormatters } from '@/utils/unit-formatters';
-import { ensure } from '@/utils';
+import { prettyUnit } from '@/utils/unit-formatters';
 
 const systemFonts = [
   ...defaultSystemFonts,
@@ -194,7 +193,7 @@ export default function RecipePreview() {
                     }}
                   >
                     <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-                      {ingredient.quantity} {ensure(unitFormatters[ingredient.unit])({ count: ingredient.quantity })}
+                      {ingredient.quantity} {prettyUnit(ingredient)}
                     </Typography>
                   </View>
                 )}
