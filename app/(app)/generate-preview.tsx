@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MealType } from '@/api/schedules';
-import { useGenerateGroceryItems, useGroceryPreview, PreviewIngredientDTO } from '@/api/groceries';
+import { useGenerateGroceryItems, useGroceryPreview, PreviewIngredientDTO, PreviewRecipeDTO } from '@/api/groceries';
 import { parseISO } from '@/date-tools';
 import { Typography } from '@/components/Typography';
 import { Button } from '@/components/button';
@@ -13,7 +13,8 @@ import { Pancake } from '@/components/svgs/pancake';
 import { ChevronLeft, WandSparkles, Ham, Salad } from 'lucide-react-native';
 import { format } from 'date-fns';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { isEmptyish } from 'remeda';
 
 // ─── Recipe Icon ──────────────────────────────────────────────────────────────
 
@@ -103,24 +104,17 @@ const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) 
   );
 };
 
-export default function GeneratePreview() {
+type ContentProps = {
+  recipes: PreviewRecipeDTO[];
+  startDate: string;
+  endDate: string;
+};
+
+const Content = ({ recipes, startDate, endDate }: ContentProps) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { startDate, endDate } = useLocalSearchParams<{ startDate: string; endDate: string }>();
 
-  const { data: recipes = [], isLoading } = useGroceryPreview({ start: startDate, end: endDate });
-
-  // All ingredient IDs checked by default
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const initializedRef = useRef(false);
-
-  // Initialize selectedIds once recipes are loaded (one-time only)
-  useEffect(() => {
-    if (recipes.length === 0 || initializedRef.current) return;
-    initializedRef.current = true;
-    const allIds = recipes.flatMap((r) => r.ingredients.map((i) => i.id));
-    setSelectedIds(new Set(allIds));
-  }, [recipes]);
+  const [selectedIds, setSelectedIds] = useState(() => new Set(recipes.flatMap((r) => r.ingredients.map((i) => i.id))));
 
   const toggleIngredient = (id: string) => {
     setSelectedIds((prev) => {
@@ -145,56 +139,9 @@ export default function GeneratePreview() {
         }
       }
     }
-    generateGroceryItems.mutate(
-      { start: startDate, end: endDate, ingredients },
-      {
-        onSuccess: () => router.back(),
-      }
-    );
+    generateGroceryItems.mutate({ start: startDate, end: endDate, ingredients }, { onSuccess: () => router.back() });
   };
 
-  // ── Loading state ──────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#FEF7EA', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="small" color={colors.brown[900]} />
-      </View>
-    );
-  }
-
-  // ── Empty state ────────────────────────────────────────────────────────────
-  if (recipes.length === 0) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
-        <View style={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: 12 }}>
-          <Pressable
-            onPress={() => router.back()}
-            style={{ marginLeft: -8, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-          >
-            <ChevronLeft color={colors.brown[900]} />
-            <Typography variant="heading-sm" weight="bold">
-              Groceries
-            </Typography>
-          </Pressable>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
-          <Typography variant="heading-sm" weight="bold" style={{ textAlign: 'center' }}>
-            No recipes found
-          </Typography>
-          <Typography
-            variant="body-base"
-            weight="regular"
-            color={colors.brown[700]}
-            style={{ textAlign: 'center', marginTop: 8 }}
-          >
-            No recipes are scheduled for this date range
-          </Typography>
-        </View>
-      </View>
-    );
-  }
-
-  // ── Main content ───────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
       {/* Header */}
@@ -284,9 +231,23 @@ export default function GeneratePreview() {
           leftIcon={{ Icon: WandSparkles }}
           onPress={handleSubmit}
           isLoading={generateGroceryItems.isPending}
-          disabled={selectedIds.size === 0}
         />
       </View>
     </View>
   );
+};
+
+export default function GeneratePreview() {
+  const { startDate, endDate } = useLocalSearchParams<{ startDate: string; endDate: string }>();
+  const preview = useGroceryPreview({ start: startDate, end: endDate });
+
+  if (isEmptyish(preview.data)) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FEF7EA', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="small" color={colors.brown[900]} />
+      </View>
+    );
+  }
+
+  return <Content recipes={preview.data} startDate={startDate} endDate={endDate} />;
 }
