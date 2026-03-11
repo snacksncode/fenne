@@ -7,9 +7,8 @@ export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>
   return (
     <_TextInput
       style={[styles.input, style]}
-      placeholderTextColor={colors.brown[800]}
+      placeholderTextColor={colors.brown[800] + 'C0'} // 75% opacity in hex
       autoCorrect={false}
-      spellCheck={false}
       {...props}
     />
   );
@@ -22,6 +21,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderBottomWidth: 2,
+    backgroundColor: colors.cream[100],
     borderColor: colors.brown[900],
     color: colors.brown[900],
     fontFamily: 'Satoshi-Medium',

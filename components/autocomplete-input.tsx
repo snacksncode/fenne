@@ -46,9 +46,6 @@ export const AutocompleteInput = ({ value, onChangeText, onSelect, ...props }: A
         onLayout={(e) => setInputWidth(e.nativeEvent.layout.width)}
         onChangeText={handleTextChange}
         style={styles.input}
-        placeholderTextColor="#958270"
-        autoCorrect={false}
-        spellCheck={false}
         onBlur={() => setForceHidePopup(true)}
         {...props}
       />
@@ -93,14 +90,6 @@ export const AutocompleteInput = ({ value, onChangeText, onSelect, ...props }: A
 
 const styles = StyleSheet.create({
   input: {
-    borderRadius: 8,
-    fontSize: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: '#493D34',
-    color: '#493D34',
-    height: 48,
     zIndex: 1,
   },
   dropdown: {

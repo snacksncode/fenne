@@ -54,7 +54,6 @@ export const LinkInputSheet = (props: SheetProps<'link-input-sheet'>) => {
             placeholder="https://..."
             keyboardType="url"
             autoCapitalize="none"
-            autoCorrect={false}
             autoFocus
           />
         </View>

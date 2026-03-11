@@ -140,11 +140,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderRadius: 999,
-    paddingHorizontal: 20,
     borderWidth: 2,
     borderBottomWidth: 3,
-    color: colors.brown[900],
-    height: 48,
-    backgroundColor: colors.cream[100],
   },
 });
