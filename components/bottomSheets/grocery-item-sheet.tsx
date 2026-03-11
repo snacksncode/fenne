@@ -60,7 +60,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   };
 
   const handleOpenUnitSheet = async () => {
-    const unit = await SheetManager.show('select-unit-sheet', { payload: grocery });
+    const unit = await SheetManager.show('select-unit-sheet', { payload: { ...grocery, unit: grocery.unit as Unit } });
     if (unit) setGrocery((prev) => ({ ...prev, unit }));
   };
 
@@ -116,7 +116,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
           </View>
         </View>
         <QuantityShortcuts
-          unit={grocery.unit}
+          unit={grocery.unit as Unit}
           currentValue={grocery.quantity}
           onSelect={(value) => setGrocery((prev) => ({ ...prev, quantity: value }))}
         />

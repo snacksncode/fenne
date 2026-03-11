@@ -284,6 +284,7 @@ export default function GeneratePreview() {
           leftIcon={{ Icon: WandSparkles }}
           onPress={handleSubmit}
           isLoading={generateGroceryItems.isPending}
+          disabled={selectedIds.size === 0}
         />
       </View>
     </View>
