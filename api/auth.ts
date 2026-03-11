@@ -1,6 +1,7 @@
 import { api } from '@/api';
 import { useSession } from '@/contexts/session';
 import { useLogout } from '@/hooks/use-logout';
+import { useOptimisticUpdate } from '@/api/optimistic';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type UserDTO = {
@@ -9,8 +10,11 @@ export type UserDTO = {
   name: string;
 };
 
-type FamilyDTO = {
+export type UnitPreference = 'metric' | 'imperial';
+
+export type FamilyDTO = {
   id: string;
+  unit_preference: UnitPreference;
   members: UserDTO[];
 };
 
@@ -86,4 +90,28 @@ export const currentUserOptions = queryOptions({
 export const useCurrentUser = () => {
   const { token } = useSession();
   return useQuery({ ...currentUserOptions, enabled: !!token });
+};
+
+export const useUpdateFamilyPreferences = () => {
+  const { update, revert } = useOptimisticUpdate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['updateFamilyPreferences'],
+    mutationFn: api.family.updatePreferences,
+    onMutate: async (newPrefs) => {
+      const { previousData } = await update({
+        queryKey: currentUserOptions.queryKey,
+        updateFn: (state) => {
+          if (state) state.family.unit_preference = newPrefs.unit_preference;
+        },
+      });
+      return { previousData, queryKey: currentUserOptions.queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) revert(context);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(currentUserOptions);
+    },
+  });
 };

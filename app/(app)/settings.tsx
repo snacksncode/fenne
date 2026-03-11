@@ -1,4 +1,4 @@
-import { useCurrentUser, UserDTO } from '@/api/auth';
+import { useCurrentUser, useUpdateFamilyPreferences, UnitPreference, UserDTO } from '@/api/auth';
 import {
   InvitationDTO,
   useAcceptInvite,
@@ -6,6 +6,7 @@ import {
   useInvitations,
   useRemoveSentInvite,
 } from '@/api/invitations';
+import { Option, SegmentedSelect } from '@/components/Select';
 import { SheetManager } from 'react-native-actions-sheet';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -19,10 +20,12 @@ import {
   Lock,
   LogOut,
   MailQuestionMark,
+  Ruler,
   Trash2,
   User,
   UserRoundCheck,
   UserRoundPlus,
+  Weight,
 } from 'lucide-react-native';
 import { FunctionComponent } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -177,6 +180,11 @@ const ReceivedInvitation = (props: { invitation: InvitationDTO }) => {
   );
 };
 
+const unitPreferenceOptions: Option<UnitPreference>[] = [
+  { value: 'metric', text: 'Metric', icon: Ruler },
+  { value: 'imperial', text: 'Imperial', icon: Weight },
+];
+
 const Settings = () => {
   const insets = useSafeAreaInsets();
   const invitations = useInvitations();
@@ -186,6 +194,11 @@ const Settings = () => {
 
   const sortMembers = (members: UserDTO[]) => {
     return sort(members, (a) => (a.id === user?.id ? -1 : 1));
+  };
+
+  const updatePreferences = useUpdateFamilyPreferences();
+  const handleUnitPreferenceChange = (value: UnitPreference) => {
+    updatePreferences.mutate({ unit_preference: value });
   };
 
   return (
@@ -267,34 +280,48 @@ const Settings = () => {
         ) : null}
 
         {family ? (
-          <View style={{ marginTop: 24 }}>
-            <Typography variant="body-base" weight="bold">
-              FAMILY
-            </Typography>
-            <View style={{ gap: 12, marginTop: 12 }}>
-              {sortMembers(family.members).map((member) => (
-                <Member key={member.id} user={member} />
-              ))}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Button
-                  style={{ flex: 1 }}
-                  text="Invite member"
-                  leftIcon={{ Icon: UserRoundPlus }}
-                  variant="outlined"
-                  size="base"
-                  onPress={() => SheetManager.show('invite-family-member-sheet')}
-                />
-                {family.members.length > 1 ? (
+          <>
+            <View style={{ marginTop: 24 }}>
+              <Typography variant="body-base" weight="bold">
+                FAMILY MEMBERS
+              </Typography>
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {sortMembers(family.members).map((member) => (
+                  <Member key={member.id} user={member} />
+                ))}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Button
-                    leftIcon={{ Icon: LogOut }}
-                    variant="red-outlined"
+                    style={{ flex: 1 }}
+                    text="Invite member"
+                    leftIcon={{ Icon: UserRoundPlus }}
+                    variant="outlined"
                     size="base"
-                    onPress={() => SheetManager.show('leave-family-sheet')}
+                    onPress={() => SheetManager.show('invite-family-member-sheet')}
                   />
-                ) : null}
+                  {family.members.length > 1 ? (
+                    <Button
+                      leftIcon={{ Icon: LogOut }}
+                      variant="red-outlined"
+                      size="base"
+                      onPress={() => SheetManager.show('leave-family-sheet')}
+                    />
+                  ) : null}
+                </View>
               </View>
             </View>
-          </View>
+            <View style={{ marginTop: 24 }}>
+              <Typography variant="body-base" weight="bold">
+                UNITS
+              </Typography>
+              <View style={{ gap: 4, marginTop: 12 }}>
+                <SegmentedSelect
+                  value={family.unit_preference}
+                  options={unitPreferenceOptions}
+                  onValueChange={handleUnitPreferenceChange}
+                />
+              </View>
+            </View>
+          </>
         ) : null}
 
         <View style={{ marginTop: 24 }}>
