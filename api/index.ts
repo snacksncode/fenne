@@ -2,10 +2,10 @@ import { first, isDefined, last, pickBy } from 'remeda';
 import { client } from '@/api/client';
 import { getDatesFromISOWeek } from '@/date-tools';
 import { ensure, parseLocaleFloat } from '@/utils';
-import { AisleCategory, GroceryItemDTO } from '@/api/groceries';
+import { AisleCategory, GroceryItemDTO, PreviewRecipeDTO } from '@/api/groceries';
 import { RecipeDTO, RecipeFormData } from '@/api/recipes';
 import { ScheduleDayDTO, ScheduleDayInput, MealType } from '@/api/schedules';
-import { AuthResponse, CurrentUserDTO } from '@/api/auth';
+import { AuthResponse, CurrentUserDTO, UnitPreference } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
 import { IngredientOption } from '@/api/food-items';
 
@@ -49,6 +49,10 @@ export const api = {
     },
     generate: (data: { start: string; end: string; ingredients: Record<string, number> }) => {
       return client.post('/grocery_items/generate', data);
+    },
+    preview: (data: { start: string; end: string }) => {
+      const params = new URLSearchParams({ start: data.start, end: data.end });
+      return client.get<PreviewRecipeDTO[]>(`/grocery_items/preview?${params}`);
     },
     checkout: () => {
       return client.post('/grocery_items/checkout');
@@ -122,6 +126,11 @@ export const api = {
     },
     leaveFamily: () => {
       return client.post('/leave_family');
+    },
+  },
+  family: {
+    updatePreferences: (data: { unit_preference: UnitPreference }) => {
+      return client.patch('/family/preferences', { data });
     },
   },
   foodItems: {

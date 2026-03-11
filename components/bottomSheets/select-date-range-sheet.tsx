@@ -1,4 +1,5 @@
 import { useSchedule } from '@/api/schedules';
+import { useGroceryPreview } from '@/api/groceries';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
@@ -36,7 +37,12 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const [range, setRange] = useState<Range>();
-  const { scheduleMap, isLoading } = useSchedule({ weeks });
+const { scheduleMap, isLoading } = useSchedule({ weeks });
+  const previewQuery = useGroceryPreview({
+    start: range?.startDateString,
+    end: range?.endDateString,
+    enabled: false,
+  });
 
   useEffect(() => {
     if (isLoading || range != null) return;
@@ -62,12 +68,14 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
     });
   };
 
-  const handleGenerate = () => {
+const handleGenerate = () => {
     if (!range) return;
-    SheetManager.hide(props.sheetId);
-    router.push({
-      pathname: '/generate-preview',
-      params: { startDate: range.startDateString, endDate: range.endDateString },
+    previewQuery.refetch().then(() => {
+      SheetManager.hide(props.sheetId);
+      router.push({
+        pathname: '/generate-preview',
+        params: { startDate: range.startDateString, endDate: range.endDateString },
+      });
     });
   };
 
@@ -112,12 +120,13 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
         selectedRange={range}
         scheduleMap={isLoading || !range ? {} : scheduleMap}
       />
-      <Button
+<Button
         style={{ marginTop: 32 }}
         variant="primary"
         onPress={handleGenerate}
         text="Generate"
         leftIcon={{ Icon: WandSparkles }}
+        isLoading={previewQuery.isFetching}
       />
       <Button
         style={{ marginTop: 12 }}

@@ -1,8 +1,8 @@
 import { api } from '@/api';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
+import { MealType } from '@/api/schedules';
 
 export type AisleCategory =
   | 'produce'
@@ -25,9 +25,24 @@ export type GroceryItemDTO = {
   id: string;
   name: string;
   quantity: number;
-  unit: Unit;
+  unit: string;
   status: 'pending' | 'completed';
   aisle: AisleCategory;
+};
+
+export type PreviewIngredientDTO = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+};
+
+export type PreviewRecipeDTO = {
+  id: string;
+  name: string;
+  meal_type: MealType;
+  amount: number;
+  ingredients: PreviewIngredientDTO[];
 };
 
 export const groceriesOptions = queryOptions({
@@ -38,6 +53,19 @@ export const groceriesOptions = queryOptions({
 
 export const useGroceries = () => {
   return useQuery(groceriesOptions);
+};
+
+export const groceryPreviewOptions = (start: string, end: string) =>
+  queryOptions({
+    queryKey: ['grocery-preview', start, end] as const,
+    queryFn: () => api.groceries.preview({ start, end }),
+  });
+
+export const useGroceryPreview = ({ start, end, enabled }: { start?: string; end?: string; enabled?: boolean }) => {
+  return useQuery({
+    ...groceryPreviewOptions(start ?? '', end ?? ''),
+    enabled: enabled !== false && start != null && end != null,
+  });
 };
 
 queryClient.setMutationDefaults(['editGroceryItem'], { mutationFn: api.groceries.edit });

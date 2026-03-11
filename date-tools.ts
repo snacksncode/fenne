@@ -37,8 +37,3 @@ export const getISOWeeksForMonth = (dateString: string) => {
   return eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((w) => format(w, YEAR_WEEK));
 };
 
-export const getISOWeeksForDateRange = (startDateString: string, endDateString: string) => {
-  const start = startOfISOWeek(parseISO(startDateString));
-  const end = endOfISOWeek(parseISO(endDateString));
-  return eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((w) => format(w, YEAR_WEEK));
-};
