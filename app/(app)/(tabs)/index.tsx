@@ -11,6 +11,8 @@ import { CalendarPlus } from 'lucide-react-native';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
 import { useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
+import Animated from 'react-native-reanimated';
+import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
 export type TabParamList = {
   Weekly: undefined;
@@ -41,48 +43,51 @@ const usePopupTutorialSheet = () => {
 const Index = () => {
   const insets = useSafeAreaInsets();
   usePopupTutorialSheet();
+  const tabFocusStyle = useTabFocusAnimation();
 
   const showSelectDateSheet = () => {
     SheetManager.show('select-date-sheet');
   };
 
   return (
-    <Tab.Navigator
-      layout={({ children, navigation }) => (
-        <View
-          style={{
-            backgroundColor: '#FEF7EA',
-            flex: 1,
-          }}
-        >
-          {children}
-          <Button
-            variant="primary"
-            onPress={showSelectDateSheet}
-            text="Schedule Meal"
-            leftIcon={{ Icon: CalendarPlus }}
+    <Animated.View style={tabFocusStyle}>
+      <Tab.Navigator
+        layout={({ children }) => (
+          <View
             style={{
-              position: 'absolute',
-              bottom: insets.bottom + 88,
-              right: 16,
+              backgroundColor: '#FEF7EA',
+              flex: 1,
             }}
+          >
+            {children}
+            <Button
+              variant="primary"
+              onPress={showSelectDateSheet}
+              text="Schedule Meal"
+              leftIcon={{ Icon: CalendarPlus }}
+              style={{
+                position: 'absolute',
+                bottom: insets.bottom + 88,
+                right: 16,
+              }}
+            />
+          </View>
+        )}
+        tabBar={(props) => (
+          <RouteTitle
+            text="Menu"
+            footerSlot={
+              <View style={{ marginTop: 12 }}>
+                <TopTabBar {...props} />
+              </View>
+            }
           />
-        </View>
-      )}
-      tabBar={(props) => (
-        <RouteTitle
-          text="Menu"
-          footerSlot={
-            <View style={{ marginTop: 12 }}>
-              <TopTabBar {...props} />
-            </View>
-          }
-        />
-      )}
-    >
-      <Tab.Screen name="Weekly">{() => <WeeklyScreen />}</Tab.Screen>
-      <Tab.Screen name="Monthly">{() => <MonthlyScreen />}</Tab.Screen>
-    </Tab.Navigator>
+        )}
+      >
+        <Tab.Screen name="Weekly">{() => <WeeklyScreen />}</Tab.Screen>
+        <Tab.Screen name="Monthly">{() => <MonthlyScreen />}</Tab.Screen>
+      </Tab.Navigator>
+    </Animated.View>
   );
 };
 

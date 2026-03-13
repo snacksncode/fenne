@@ -1,4 +1,10 @@
-import { GroceryItemDTO, useAddGroceryItem, useEditGroceryItem } from '@/api/groceries';
+import {
+  GroceryItemFormData,
+  groceryItemFromFormData,
+  groceryItemToFormData,
+  useAddGroceryItem,
+  useEditGroceryItem,
+} from '@/api/groceries';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
@@ -14,20 +20,23 @@ import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { useCreateCustomIngredient } from '@/api/food-items';
+import { parseLocaleFloat } from '@/utils';
+
+const emptyGroceryItem: GroceryItemFormData = {
+  id: nanoid(),
+  name: '',
+  quantity: '1',
+  unit: 'count',
+  aisle: 'other',
+  status: 'pending',
+};
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const createCustomIngredient = useCreateCustomIngredient();
   const initialGrocery = props.payload?.grocery;
-  const [grocery, setGrocery] = useState<GroceryItemDTO>(() => {
-    if (initialGrocery) return initialGrocery;
-    return {
-      id: nanoid(),
-      name: '',
-      quantity: 1,
-      unit: 'count',
-      aisle: 'other',
-      status: 'pending',
-    };
+  const [grocery, setGrocery] = useState<GroceryItemFormData>(() => {
+    if (initialGrocery) return groceryItemToFormData(initialGrocery);
+    return emptyGroceryItem;
   });
 
   const addGroceryItem = useAddGroceryItem();
@@ -38,21 +47,9 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
     if (!grocery.name.trim()) return;
     createCustomIngredient.mutate(grocery);
     if (isEditing) {
-      editGroceryItem.mutate({
-        id: grocery.id,
-        name: grocery.name,
-        aisle: grocery.aisle,
-        quantity: grocery.quantity,
-        unit: grocery.unit,
-      });
+      editGroceryItem.mutate(groceryItemFromFormData(grocery));
     } else {
-      addGroceryItem.mutate({
-        name: grocery.name,
-        aisle: grocery.aisle,
-        quantity: grocery.quantity,
-        unit: grocery.unit,
-        status: 'pending',
-      });
+      addGroceryItem.mutate(groceryItemFromFormData(grocery));
     }
     SheetManager.hide(props.sheetId);
     Keyboard.dismiss();
@@ -97,8 +94,8 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
               Quantity
             </Typography>
             <NumberInput
-              value={grocery.quantity.toString()}
-              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity: +quantity }))}
+              value={grocery.quantity}
+              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
               placeholder="e.g. 2"
             />
           </View>
@@ -109,7 +106,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
             <PressableWithHaptics onPress={handleOpenUnitSheet}>
               <View style={styles.unitButton}>
                 <Typography variant="body-sm" weight="bold">
-                  {UNITS.find((u) => u.value === grocery.unit)?.label({ count: grocery.quantity })}
+                  {UNITS.find((u) => u.value === grocery.unit)?.label({ count: parseLocaleFloat(grocery.quantity) })}
                 </Typography>
               </View>
             </PressableWithHaptics>
@@ -118,7 +115,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
         <QuantityShortcuts
           unit={grocery.unit}
           currentValue={grocery.quantity}
-          onSelect={(value) => setGrocery((prev) => ({ ...prev, quantity: value }))}
+          onSelect={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
         />
         <View>
           <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>

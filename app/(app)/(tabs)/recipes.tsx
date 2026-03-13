@@ -17,6 +17,7 @@ import { colors } from '@/constants/colors';
 import { Button } from '@/components/button';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { TextInput } from '@/components/input';
+import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
 const EmptyList = () => {
   const router = useRouter();
@@ -129,47 +130,50 @@ const Recipes = () => {
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom + 88, -keyboardHeight.value + 12) }));
 
+  const tabFocusStyle = useTabFocusAnimation();
   const openFilterSheet = async () => {
     const result = await SheetManager.show('recipe-filter-sheet', { payload: { current: mealFilter } });
     if (result != null) setMealFilter(result);
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={{ flex: 1, backgroundColor: colors.cream[100] }}>
-        <RouteTitle text="Recipes" />
-        <PageContent mealFilter={mealFilter} search={search} />
-        {!isEmptyish(recipes.data) ? (
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                left: 16,
-                right: 16,
-                flexDirection: 'row',
-                gap: 8,
-                alignItems: 'center',
-              },
-              toolbarStyle,
-            ]}
-          >
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search recipes..."
-              style={styles.searchInput}
-            />
-            <Button
-              onPress={openFilterSheet}
-              variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
-              leftIcon={{ Icon: SlidersHorizontal }}
-              style={{ paddingHorizontal: 0, width: 48 }}
-            />
-            <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
-          </Animated.View>
-        ) : null}
-      </View>
-    </TouchableWithoutFeedback>
+    <Animated.View style={tabFocusStyle}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, backgroundColor: colors.cream[100] }}>
+          <RouteTitle text="Recipes" />
+          <PageContent mealFilter={mealFilter} search={search} />
+          {!isEmptyish(recipes.data) ? (
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  left: 16,
+                  right: 16,
+                  flexDirection: 'row',
+                  gap: 8,
+                  alignItems: 'center',
+                },
+                toolbarStyle,
+              ]}
+            >
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search recipes..."
+                style={styles.searchInput}
+              />
+              <Button
+                onPress={openFilterSheet}
+                variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
+                leftIcon={{ Icon: SlidersHorizontal }}
+                style={{ paddingHorizontal: 0, width: 48 }}
+              />
+              <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
+            </Animated.View>
+          ) : null}
+        </View>
+      </TouchableWithoutFeedback>
+    </Animated.View>
   );
 };
 

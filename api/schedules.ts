@@ -8,6 +8,7 @@ import { useRef } from 'react';
 import { AisleCategory } from '@/api/groceries';
 import { tempId, useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
+import { parseLocaleFloat } from '@/utils';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
@@ -19,13 +20,19 @@ export type IngredientDTO = {
   aisle: AisleCategory;
 };
 
-export type IngredientFormData = {
-  _id: string;
-  name: string;
-  unit: Unit;
+export type IngredientFormData = Omit<IngredientDTO, 'quantity'> & {
   quantity: string;
-  aisle: AisleCategory;
 };
+
+export const ingredientToFormData = (ingredient: IngredientDTO): IngredientFormData => ({
+  ...ingredient,
+  quantity: ingredient.quantity.toString(),
+});
+
+export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO => ({
+  ...form,
+  quantity: parseLocaleFloat(form.quantity),
+});
 
 export type MealEntryDTO =
   | { id: string; type: 'recipe'; recipe: RecipeDTO }

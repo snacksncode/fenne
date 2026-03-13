@@ -1,4 +1,11 @@
-import { RecipeDTO, RecipeFormData, useAddRecipe, useEditRecipe } from '@/api/recipes';
+import {
+  RecipeDTO,
+  RecipeFormData,
+  recipeFromFormData,
+  recipeToFormData,
+  useAddRecipe,
+  useEditRecipe,
+} from '@/api/recipes';
 import { IngredientFormData, MealType } from '@/api/schedules';
 import { Button } from '@/components/button';
 import { NumberInput, TextInput } from '@/components/input';
@@ -27,13 +34,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { scheduleOnUI } from 'react-native-worklets';
-import { isEmpty } from 'remeda';
+import { isEmpty, isEmptyish } from 'remeda';
 import { colors } from '@/constants/colors';
 import { useMount } from '@/hooks/use-mount';
-import { nanoid } from 'nanoid/non-secure';
 import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { parseLocaleFloat } from '@/utils';
+import { tempId } from '@/api/optimistic';
 
 const SCREEN_TRANSITION_DURATION_MS = 600;
 
@@ -151,7 +158,7 @@ const IngredientsList = ({
   ingredients: IngredientFormData[];
   handleAddIngredient: () => void;
   onIngredientEdit: (ingredient: IngredientFormData) => void;
-  onIngredientDelete: (id: string) => void;
+  onIngredientDelete: (ingredient: IngredientFormData) => void;
 }) => {
   if (isEmpty(ingredients)) {
     return (
@@ -178,12 +185,12 @@ const IngredientsList = ({
           entering={FadeIn}
         >
           {ingredients.map((ingredient, index) => (
-            <React.Fragment key={ingredient._id}>
+            <React.Fragment key={ingredient.id}>
               <IngredientItem
                 style={index > 0 ? { borderColor: colors.brown[900], borderTopWidth: 1 } : undefined}
                 ingredient={ingredient}
                 onEdit={() => onIngredientEdit(ingredient)}
-                onDelete={() => onIngredientDelete(ingredient._id)}
+                onDelete={() => onIngredientDelete(ingredient)}
               />
             </React.Fragment>
           ))}
@@ -193,15 +200,14 @@ const IngredientsList = ({
   );
 };
 
-const getIngredients = (recipe: RecipeDTO | undefined) => {
-  if (!recipe) return [];
-  return recipe.ingredients.map<IngredientFormData>((ingredient) => ({
-    _id: nanoid(),
-    name: ingredient.name,
-    quantity: ingredient.quantity.toString(),
-    unit: ingredient.unit,
-    aisle: ingredient.aisle,
-  }));
+const emptyRecipeFormData: RecipeFormData = {
+  id: tempId(),
+  name: '',
+  ingredients: [],
+  liked: false,
+  meal_types: [],
+  notes: '',
+  time_in_minutes: '',
 };
 
 export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
@@ -211,23 +217,27 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const insets = useSafeAreaInsets();
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
-  const [recipeName, setRecipeName] = useState(recipe?.name ?? '');
-  const [mealTypes, setMealTypes] = useState<MealType[]>(recipe?.meal_types ?? []);
-  const [ingredients, setIngredients] = useState<IngredientFormData[]>(() => getIngredients(recipe));
-  const [timeInMinutes, setTimeInMinutes] = useState(recipe?.time_in_minutes.toString() ?? '');
+  const [formData, setFormData] = useState<RecipeFormData>(() => {
+    if (!recipe) return emptyRecipeFormData;
+    return recipeToFormData(recipe);
+  });
 
   useMount(() => {
     const id = setTimeout(() => {
-      if (!recipeName) nameInputRef.current?.focus();
+      if (isEmptyish(formData.name)) nameInputRef.current?.focus();
     }, SCREEN_TRANSITION_DURATION_MS);
     return () => clearTimeout(id);
   });
 
   const handleSaveIngredient = (ingredient: IngredientFormData) => {
-    setIngredients((prev) => {
-      const _ingredient = prev.find((i) => i._id === ingredient._id);
-      if (!_ingredient) return [...prev, ingredient];
-      return prev.map((i) => (i._id !== ingredient._id ? i : ingredient));
+    setFormData((prevFormData) => {
+      const { ingredients } = prevFormData;
+      const _ingredient = ingredients.find((i) => i.id === ingredient.id);
+      if (!_ingredient) return { ...prevFormData, ingredients: [...ingredients, ingredient] };
+      return {
+        ...prevFormData,
+        ingredients: ingredients.map((i) => (i.id !== ingredient.id ? i : ingredient)),
+      };
     });
   };
 
@@ -245,28 +255,60 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
     if (result) handleSaveIngredient(result);
   };
 
-  const handleDeleteIngredient = (id: string) => setIngredients((prev) => prev.filter((item) => item._id !== id));
+  const handleDeleteIngredient = (ingredient: IngredientFormData) => {
+    setFormData((prevFormData) => {
+      const { ingredients } = prevFormData;
+      return {
+        ...prevFormData,
+        ingredients: ingredients.filter((item) => item.id !== ingredient.id),
+      };
+    });
+  };
+
+  const setRecipeName = (newName: string) => {
+    setFormData((prevFormData) => ({ ...prevFormData, name: newName }));
+  };
+
+  const setTimeInMinutes = (newTime: string) => {
+    setFormData((prevFormData) => ({ ...prevFormData, time_in_minutes: newTime }));
+  };
+
+  const toggleMealType = (mealType: MealType) => {
+    setFormData((prevFormData) => {
+      const { meal_types } = prevFormData;
+      if (meal_types.includes(mealType)) {
+        return {
+          ...prevFormData,
+          meal_types: meal_types.filter((type) => type !== mealType),
+        };
+      }
+
+      return {
+        ...prevFormData,
+        meal_types: [...meal_types, mealType],
+      };
+    });
+  };
 
   const handleSubmit = async () => {
     Keyboard.dismiss();
-    if (!recipeName.trim() || mealTypes.length === 0 || ingredients.length === 0 || !parseLocaleFloat(timeInMinutes)) {
+    if (
+      !formData.name.trim() ||
+      !parseLocaleFloat(formData.time_in_minutes) ||
+      isEmptyish(formData.meal_types) ||
+      isEmptyish(formData.ingredients)
+    ) {
       return alert('Please fill in all required fields');
     }
 
-    const notesHtml = ((await notesEditorRef.current?.getHTML()) ?? '')
+    const notes = ((await notesEditorRef.current?.getHTML()) ?? '')
       .replaceAll(/<h[456]>/g, '<p>')
       .replaceAll(/<\/h[456]>/g, '</p>');
 
-    const recipeData: RecipeFormData = {
-      name: recipeName,
-      meal_types: mealTypes,
-      ingredients: ingredients,
-      time_in_minutes: parseLocaleFloat(timeInMinutes),
-      liked: recipe?.liked ?? false,
-      notes: notesHtml ?? '',
-    };
     const handleSuccess = () => navigation.goBack();
-    if (recipe) return editRecipe.mutate({ id: recipe.id, ...recipeData }, { onSuccess: handleSuccess });
+
+    const recipeData = recipeFromFormData({ ...formData, notes });
+    if (recipe) return editRecipe.mutate(recipeData, { onSuccess: handleSuccess });
     addRecipe.mutate(recipeData, { onSuccess: handleSuccess });
   };
 
@@ -301,7 +343,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           <TextInput
             ref={nameInputRef}
             placeholder="e.g. Avocado Toast"
-            value={recipeName}
+            value={formData.name}
             onChangeText={setRecipeName}
           />
         </View>
@@ -309,7 +351,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
             Cooking time (in minutes)
           </Typography>
-          <NumberInput value={timeInMinutes} onChangeText={setTimeInMinutes} placeholder="e.g. 30" />
+          <NumberInput value={formData.time_in_minutes} onChangeText={setTimeInMinutes} placeholder="e.g. 30" />
         </View>
         <View>
           <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
@@ -317,38 +359,26 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
           </Typography>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button
-              onPress={() => {
-                setMealTypes((types) => {
-                  return types.includes('breakfast') ? types.filter((t) => t !== 'breakfast') : [...types, 'breakfast'];
-                });
-              }}
+              onPress={() => toggleMealType('breakfast')}
               leftIcon={{ Icon: Pancake }}
               text="Breakfast"
-              variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
+              variant={formData.meal_types.includes('breakfast') ? 'primary' : 'outlined'}
               size="small"
               style={{ flex: 1 }}
             />
             <Button
-              onPress={() => {
-                setMealTypes((types) => {
-                  return types.includes('lunch') ? types.filter((t) => t !== 'lunch') : [...types, 'lunch'];
-                });
-              }}
+              onPress={() => toggleMealType('lunch')}
               leftIcon={{ Icon: Salad }}
               text="Lunch"
-              variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
+              variant={formData.meal_types.includes('lunch') ? 'primary' : 'outlined'}
               size="small"
               style={{ flex: 1 }}
             />
             <Button
-              onPress={() => {
-                setMealTypes((types) => {
-                  return types.includes('dinner') ? types.filter((t) => t !== 'dinner') : [...types, 'dinner'];
-                });
-              }}
+              onPress={() => toggleMealType('dinner')}
               leftIcon={{ Icon: Ham }}
               text="Dinner"
-              variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
+              variant={formData.meal_types.includes('dinner') ? 'primary' : 'outlined'}
               size="small"
               style={{ flex: 1 }}
             />
@@ -359,7 +389,7 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
             Ingredients
           </Typography>
           <IngredientsList
-            ingredients={ingredients}
+            ingredients={formData.ingredients}
             handleAddIngredient={handleAddIngredient}
             onIngredientEdit={handleEditIngredient}
             onIngredientDelete={handleDeleteIngredient}

@@ -20,7 +20,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
   const initialIngredient = props.payload?.ingredient;
   const createCustomIngredient = useCreateCustomIngredient();
   const [ingredient, setIngredient] = useState<IngredientFormData>(() => {
-    return initialIngredient ?? { _id: nanoid(), name: '', quantity: '1', aisle: 'other', unit: 'count' };
+    return initialIngredient ?? { id: nanoid(), name: '', quantity: '1', aisle: 'other', unit: 'count' };
   });
 
   const handleSave = () => {
@@ -75,7 +75,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
               Quantity
             </Typography>
             <NumberInput
-              value={ingredient.quantity.toString()}
+              value={ingredient.quantity}
               onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
               placeholder="e.g. 2"
             />
@@ -97,8 +97,8 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
         </View>
         <QuantityShortcuts
           unit={ingredient.unit}
-          currentValue={parseLocaleFloat(ingredient.quantity)}
-          onSelect={(value) => setIngredient((prev) => ({ ...prev, quantity: value.toString() }))}
+          currentValue={ingredient.quantity}
+          onSelect={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
         />
         <View>
           <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>

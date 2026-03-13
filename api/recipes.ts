@@ -1,8 +1,8 @@
 import { api } from '@/api';
-import { MealType, IngredientDTO, IngredientFormData } from '@/api/schedules';
+import { MealType, IngredientDTO, IngredientFormData, ingredientToFormData, ingredientFromFormData } from '@/api/schedules';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOptimisticUpdate, tempId } from '@/api/optimistic';
-import { omit } from 'remeda';
+import { useOptimisticUpdate } from '@/api/optimistic';
+import { isDefined, pickBy } from 'remeda';
 import { queryClient } from '@/query-client';
 import { parseLocaleFloat } from '@/utils';
 
@@ -16,9 +16,22 @@ export type RecipeDTO = {
   notes: string;
 };
 
-export type RecipeFormData = Omit<RecipeDTO, 'id' | 'ingredients'> & {
+export type RecipeFormData = Omit<RecipeDTO, 'ingredients' | 'time_in_minutes'> & {
   ingredients: IngredientFormData[];
+  time_in_minutes: string;
 };
+
+export const recipeToFormData = (recipe: RecipeDTO): RecipeFormData => ({
+  ...recipe,
+  ingredients: recipe.ingredients.map(ingredientToFormData),
+  time_in_minutes: recipe.time_in_minutes.toString(),
+});
+
+export const recipeFromFormData = (form: RecipeFormData): RecipeDTO => ({
+  ...form,
+  ingredients: form.ingredients.map(ingredientFromFormData),
+  time_in_minutes: parseLocaleFloat(form.time_in_minutes),
+});
 
 export const recipesOptions = queryOptions({
   queryKey: ['recipes'] as const,
@@ -47,16 +60,6 @@ export const useRecipe = ({ id }: { id: string }) => {
   });
 };
 
-const recipeFormDataToDTO = (recipe: RecipeFormData): RecipeDTO => ({
-  ...recipe,
-  id: tempId(),
-  ingredients: recipe.ingredients.map((ingredient) => ({
-    ...omit(ingredient, ['_id']),
-    id: tempId(),
-    quantity: parseLocaleFloat(ingredient.quantity),
-  })),
-});
-
 queryClient.setMutationDefaults(['addRecipe'], { mutationFn: api.recipes.add });
 export const useAddRecipe = () => {
   const { update, revert } = useOptimisticUpdate();
@@ -68,7 +71,7 @@ export const useAddRecipe = () => {
       const { previousData } = await update({
         queryKey: recipesOptions.queryKey,
         updateFn: (state) => {
-          state.push(recipeFormDataToDTO(newRecipeData));
+          state.push(newRecipeData);
         },
       });
 
@@ -90,15 +93,7 @@ export const useEditRecipe = () => {
     mutationFn: api.recipes.edit,
     onMutate: async (newRecipeData) => {
       const optimisticUpdateRecipe = (recipe: RecipeDTO) => {
-        Object.assign(recipe, omit(newRecipeData, ['ingredients']));
-
-        if (newRecipeData.ingredients) {
-          recipe.ingredients = newRecipeData.ingredients.map((ing) => ({
-            ...ing,
-            id: tempId(),
-            quantity: parseLocaleFloat(ing.quantity),
-          }));
-        }
+        Object.assign(recipe, pickBy(recipe, isDefined));
       };
 
       const recipesContext = await update({

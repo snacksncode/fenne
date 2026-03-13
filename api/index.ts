@@ -1,9 +1,9 @@
 import { first, isDefined, last, pickBy } from 'remeda';
 import { client } from '@/api/client';
 import { getDatesFromISOWeek } from '@/date-tools';
-import { ensure, parseLocaleFloat } from '@/utils';
+import { ensure } from '@/utils';
 import { AisleCategory, GroceryItemDTO, PreviewRecipeDTO } from '@/api/groceries';
-import { RecipeDTO, RecipeFormData } from '@/api/recipes';
+import { RecipeDTO } from '@/api/recipes';
 import { ScheduleDayDTO, ScheduleDayInput, MealType } from '@/api/schedules';
 import { AuthResponse, CurrentUserDTO, UnitPreference } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
@@ -65,23 +65,11 @@ export const api = {
     get: (id: string) => {
       return client.get<RecipeDTO>(`/recipes/${id}`);
     },
-    add: (recipeData: RecipeFormData) => {
-      const { ingredients, ...data } = recipeData;
-      const mappedIngredients = ingredients.map((ingredient) => ({
-        ...ingredient,
-        quantity: parseLocaleFloat(ingredient.quantity),
-      }));
-      return client.post('/recipes', { data: { ...data, ingredients: mappedIngredients } });
+    add: (recipe: RecipeDTO) => {
+      return client.post('/recipes', { data: recipe });
     },
-    edit: (data: { id: string } & Partial<RecipeFormData>) => {
-      const { id, ingredients, ...recipeData } = data;
-      const mappedIngredients = ingredients?.map((ingredient) => ({
-        ...ingredient,
-        quantity: parseLocaleFloat(ingredient.quantity),
-      }));
-      return client.patch(`/recipes/${id}`, {
-        data: pickBy({ ...recipeData, ingredients: mappedIngredients }, isDefined),
-      });
+    edit: (recipe: Partial<RecipeDTO> & { id: string }) => {
+      return client.patch(`/recipes/${recipe.id}`, { data: pickBy(recipe, isDefined) });
     },
     delete: (data: { id: string }) => {
       return client.delete(`/recipes/${data.id}`);

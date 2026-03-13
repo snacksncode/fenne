@@ -4,6 +4,7 @@ import { useOptimisticUpdate, tempId } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
 import { MealType } from '@/api/schedules';
 import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { parseLocaleFloat } from '@/utils';
 
 export type AisleCategory =
   | 'produce'
@@ -30,6 +31,18 @@ export type GroceryItemDTO = {
   status: 'pending' | 'completed';
   aisle: AisleCategory;
 };
+
+export type GroceryItemFormData = Omit<GroceryItemDTO, 'quantity'> & { quantity: string };
+
+export const groceryItemToFormData = (item: GroceryItemDTO): GroceryItemFormData => ({
+  ...item,
+  quantity: item.quantity.toString(),
+});
+
+export const groceryItemFromFormData = (form: GroceryItemFormData): GroceryItemDTO => ({
+  ...form,
+  quantity: parseLocaleFloat(form.quantity),
+});
 
 export type PreviewIngredientDTO = {
   id: string;

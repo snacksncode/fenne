@@ -2,6 +2,7 @@ import { colors } from '@/constants/colors';
 import { ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
+import { MaskedTextInput } from 'react-native-advanced-input-mask';
 
 export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>) => {
   return (
@@ -14,25 +15,27 @@ export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>
   );
 };
 
-type NumberInputProps = Omit<ComponentProps<typeof TextInput>, 'onChangeText' | 'keyboardType'> & {
+type NumberInputProps = Omit<
+  ComponentProps<typeof MaskedTextInput>,
+  'onChangeText' | 'keyboardType' | 'mask' | 'allowedKeys' | 'autocomplete' | 'validationRegex'
+> & {
   onChangeText: (value: string) => void;
 };
 
-export const NumberInput = ({ onChangeText, onBlur, ...props }: NumberInputProps) => {
-  const normalize = (raw: string) => {
-    if (raw === '') return '0';
-    const normalized = raw.replace(',', '.');
-    const stripped = normalized.replace(/^0+/, '');
-    return stripped === '' || stripped.startsWith('.') ? '0' + stripped : stripped;
-  };
-
-  const handleBlur = (e: Parameters<Exclude<typeof onBlur, undefined>>[0]) => {
-    onChangeText(normalize(props.value?.toString() ?? ''));
-    onBlur?.(e);
-  };
-
-  return <TextInput keyboardType="decimal-pad" onChangeText={onChangeText} onBlur={handleBlur} {...props} />;
-};
+export const NumberInput = ({ onChangeText, onBlur, style, ...props }: NumberInputProps) => (
+  <MaskedTextInput
+    mask="[099999999].[099]"
+    allowedKeys="0123456789.,"
+    validationRegex={'^(?!.*[.,].*[.,])(?!0\\d)\\d*[.,]?\\d*$'}
+    autocomplete={false}
+    keyboardType="decimal-pad"
+    onChangeText={onChangeText}
+    placeholderTextColor={colors.brown[800] + 'C0'}
+    autoCorrect={false}
+    style={[styles.input, style]}
+    {...props}
+  />
+);
 
 const styles = StyleSheet.create({
   input: {

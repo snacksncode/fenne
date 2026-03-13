@@ -42,6 +42,7 @@ import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
 import { prettyUnit } from '@/utils/unit-formatters';
 import { SheetManager } from 'react-native-actions-sheet';
+import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
 type AisleDTO = {
   aisle: AisleCategory;
@@ -546,11 +547,12 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
 
 const Groceries = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const tabFocusStyle = useTabFocusAnimation();
   return (
-    <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
+    <Animated.View style={[{ flex: 1, backgroundColor: '#FEF7EA' }, tabFocusStyle]}>
       <RouteTitle text="Groceries" />
       <PageContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
-    </View>
+    </Animated.View>
   );
 };
 
