@@ -1,6 +1,7 @@
 import { Recipe } from '@/components/recipe';
 import { RouteTitle } from '@/components/RouteTitle';
-import { RecipeDTO, useRecipes } from '@/api/recipes';
+import { useRecipes } from '@/api/recipes';
+import { RecipeDTO } from '@/api/types';
 import { useRouter } from 'expo-router';
 import { View, StyleSheet, FlatList, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

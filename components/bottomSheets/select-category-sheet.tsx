@@ -1,4 +1,4 @@
-import { AisleCategory } from '@/api/groceries';
+import { AisleCategory } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';

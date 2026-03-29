@@ -2,59 +2,11 @@ import { api } from '@/api';
 import { queryOptions, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { indexBy, isDefined, isNullish, pickBy } from 'remeda';
 import { getISOWeekString } from '@/date-tools';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
-import { RecipeDTO, recipesOptions } from '@/api/recipes';
+import { MealEntryDTO, ScheduleMealEntry } from '@/api/types';
+import { recipesOptions } from '@/api/recipes';
 import { useRef } from 'react';
-import { AisleCategory } from '@/api/groceries';
 import { tempId, useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
-import { parseLocaleFloat } from '@/utils';
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner';
-
-export type IngredientDTO = {
-  id: string;
-  name: string;
-  unit: Unit;
-  quantity: number;
-  aisle: AisleCategory;
-};
-
-export type IngredientFormData = Omit<IngredientDTO, 'quantity'> & {
-  quantity: string;
-};
-
-export const ingredientToFormData = (ingredient: IngredientDTO): IngredientFormData => ({
-  ...ingredient,
-  quantity: ingredient.quantity.toString(),
-});
-
-export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO => ({
-  ...form,
-  quantity: parseLocaleFloat(form.quantity),
-});
-
-export type MealEntryDTO =
-  | { id: string; type: 'recipe'; recipe: RecipeDTO }
-  | { id: string; type: 'dining_out'; name: string };
-
-export type ScheduleDayDTO = {
-  date: string;
-  breakfast: MealEntryDTO | null;
-  lunch: MealEntryDTO | null;
-  dinner: MealEntryDTO | null;
-  is_shopping_day: boolean;
-};
-
-export type ScheduleMealEntry = { type: 'recipe'; recipe_id: string } | { type: 'dining_out'; name: string };
-
-export type ScheduleDayInput = {
-  dateString: string;
-  breakfast?: ScheduleMealEntry | null;
-  lunch?: ScheduleMealEntry | null;
-  dinner?: ScheduleMealEntry | null;
-  is_shopping_day?: boolean;
-};
 
 export const scheduleOptions = (weekKey: string) => {
   return queryOptions({

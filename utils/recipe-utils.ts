@@ -1,5 +1,4 @@
-import { RecipeDTO } from '@/api/recipes';
-import { MealType } from '@/api/schedules';
+import { RecipeDTO, MealType } from '@/api/types';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 
 const getRelevanceRank = (recipe: RecipeDTO, mealType: MealType) => {

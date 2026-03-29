@@ -9,12 +9,13 @@ import { BookMarked, CalendarClock, ChefHat, Ham, Plus, Salad } from 'lucide-rea
 import { useState } from 'react';
 import { Keyboard, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
-import { RecipeDTO, recipesOptions, useRecipes } from '@/api/recipes';
+import { recipesOptions, useRecipes } from '@/api/recipes';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMount } from '@/hooks/use-mount';
 import { Recipe } from '@/components/recipe';
 import { colors } from '@/constants/colors';
-import { MealType, useUpdateScheduleDay } from '@/api/schedules';
+import { RecipeDTO, MealType } from '@/api/types';
+import { useUpdateScheduleDay } from '@/api/schedules';
 import { isEmpty } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ensure } from '@/utils';
@@ -64,6 +65,7 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
     updateScheduleDay.mutate({
       dateString: payload.dateString,
       [mealType]: { type: 'recipe', recipe_id: meal.id },
+      ...(payload.swapFrom && payload.swapFrom !== mealType && { [payload.swapFrom]: null }),
     });
     SheetManager.hideAll();
   };
@@ -72,6 +74,7 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
     updateScheduleDay.mutate({
       dateString: payload.dateString,
       [mealType]: { type: 'dining_out', name: restaurant },
+      ...(payload.swapFrom && payload.swapFrom !== mealType && { [payload.swapFrom]: null }),
     });
     Keyboard.dismiss();
     SheetManager.hideAll();

@@ -1,4 +1,4 @@
-import { IngredientFormData } from '@/api/schedules';
+import { IngredientFormData } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';

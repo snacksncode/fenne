@@ -9,7 +9,7 @@ import { chunk, times } from 'remeda';
 import { memo } from 'react';
 import { scheduleOnUI } from 'react-native-worklets';
 import { colors } from '@/constants/colors';
-import { ScheduleDayDTO } from '@/api/schedules';
+import { ScheduleDayDTO } from '@/api/types';
 
 type Props = {
   startOfMonthDate: Date;

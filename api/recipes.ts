@@ -1,37 +1,9 @@
 import { api } from '@/api';
-import { MealType, IngredientDTO, IngredientFormData, ingredientToFormData, ingredientFromFormData } from '@/api/schedules';
+import { RecipeDTO } from '@/api/types';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticUpdate } from '@/api/optimistic';
 import { isDefined, pickBy } from 'remeda';
 import { queryClient } from '@/query-client';
-import { parseLocaleFloat } from '@/utils';
-
-export type RecipeDTO = {
-  id: string;
-  name: string;
-  meal_types: MealType[];
-  ingredients: IngredientDTO[];
-  time_in_minutes: number;
-  liked: boolean;
-  notes: string;
-};
-
-export type RecipeFormData = Omit<RecipeDTO, 'ingredients' | 'time_in_minutes'> & {
-  ingredients: IngredientFormData[];
-  time_in_minutes: string;
-};
-
-export const recipeToFormData = (recipe: RecipeDTO): RecipeFormData => ({
-  ...recipe,
-  ingredients: recipe.ingredients.map(ingredientToFormData),
-  time_in_minutes: recipe.time_in_minutes.toString(),
-});
-
-export const recipeFromFormData = (form: RecipeFormData): RecipeDTO => ({
-  ...form,
-  ingredients: form.ingredients.map(ingredientFromFormData),
-  time_in_minutes: parseLocaleFloat(form.time_in_minutes),
-});
 
 export const recipesOptions = queryOptions({
   queryKey: ['recipes'] as const,

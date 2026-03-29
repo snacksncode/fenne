@@ -5,7 +5,8 @@ import { colors } from '@/constants/colors';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowLeftRight, MapPin, Trash2 } from 'lucide-react-native';
 import { View } from 'react-native';
-import { MealEntryDTO, MealType, useDeleteScheduleEntry } from '@/api/schedules';
+import { MealType, MealEntryDTO } from '@/api/types';
+import { useDeleteScheduleEntry } from '@/api/schedules';
 
 export type EditMealSheetData = MealEntryDTO & { mealType: MealType; dateString: string };
 
@@ -42,7 +43,13 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
             onPress={async () => {
               await SheetManager.hide('edit-meal-sheet');
               SheetManager.show('schedule-meal-sheet', {
-                payload: { type: 'restaurant', dateString, defaultMealType: mealType, defaultRestaurant: entry.name },
+                payload: {
+                  type: 'restaurant',
+                  dateString,
+                  defaultMealType: mealType,
+                  defaultRestaurant: entry.name,
+                  swapFrom: mealType,
+                },
               });
             }}
           />
@@ -52,7 +59,9 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
           icon={ArrowLeftRight}
           onPress={async () => {
             await SheetManager.hide('edit-meal-sheet');
-            SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString, mealType } });
+            SheetManager.show('schedule-meal-sheet', {
+              payload: { type: 'meal', dateString, mealType, swapFrom: mealType },
+            });
           }}
         />
         <SheetAction

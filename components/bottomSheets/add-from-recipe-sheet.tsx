@@ -4,7 +4,8 @@ import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet
 import { BookMarked, CookingPot, SlidersHorizontal } from 'lucide-react-native';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
-import { RecipeDTO, useRecipes } from '@/api/recipes';
+import { useRecipes } from '@/api/recipes';
+import { RecipeDTO } from '@/api/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMount } from '@/hooks/use-mount';
 import { Recipe } from '@/components/recipe';

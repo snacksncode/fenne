@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MealType } from '@/api/schedules';
-import { useGenerateGroceryItems, useGroceryPreview, PreviewIngredientDTO, PreviewRecipeDTO } from '@/api/groceries';
+import { MealType, PreviewIngredientDTO, PreviewRecipeDTO } from '@/api/types';
+import { useGenerateGroceryItems, useGroceryPreview } from '@/api/groceries';
 import { parseISO } from '@/date-tools';
 import { Typography } from '@/components/Typography';
 import { Button } from '@/components/button';

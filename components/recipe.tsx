@@ -2,11 +2,11 @@ import { Typography } from '@/components/Typography';
 import plur from 'plur';
 import { View } from 'react-native';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { RecipeDTO, useEditRecipe } from '@/api/recipes';
+import { useEditRecipe } from '@/api/recipes';
 import { colors } from '@/constants/colors';
 import { toTitleCase } from 'remeda';
 import { CookingPot, Heart, Timer } from 'lucide-react-native';
-import { MealType } from '@/api/schedules';
+import { RecipeDTO, MealType } from '@/api/types';
 
 type Props = {
   recipe: RecipeDTO;

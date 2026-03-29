@@ -1,12 +1,8 @@
 import {
-  RecipeDTO,
-  RecipeFormData,
-  recipeFromFormData,
-  recipeToFormData,
   useAddRecipe,
   useEditRecipe,
 } from '@/api/recipes';
-import { IngredientFormData, MealType } from '@/api/schedules';
+import { RecipeDTO, RecipeFormData, recipeFromFormData, recipeToFormData, IngredientFormData, MealType } from '@/api/types';
 import { Button } from '@/components/button';
 import { NumberInput, TextInput } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';

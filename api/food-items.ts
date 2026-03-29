@@ -1,5 +1,5 @@
 import { api } from '@/api';
-import { AisleCategory } from '@/api/groceries';
+import { AisleCategory } from '@/api/types';
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type IngredientOption = {

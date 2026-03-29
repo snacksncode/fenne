@@ -17,7 +17,7 @@ import {
 import { bottleSpray, bottleToothbrushComb, pepperChilli } from '@lucide/lab';
 import { View } from 'react-native';
 import { Typography } from '@/components/Typography';
-import { AisleCategory } from '@/api/groceries';
+import { AisleCategory } from '@/api/types';
 import { colors } from '@/constants/colors';
 
 export const AisleIcon = ({ type }: { type: AisleCategory }) => {

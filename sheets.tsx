@@ -1,8 +1,6 @@
 import { SheetDefinition, SheetRegister } from 'react-native-actions-sheet';
 
-import { AisleCategory, GroceryItemDTO } from '@/api/groceries';
-import { IngredientFormData, MealType, MealEntryDTO } from '@/api/schedules';
-import { RecipeDTO } from '@/api/recipes';
+import { AisleCategory, GroceryItemDTO, IngredientFormData, MealType, MealEntryDTO, RecipeDTO } from '@/api/types';
 import { TabParamList } from '@/app/(app)/(tabs)';
 
 import { SelectUnitSheet, Unit } from '@/components/bottomSheets/select-unit-sheet';
@@ -45,8 +43,19 @@ declare module 'react-native-actions-sheet' {
     }>;
     'schedule-meal-sheet': SheetDefinition<{
       payload:
-        | { type: 'meal'; dateString: string; mealType?: MealType }
-        | { type: 'restaurant'; dateString: string; defaultMealType?: MealType; defaultRestaurant?: string };
+        | {
+            type: 'meal';
+            dateString: string;
+            mealType?: MealType;
+            swapFrom?: MealType;
+          }
+        | {
+            type: 'restaurant';
+            dateString: string;
+            defaultMealType?: MealType;
+            defaultRestaurant?: string;
+            swapFrom?: MealType;
+          };
     }>;
     'recipe-options-sheet': SheetDefinition<{
       payload: { recipe: RecipeDTO };

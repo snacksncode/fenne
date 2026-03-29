@@ -3,7 +3,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { View } from 'react-native';
-import { MealType } from '@/api/schedules';
+import { MealType } from '@/api/types';
 import { Pancake } from '@/components/svgs/pancake';
 import { Ham, Salad, UtensilsCrossed, Check } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
