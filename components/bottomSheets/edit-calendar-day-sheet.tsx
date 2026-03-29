@@ -47,7 +47,6 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
               payload: {
                 type: 'meal',
                 dateString,
-                mealType: scheduleDay ? getFirstMissingMealType(scheduleDay) : undefined,
               },
             });
           }}

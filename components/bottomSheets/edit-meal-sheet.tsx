@@ -48,7 +48,6 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
                   dateString,
                   defaultMealType: mealType,
                   defaultRestaurant: entry.name,
-                  swapFrom: mealType,
                 },
               });
             }}
@@ -60,7 +59,7 @@ export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
           onPress={async () => {
             await SheetManager.hide('edit-meal-sheet');
             SheetManager.show('schedule-meal-sheet', {
-              payload: { type: 'meal', dateString, mealType, swapFrom: mealType },
+              payload: { type: 'meal', dateString, mealType },
             });
           }}
         />

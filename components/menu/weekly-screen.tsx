@@ -213,7 +213,7 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
 
   const onPress = () => {
     SheetManager.show('schedule-meal-sheet', {
-      payload: { type: 'meal', dateString: data.date, mealType: getFirstMissingMealType(data) },
+      payload: { type: 'meal', dateString: data.date },
     });
   };
 

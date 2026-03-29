@@ -47,14 +47,12 @@ declare module 'react-native-actions-sheet' {
             type: 'meal';
             dateString: string;
             mealType?: MealType;
-            swapFrom?: MealType;
           }
         | {
             type: 'restaurant';
             dateString: string;
             defaultMealType?: MealType;
             defaultRestaurant?: string;
-            swapFrom?: MealType;
           };
     }>;
     'recipe-options-sheet': SheetDefinition<{
