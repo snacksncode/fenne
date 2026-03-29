@@ -1,11 +1,10 @@
 import {
-  AisleCategory,
-  GroceryItemDTO,
   useDeleteGroceryItem,
   useEditGroceryItem,
   useGroceries,
   useGroceryCheckout,
 } from '@/api/groceries';
+import { AisleCategory, GroceryItemDTO } from '@/api/types';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { Button } from '@/components/button';
@@ -451,7 +450,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
         }
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
         contentContainerStyle={{
-          ...(isEmpty(groceries.data) && { flex: 1 }),
+          ...(isEmpty(aisles) && { flexGrow: 1 }),
           paddingHorizontal: 20,
           paddingTop: insets.top + 76,
           paddingBottom: insets.bottom + (isEmpty(aisles) ? 72 : 152),

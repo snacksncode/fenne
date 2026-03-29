@@ -65,7 +65,7 @@ export default function Layout() {
           </GestureHandlerRootView>
         </SessionProvider>
       </PersistQueryClientProvider>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
     </QueryErrorBoundary>
   );
 }
