@@ -10,27 +10,66 @@ import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { Directions, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInLeft,
+  SlideInRight,
+  SlideOutLeft,
+  SlideOutRight,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+
+const slideInLeft = SlideInLeft.duration(450).build();
+const slideInRight = SlideInRight.duration(450).build();
+const slideOutLeft = SlideOutLeft.duration(450).build();
+const slideOutRight = SlideOutRight.duration(450).build();
 
 export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const { scheduleMap } = useSchedule({ weeks });
+  const direction = useSharedValue<'left' | 'right' | null>(null);
 
   const handleDaySelect = async ({ dateString }: { dateString: string }) => {
     await SheetManager.hide(props.sheetId);
     SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString } });
   };
 
-  const leftArrow = useOnPressWithFeedback({
-    onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1))),
-    scaleTo: 0.75,
-  });
-  const rightArrow = useOnPressWithFeedback({
-    onPress: () => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, 1))),
-    scaleTo: 0.75,
-  });
+  const goToPrevMonth = () => {
+    direction.value = 'left';
+    setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1)));
+  };
+  const goToNextMonth = () => {
+    direction.value = 'right';
+    setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, 1)));
+  };
+
+  const entering = (values: any) => {
+    'worklet';
+    if (direction.value === null) return { initialValues: {}, animations: {} };
+    return direction.value === 'right' ? slideInRight(values) : slideInLeft(values);
+  };
+
+  const exiting = (values: any) => {
+    'worklet';
+    if (direction.value === null) return { initialValues: {}, animations: {} };
+    return direction.value === 'right' ? slideOutLeft(values) : slideOutRight(values);
+  };
+
+  const leftArrow = useOnPressWithFeedback({ onPress: goToPrevMonth, scaleTo: 0.75 });
+  const rightArrow = useOnPressWithFeedback({ onPress: goToNextMonth, scaleTo: 0.75 });
+
+  const swipeGesture = Gesture.Race(
+    Gesture.Fling()
+      .direction(Directions.LEFT)
+      .onEnd(() => scheduleOnRN(goToNextMonth)),
+    Gesture.Fling()
+      .direction(Directions.RIGHT)
+      .onEnd(() => scheduleOnRN(goToPrevMonth))
+  );
 
   return (
     <BaseSheet id={props.sheetId}>
@@ -38,9 +77,11 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
         Select a day
       </Typography>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography variant="body-base" weight="bold">
-          {format(currentMonthDate, 'MMMM yyyy')}
-        </Typography>
+        <Animated.View key={`label-${currentMonthDate.getTime()}`} entering={FadeIn} exiting={FadeOut}>
+          <Typography variant="body-base" weight="bold">
+            {format(currentMonthDate, 'MMMM yyyy')}
+          </Typography>
+        </Animated.View>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <GestureDetector gesture={leftArrow.gesture}>
             <Animated.View style={leftArrow.scaleStyle}>
@@ -54,7 +95,13 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
           </GestureDetector>
         </View>
       </View>
-      <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+      <GestureDetector gesture={swipeGesture}>
+        <Animated.View style={{ overflow: 'hidden' }}>
+          <Animated.View key={currentMonthDate.getTime()} entering={entering} exiting={exiting}>
+            <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+          </Animated.View>
+        </Animated.View>
+      </GestureDetector>
       <Button
         style={{ marginTop: 32 }}
         onPress={() => SheetManager.hide(props.sheetId)}
