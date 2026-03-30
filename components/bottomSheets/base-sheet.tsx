@@ -7,10 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type BaseSheetProps = Partial<ActionSheetProps> & {
   noBottomGutter?: boolean;
   children: ReactNode;
+  extraOverlay?: ReactNode;
   id: string;
 };
 
-export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, ...props }: BaseSheetProps) => {
+export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, extraOverlay, ...props }: BaseSheetProps) => {
   const insets = useSafeAreaInsets();
   return (
     <ActionSheet
@@ -20,6 +21,7 @@ export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, ..
       overlayColor={colors.brown[900]}
       defaultOverlayOpacity={0.75}
       useBottomSafeAreaPadding={false}
+      ExtraOverlayComponent={extraOverlay}
       {...props}
     >
       <View style={[styles.innerContainer, { paddingBottom: noBottomGutter ? 0 : insets.bottom }]}>{children}</View>
