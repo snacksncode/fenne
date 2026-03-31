@@ -25,48 +25,50 @@ export const LinkInputSheet = (props: SheetProps<'link-input-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
-        Insert Link
-      </Typography>
+      <BaseSheet.Container>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
+          Insert Link
+        </Typography>
 
-      <View style={{ gap: 16 }}>
-        {selectedText ? (
+        <View style={{ gap: 16 }}>
+          {selectedText ? (
+            <View>
+              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                Selected Text
+              </Typography>
+              <View style={styles.selectedTextContainer}>
+                <Link2 size={16} color={colors.brown[700]} strokeWidth={2.5} />
+                <Typography variant="body-sm" weight="medium" color={colors.brown[800]} numberOfLines={1}>
+                  {selectedText}
+                </Typography>
+              </View>
+            </View>
+          ) : null}
+
           <View>
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Selected Text
+              URL
             </Typography>
-            <View style={styles.selectedTextContainer}>
-              <Link2 size={16} color={colors.brown[700]} strokeWidth={2.5} />
-              <Typography variant="body-sm" weight="medium" color={colors.brown[800]} numberOfLines={1}>
-                {selectedText}
-              </Typography>
-            </View>
+            <TextInput
+              value={url}
+              onChangeText={setUrl}
+              placeholder="https://..."
+              keyboardType="url"
+              autoCapitalize="none"
+              autoFocus
+            />
           </View>
-        ) : null}
+        </View>
 
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            URL
-          </Typography>
-          <TextInput
-            value={url}
-            onChangeText={setUrl}
-            placeholder="https://..."
-            keyboardType="url"
-            autoCapitalize="none"
-            autoFocus
-          />
+        <View style={styles.buttonRow}>
+          <View style={{ flex: 1 }}>
+            <Button text="Cancel" variant="outlined" onPress={handleCancel} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button text="Apply" variant="primary" onPress={handleApply} />
+          </View>
         </View>
-      </View>
-
-      <View style={styles.buttonRow}>
-        <View style={{ flex: 1 }}>
-          <Button text="Cancel" variant="outlined" onPress={handleCancel} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button text="Apply" variant="primary" onPress={handleApply} />
-        </View>
-      </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

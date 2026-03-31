@@ -32,24 +32,26 @@ export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <ScrollView>
-        <View style={{ backgroundColor: colors.cream[100] }}>
-          <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
-            Select unit
-          </Typography>
-        </View>
-        <View style={{ gap: 8, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
-          {UNITS.map((unit) => (
-            <Button
-              key={unit.value}
-              variant={unit.value === selectedUnit ? 'primary' : 'outlined'}
-              onPress={() => handleSelect(unit.value)}
-              text={unit.label({ count: 1 })}
-              size="small"
-            />
-          ))}
-        </View>
-      </ScrollView>
+      <BaseSheet.Container>
+        <ScrollView>
+          <View style={{ backgroundColor: colors.cream[100] }}>
+            <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
+              Select unit
+            </Typography>
+          </View>
+          <View style={{ gap: 8, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
+            {UNITS.map((unit) => (
+              <Button
+                key={unit.value}
+                variant={unit.value === selectedUnit ? 'primary' : 'outlined'}
+                onPress={() => handleSelect(unit.value)}
+                text={unit.label({ count: 1 })}
+                size="small"
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

@@ -40,59 +40,61 @@ export const TutorialSheet = (props: SheetProps<'tutorial-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <View style={styles.content}>
-        <View style={styles.headerContainer}>
-          <Typography variant="heading-md" weight="bold">
-            Let&apos;s show you around
-          </Typography>
-          <Typography variant="body-base" weight="regular" color={colors.brown[800]}>
-            The only 3 things you need
-          </Typography>
-        </View>
-        <View style={styles.listContainer}>
-          <ChecklistItem
-            title="Create your first recipe"
-            isDone={hasRecipes}
-            onPress={() => navigateTo('/(app)/(tabs)/recipes')}
-          />
-          <ChecklistItem
-            title="Plan a meal for tomorrow"
-            isDone={hasSchedule}
-            onPress={() => navigateTo('/(app)/(tabs)/')}
-          />
-          <ChecklistItem
-            title="Generate your grocery list"
-            isDone={hasGroceries}
-            onPress={() => navigateTo('/(app)/(tabs)/groceries')}
-          />
-          <View style={{ position: 'relative', alignItems: 'center' }}>
-            <View
-              style={{
-                position: 'absolute',
-                width: '100%',
-                top: '50%',
-                transform: 'translateY(1px)',
-                height: 1,
-                backgroundColor: colors.brown[900],
-              }}
-            />
-            <Typography
-              variant="body-base"
-              weight="medium"
-              style={{ backgroundColor: colors.cream[100], paddingHorizontal: 8 }}
-            >
-              or
+      <BaseSheet.Container>
+        <View style={styles.content}>
+          <View style={styles.headerContainer}>
+            <Typography variant="heading-md" weight="bold">
+              Let&apos;s show you around
+            </Typography>
+            <Typography variant="body-base" weight="regular" color={colors.brown[800]}>
+              The only 3 things you need
             </Typography>
           </View>
-          <Button
-            onPress={handleExitTutorial}
-            variant="red-outlined"
-            size="small"
-            text="Exit tutorial"
-            leftIcon={{ Icon: Trash2 }}
-          />
+          <View style={styles.listContainer}>
+            <ChecklistItem
+              title="Create your first recipe"
+              isDone={hasRecipes}
+              onPress={() => navigateTo('/(app)/(tabs)/recipes')}
+            />
+            <ChecklistItem
+              title="Plan a meal for tomorrow"
+              isDone={hasSchedule}
+              onPress={() => navigateTo('/(app)/(tabs)/')}
+            />
+            <ChecklistItem
+              title="Generate your grocery list"
+              isDone={hasGroceries}
+              onPress={() => navigateTo('/(app)/(tabs)/groceries')}
+            />
+            <View style={{ position: 'relative', alignItems: 'center' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  top: '50%',
+                  transform: 'translateY(1px)',
+                  height: 1,
+                  backgroundColor: colors.brown[900],
+                }}
+              />
+              <Typography
+                variant="body-base"
+                weight="medium"
+                style={{ backgroundColor: colors.cream[100], paddingHorizontal: 8 }}
+              >
+                or
+              </Typography>
+            </View>
+            <Button
+              onPress={handleExitTutorial}
+              variant="red-outlined"
+              size="small"
+              text="Exit tutorial"
+              leftIcon={{ Icon: Trash2 }}
+            />
+          </View>
         </View>
-      </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

@@ -26,35 +26,37 @@ export const DeleteAccountSheet = (props: SheetProps<'delete-account-sheet'>) =>
 
   return (
     <BaseSheet id={props.sheetId}>
-      <View style={{ alignItems: 'center', marginBottom: 16 }}>
-        <View
-          style={{
-            backgroundColor: colors.red[500],
-            borderRadius: 999,
-            width: 56,
-            height: 56,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <AlertTriangle color={colors.cream[100]} size={28} />
+      <BaseSheet.Container>
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <View
+            style={{
+              backgroundColor: colors.red[500],
+              borderRadius: 999,
+              width: 56,
+              height: 56,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <AlertTriangle color={colors.cream[100]} size={28} />
+          </View>
         </View>
-      </View>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        {title}
-      </Typography>
-      <Typography variant="body-base" weight="medium">
-        {body}
-      </Typography>
-      <View style={{ marginTop: 24 }}>
-        <Button
-          text={buttonText}
-          variant="red-outlined"
-          rightIcon={{ Icon: Trash2 }}
-          onPress={handlePress}
-          isLoading={deleteAccount.isPending}
-        />
-      </View>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+          {title}
+        </Typography>
+        <Typography variant="body-base" weight="medium">
+          {body}
+        </Typography>
+        <View style={{ marginTop: 24 }}>
+          <Button
+            text={buttonText}
+            variant="red-outlined"
+            rightIcon={{ Icon: Trash2 }}
+            onPress={handlePress}
+            isLoading={deleteAccount.isPending}
+          />
+        </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

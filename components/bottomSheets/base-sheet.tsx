@@ -1,18 +1,40 @@
-import ActionSheet, { ActionSheetProps } from 'react-native-actions-sheet';
+import ActionSheet, { ActionSheetProps, ScrollView } from 'react-native-actions-sheet';
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BaseSheetProps = Partial<ActionSheetProps> & {
-  noBottomGutter?: boolean;
-  children: ReactNode;
   extraOverlay?: ReactNode;
+  children: ReactNode;
   id: string;
 };
 
-export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, extraOverlay, ...props }: BaseSheetProps) => {
+const Container = ({ children, noBottomGutter = false }: { children: ReactNode; noBottomGutter?: boolean }) => {
   const insets = useSafeAreaInsets();
+  return <View style={[styles.innerContainer, { paddingBottom: noBottomGutter ? 0 : insets.bottom }]}>{children}</View>;
+};
+
+const ScrollableContainer = ({
+  children,
+  noBottomGutter = false,
+}: {
+  children: ReactNode;
+  noBottomGutter?: boolean;
+}) => {
+  const insets = useSafeAreaInsets();
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={[styles.innerContainer, { paddingBottom: noBottomGutter ? 0 : insets.bottom }]}
+    >
+      {children}
+    </ScrollView>
+  );
+};
+
+const BaseSheetRoot = ({ children, containerStyle, extraOverlay, ...props }: BaseSheetProps) => {
   return (
     <ActionSheet
       gestureEnabled
@@ -24,10 +46,15 @@ export const BaseSheet = ({ children, containerStyle, noBottomGutter = false, ex
       ExtraOverlayComponent={extraOverlay}
       {...props}
     >
-      <View style={[styles.innerContainer, { paddingBottom: noBottomGutter ? 0 : insets.bottom }]}>{children}</View>
+      {children}
     </ActionSheet>
   );
 };
+
+export const BaseSheet = Object.assign(BaseSheetRoot, {
+  Container,
+  ScrollableContainer,
+});
 
 const styles = StyleSheet.create({
   container: {

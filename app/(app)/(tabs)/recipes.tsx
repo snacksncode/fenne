@@ -11,7 +11,7 @@ import { isEmpty, isEmptyish } from 'remeda';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
 import { Typography } from '@/components/Typography';
 import { SheetManager } from 'react-native-actions-sheet';
-import { BookMarked, Plus, SlidersHorizontal } from 'lucide-react-native';
+import { BookMarked, Funnel, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { colors } from '@/constants/colors';
@@ -107,6 +107,7 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
       <FlatList
         data={filteredRecipes}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item: recipe }) => <RecipeItem recipe={recipe} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => item.id.toString()}
@@ -166,7 +167,7 @@ const Recipes = () => {
               <Button
                 onPress={openFilterSheet}
                 variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
-                leftIcon={{ Icon: SlidersHorizontal }}
+                leftIcon={{ Icon: Funnel }}
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
               <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />

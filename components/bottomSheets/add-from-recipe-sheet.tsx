@@ -59,72 +59,74 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
   const filtered = hasRecipes ? sortRecipes(filterRecipes(recipes.data!, { mealFilter, search })) : [];
 
   return (
-    <BaseSheet id={props.sheetId} noBottomGutter>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 }}>
-        <CookingPot color="#4A3E36" size={20} strokeWidth={2.5} />
-        <Typography variant="heading-sm" weight="bold">
-          Add from Recipe
-        </Typography>
-      </View>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-        style={{ maxHeight: 0.5 * windowHeight }}
-        contentContainerStyle={{ paddingBottom: hasRecipes ? 96 : 0 }}
-      >
-        <View style={{ gap: 8 }}>
-          {!hasRecipes ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
-              <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
-              <View style={{ alignItems: 'center', gap: 4 }}>
+    <BaseSheet id={props.sheetId}>
+      <BaseSheet.Container noBottomGutter>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 }}>
+          <CookingPot color="#4A3E36" size={20} strokeWidth={2.5} />
+          <Typography variant="heading-sm" weight="bold">
+            Add from Recipe
+          </Typography>
+        </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          style={{ maxHeight: 0.5 * windowHeight }}
+          contentContainerStyle={{ paddingBottom: hasRecipes ? 96 : 0 }}
+        >
+          <View style={{ gap: 8 }}>
+            {!hasRecipes ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
+                <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
+                <View style={{ alignItems: 'center', gap: 4 }}>
+                  <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
+                    No recipes found
+                  </Typography>
+                  <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginBottom: 8 }}>
+                    Add some recipes to start adding ingredients
+                  </Typography>
+                </View>
+                <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />
+              </View>
+            ) : isEmpty(filtered) ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 4 }}>
                 <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
-                  No recipes found
+                  No matches
                 </Typography>
-                <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginBottom: 8 }}>
-                  Add some recipes to start adding ingredients
+                <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center' }}>
+                  Try a different search or filter
                 </Typography>
               </View>
-              <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />
-            </View>
-          ) : isEmpty(filtered) ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 4 }}>
-              <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
-                No matches
-              </Typography>
-              <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center' }}>
-                Try a different search or filter
-              </Typography>
-            </View>
-          ) : (
-            filtered.map((recipe) => (
-              <Animated.View
-                layout={LinearTransition.springify()}
-                key={recipe.id}
-                entering={FadeInDown.springify()}
-                exiting={FadeOut}
-              >
-                <Recipe recipe={recipe} onPress={() => handleRecipeSelect(recipe)} />
-              </Animated.View>
-            ))
-          )}
-        </View>
-      </ScrollView>
-      {hasRecipes && (
-        <Animated.View style={[styles.toolbar, { bottom: insets.bottom, left: 12, right: 12 }]}>
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search recipes..."
-            style={styles.searchInput}
-          />
-          <Button
-            onPress={openFilterSheet}
-            variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
-            leftIcon={{ Icon: SlidersHorizontal }}
-            style={{ paddingHorizontal: 0, width: 48 }}
-          />
-        </Animated.View>
-      )}
+            ) : (
+              filtered.map((recipe) => (
+                <Animated.View
+                  layout={LinearTransition.springify()}
+                  key={recipe.id}
+                  entering={FadeInDown.springify()}
+                  exiting={FadeOut}
+                >
+                  <Recipe recipe={recipe} onPress={() => handleRecipeSelect(recipe)} />
+                </Animated.View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+        {hasRecipes && (
+          <Animated.View style={[styles.toolbar, { bottom: insets.bottom, left: 12, right: 12 }]}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search recipes..."
+              style={styles.searchInput}
+            />
+            <Button
+              onPress={openFilterSheet}
+              variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
+              leftIcon={{ Icon: SlidersHorizontal }}
+              style={{ paddingHorizontal: 0, width: 48 }}
+            />
+          </Animated.View>
+        )}
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

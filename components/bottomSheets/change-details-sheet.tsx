@@ -26,38 +26,40 @@ export const ChangeDetailsSheet = (props: SheetProps<'change-details-sheet'>) =>
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        Edit profile
-      </Typography>
-      <View style={{ gap: 16 }}>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Display name
-          </Typography>
-          <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
+      <BaseSheet.Container>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+          Edit profile
+        </Typography>
+        <View style={{ gap: 16 }}>
+          <View>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Display name
+            </Typography>
+            <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
+          </View>
+          <View>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Email
+            </Typography>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              placeholder="your@email.com"
+              keyboardType="email-address"
+            />
+          </View>
         </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Email
-          </Typography>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            placeholder="your@email.com"
-            keyboardType="email-address"
+        <View style={{ marginTop: 24 }}>
+          <Button
+            text="Save changes"
+            variant="primary"
+            rightIcon={{ Icon: User }}
+            onPress={handleSubmit}
+            isLoading={changeDetails.isPending}
           />
         </View>
-      </View>
-      <View style={{ marginTop: 24 }}>
-        <Button
-          text="Save changes"
-          variant="primary"
-          rightIcon={{ Icon: User }}
-          onPress={handleSubmit}
-          isLoading={changeDetails.isPending}
-        />
-      </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

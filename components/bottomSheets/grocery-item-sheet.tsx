@@ -1,7 +1,4 @@
-import {
-  useAddGroceryItem,
-  useEditGroceryItem,
-} from '@/api/groceries';
+import { useAddGroceryItem, useEditGroceryItem } from '@/api/groceries';
 import { GroceryItemFormData, groceryItemFromFormData, groceryItemToFormData } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
@@ -16,9 +13,13 @@ import { SheetManager, SheetProps } from 'react-native-actions-sheet';
 import { ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { SlideInDown, SlideOutDown, useAnimatedStyle } from 'react-native-reanimated';
 import { AutocompleteInput, IngredientOption } from '@/components/autocomplete-input';
 import { useCreateCustomIngredient } from '@/api/food-items';
 import { parseLocaleFloat } from '@/utils';
+import { useSheetClosing } from '@/hooks/use-sheet-closing';
 
 const emptyGroceryItem: GroceryItemFormData = {
   id: nanoid(),
@@ -32,6 +33,12 @@ const emptyGroceryItem: GroceryItemFormData = {
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const createCustomIngredient = useCreateCustomIngredient();
   const initialGrocery = props.payload?.grocery;
+  const { isClosing, onBeforeClose } = useSheetClosing();
+  const insets = useSafeAreaInsets();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const actionButtonStyle = useAnimatedStyle(() => ({
+    bottom: Math.max(insets.bottom - 8, -keyboardHeight.value + 12),
+  }));
   const [grocery, setGrocery] = useState<GroceryItemFormData>(() => {
     if (initialGrocery) return groceryItemToFormData(initialGrocery);
     return emptyGroceryItem;
@@ -70,69 +77,83 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   };
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
-        {initialGrocery ? 'Edit Item' : 'Add Item'}
-      </Typography>
-      <View style={{ gap: 16 }}>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Name
-          </Typography>
-          <AutocompleteInput
-            value={grocery.name}
-            onChangeText={(name) => setGrocery((prev) => ({ ...prev, name }))}
-            onSelect={handleGrocerySelect}
-            placeholder="e.g. Avocado"
-          />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
+    <BaseSheet
+      id={props.sheetId}
+      onBeforeClose={onBeforeClose}
+      extraOverlay={
+        !isClosing ? (
+          <Animated.View
+            entering={SlideInDown.springify()}
+            exiting={SlideOutDown.springify()}
+            style={[styles.actionButton, actionButtonStyle]}
+          >
+            <Button
+              text={initialGrocery ? 'Save changes' : 'Save item'}
+              variant="primary"
+              rightIcon={{ Icon: ArrowRight }}
+              onPress={handleSave}
+              isLoading={addGroceryItem.isPending || editGroceryItem.isPending}
+            />
+          </Animated.View>
+        ) : undefined
+      }
+    >
+      <BaseSheet.ScrollableContainer noBottomGutter>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
+          {initialGrocery ? 'Edit Item' : 'Add Item'}
+        </Typography>
+        <View style={{ gap: 16 }}>
+          <View>
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Quantity
+              Name
             </Typography>
-            <NumberInput
-              value={grocery.quantity}
-              onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
-              placeholder="e.g. 2"
+            <AutocompleteInput
+              value={grocery.name}
+              onChangeText={(name) => setGrocery((prev) => ({ ...prev, name }))}
+              onSelect={handleGrocerySelect}
+              placeholder="e.g. Avocado"
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                Quantity
+              </Typography>
+              <NumberInput
+                value={grocery.quantity}
+                onChangeText={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
+                placeholder="e.g. 2"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                Unit
+              </Typography>
+              <PressableWithHaptics onPress={handleOpenUnitSheet}>
+                <View style={styles.unitButton}>
+                  <Typography variant="body-sm" weight="bold">
+                    {UNITS.find((u) => u.value === grocery.unit)?.label({ count: parseLocaleFloat(grocery.quantity) })}
+                  </Typography>
+                </View>
+              </PressableWithHaptics>
+            </View>
+          </View>
+          <QuantityShortcuts
+            unit={grocery.unit}
+            currentValue={grocery.quantity}
+            onSelect={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
+          />
+          <View>
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Unit
+              Category
             </Typography>
-            <PressableWithHaptics onPress={handleOpenUnitSheet}>
-              <View style={styles.unitButton}>
-                <Typography variant="body-sm" weight="bold">
-                  {UNITS.find((u) => u.value === grocery.unit)?.label({ count: parseLocaleFloat(grocery.quantity) })}
-                </Typography>
-              </View>
+            <PressableWithHaptics onPress={handleOpenCategorySheet}>
+              <AisleHeader type={grocery.aisle} />
             </PressableWithHaptics>
           </View>
         </View>
-        <QuantityShortcuts
-          unit={grocery.unit}
-          currentValue={grocery.quantity}
-          onSelect={(quantity) => setGrocery((prev) => ({ ...prev, quantity }))}
-        />
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Category
-          </Typography>
-          <PressableWithHaptics onPress={handleOpenCategorySheet}>
-            <AisleHeader type={grocery.aisle} />
-          </PressableWithHaptics>
-        </View>
-      </View>
-      <View style={{ marginTop: 32 }}>
-        <Button
-          text={initialGrocery ? 'Save changes' : 'Save item'}
-          variant="primary"
-          rightIcon={{ Icon: ArrowRight }}
-          onPress={handleSave}
-          isLoading={addGroceryItem.isPending || editGroceryItem.isPending}
-        />
-      </View>
+        <View style={{ height: 72 }} />
+      </BaseSheet.ScrollableContainer>
     </BaseSheet>
   );
 };
@@ -147,5 +168,10 @@ const styles = StyleSheet.create({
     borderColor: '#493D34',
     height: 48,
     justifyContent: 'center',
+  },
+  actionButton: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
   },
 });

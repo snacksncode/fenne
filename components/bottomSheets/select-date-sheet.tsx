@@ -73,41 +73,43 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
-        Select a day
-      </Typography>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Animated.View key={`label-${currentMonthDate.getTime()}`} entering={FadeIn} exiting={FadeOut}>
-          <Typography variant="body-base" weight="bold">
-            {format(currentMonthDate, 'MMMM yyyy')}
-          </Typography>
-        </Animated.View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <GestureDetector gesture={leftArrow.gesture}>
-            <Animated.View style={leftArrow.scaleStyle}>
-              <ChevronLeft size={24} color="#4A3E36" />
-            </Animated.View>
-          </GestureDetector>
-          <GestureDetector gesture={rightArrow.gesture}>
-            <Animated.View style={rightArrow.scaleStyle}>
-              <ChevronRight size={24} color="#4A3E36" />
-            </Animated.View>
-          </GestureDetector>
-        </View>
-      </View>
-      <GestureDetector gesture={swipeGesture}>
-        <Animated.View style={{ overflow: 'hidden' }}>
-          <Animated.View key={currentMonthDate.getTime()} entering={entering} exiting={exiting}>
-            <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+      <BaseSheet.Container>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
+          Select a day
+        </Typography>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Animated.View key={`label-${currentMonthDate.getTime()}`} entering={FadeIn} exiting={FadeOut}>
+            <Typography variant="body-base" weight="bold">
+              {format(currentMonthDate, 'MMMM yyyy')}
+            </Typography>
           </Animated.View>
-        </Animated.View>
-      </GestureDetector>
-      <Button
-        style={{ marginTop: 32 }}
-        onPress={() => SheetManager.hide(props.sheetId)}
-        variant="outlined"
-        text="Cancel"
-      />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <GestureDetector gesture={leftArrow.gesture}>
+              <Animated.View style={leftArrow.scaleStyle}>
+                <ChevronLeft size={24} color="#4A3E36" />
+              </Animated.View>
+            </GestureDetector>
+            <GestureDetector gesture={rightArrow.gesture}>
+              <Animated.View style={rightArrow.scaleStyle}>
+                <ChevronRight size={24} color="#4A3E36" />
+              </Animated.View>
+            </GestureDetector>
+          </View>
+        </View>
+        <GestureDetector gesture={swipeGesture}>
+          <Animated.View style={{ overflow: 'hidden' }}>
+            <Animated.View key={currentMonthDate.getTime()} entering={entering} exiting={exiting}>
+              <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+            </Animated.View>
+          </Animated.View>
+        </GestureDetector>
+        <Button
+          style={{ marginTop: 32 }}
+          onPress={() => SheetManager.hide(props.sheetId)}
+          variant="outlined"
+          text="Cancel"
+        />
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

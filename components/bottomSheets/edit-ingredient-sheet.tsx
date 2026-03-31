@@ -12,13 +12,23 @@ import { ArrowRight } from 'lucide-react-native';
 import { nanoid } from 'nanoid/non-secure';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { SlideInDown, SlideOutDown, useAnimatedStyle } from 'react-native-reanimated';
 import { useCreateCustomIngredient } from '@/api/food-items';
 import { parseLocaleFloat } from '@/utils';
 import { QuantityShortcuts } from '@/components/quantity-shortcuts';
+import { useSheetClosing } from '@/hooks/use-sheet-closing';
 
 export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) => {
   const initialIngredient = props.payload?.ingredient;
   const createCustomIngredient = useCreateCustomIngredient();
+  const { isClosing, onBeforeClose } = useSheetClosing();
+  const insets = useSafeAreaInsets();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const actionButtonStyle = useAnimatedStyle(() => ({
+    bottom: Math.max(insets.bottom - 8, -keyboardHeight.value + 12),
+  }));
   const [ingredient, setIngredient] = useState<IngredientFormData>(() => {
     return initialIngredient ?? { id: nanoid(), name: '', quantity: '1', aisle: 'other', unit: 'count' };
   });
@@ -53,65 +63,79 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
   };
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
-        {initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}
-      </Typography>
-      <View style={{ gap: 16 }}>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Name
-          </Typography>
-          <AutocompleteInput
-            value={ingredient.name}
-            onChangeText={(name) => setIngredient((prev) => ({ ...prev, name }))}
-            onSelect={handleIngredientSelect}
-            placeholder="e.g. Avocado"
-          />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
+    <BaseSheet
+      id={props.sheetId}
+      onBeforeClose={onBeforeClose}
+      extraOverlay={
+        !isClosing ? (
+          <Animated.View
+            entering={SlideInDown.springify()}
+            exiting={SlideOutDown.springify()}
+            style={[styles.actionButton, actionButtonStyle]}
+          >
+            <Button text="Save ingredient" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={handleSave} />
+          </Animated.View>
+        ) : undefined
+      }
+    >
+      <BaseSheet.ScrollableContainer noBottomGutter>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
+          {initialIngredient ? 'Edit Ingredient' : 'Add Ingredient'}
+        </Typography>
+        <View style={{ gap: 16 }}>
+          <View>
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Quantity
+              Name
             </Typography>
-            <NumberInput
-              value={ingredient.quantity}
-              onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
-              placeholder="e.g. 2"
+            <AutocompleteInput
+              value={ingredient.name}
+              onChangeText={(name) => setIngredient((prev) => ({ ...prev, name }))}
+              onSelect={handleIngredientSelect}
+              placeholder="e.g. Avocado"
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                Quantity
+              </Typography>
+              <NumberInput
+                value={ingredient.quantity}
+                onChangeText={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
+                placeholder="e.g. 2"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                Unit
+              </Typography>
+              <PressableWithHaptics onPress={handleOpenUnitSheet}>
+                <View style={styles.unitButton}>
+                  <Typography variant="body-sm" weight="medium">
+                    {UNITS.find((u) => u.value === ingredient.unit)?.label({
+                      count: parseLocaleFloat(ingredient.quantity),
+                    })}
+                  </Typography>
+                </View>
+              </PressableWithHaptics>
+            </View>
+          </View>
+          <QuantityShortcuts
+            unit={ingredient.unit}
+            currentValue={ingredient.quantity}
+            onSelect={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
+          />
+          <View>
             <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Unit
+              Category
             </Typography>
-            <PressableWithHaptics onPress={handleOpenUnitSheet}>
-              <View style={styles.unitButton}>
-                <Typography variant="body-sm" weight="medium">
-                  {UNITS.find((u) => u.value === ingredient.unit)?.label({
-                    count: parseLocaleFloat(ingredient.quantity),
-                  })}
-                </Typography>
-              </View>
+            <PressableWithHaptics onPress={handleOpenCategorySheet}>
+              <AisleHeader type={ingredient.aisle} />
             </PressableWithHaptics>
           </View>
         </View>
-        <QuantityShortcuts
-          unit={ingredient.unit}
-          currentValue={ingredient.quantity}
-          onSelect={(quantity) => setIngredient((prev) => ({ ...prev, quantity }))}
-        />
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Category
-          </Typography>
-          <PressableWithHaptics onPress={handleOpenCategorySheet}>
-            <AisleHeader type={ingredient.aisle} />
-          </PressableWithHaptics>
-        </View>
-      </View>
-      <View style={{ marginTop: 24 }}>
-        <Button text="Save ingredient" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={handleSave} />
-      </View>
+        <View style={{ height: 72 }} />
+      </BaseSheet.ScrollableContainer>
     </BaseSheet>
   );
 };
@@ -126,5 +150,10 @@ const styles = StyleSheet.create({
     borderColor: '#493D34',
     height: 48,
     justifyContent: 'center',
+  },
+  actionButton: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
   },
 });

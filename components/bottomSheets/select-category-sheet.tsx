@@ -31,18 +31,20 @@ export const SelectCategorySheet = (props: SheetProps<'select-category-sheet'>) 
 
   return (
     <BaseSheet id={props.sheetId} snapPoints={[60]}>
-      <ScrollView>
-        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-          Select a category
-        </Typography>
-        <View style={{ paddingBottom: 20 }}>
-          {aisles.map((aisle) => (
-            <PressableWithHaptics style={{ paddingVertical: 6 }} onPress={() => handleSelect(aisle)} key={aisle}>
-              <AisleHeader type={aisle} />
-            </PressableWithHaptics>
-          ))}
-        </View>
-      </ScrollView>
+      <BaseSheet.Container>
+        <ScrollView>
+          <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+            Select a category
+          </Typography>
+          <View style={{ paddingBottom: 20 }}>
+            {aisles.map((aisle) => (
+              <PressableWithHaptics style={{ paddingVertical: 6 }} onPress={() => handleSelect(aisle)} key={aisle}>
+                <AisleHeader type={aisle} />
+              </PressableWithHaptics>
+            ))}
+          </View>
+        </ScrollView>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

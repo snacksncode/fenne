@@ -35,57 +35,59 @@ export const ConvertGuestSheet = (props: SheetProps<'convert-guest-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId} containerStyle={{ paddingTop: 24 }} closable={false} gestureEnabled={false}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <CheckCircle color="#4A3E36" size={20} strokeWidth={3} />
-        <Typography variant="heading-md" weight="bold">
-          Finish setting up
+      <BaseSheet.Container>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <CheckCircle color="#4A3E36" size={20} strokeWidth={3} />
+          <Typography variant="heading-md" weight="bold">
+            Finish setting up
+          </Typography>
+        </View>
+        <Typography variant="body-base" weight="regular" style={{ color: colors.brown[800], marginBottom: 16 }}>
+          Almost done. Save your work and start collaborating with your household.
         </Typography>
-      </View>
-      <Typography variant="body-base" weight="regular" style={{ color: colors.brown[800], marginBottom: 16 }}>
-        Almost done. Save your work and start collaborating with your household.
-      </Typography>
-      <View style={{ gap: 16 }}>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Display name
-          </Typography>
-          <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
+        <View style={{ gap: 16 }}>
+          <View>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Display name
+            </Typography>
+            <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
+          </View>
+          <View>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Email
+            </Typography>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              placeholder="your@email.com"
+              keyboardType="email-address"
+            />
+          </View>
+          <View>
+            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+              Password
+            </Typography>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              placeholder="••••••••••••••••"
+              secureTextEntry
+              enterKeyHint="done"
+            />
+          </View>
         </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Email
-          </Typography>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            placeholder="your@email.com"
-            keyboardType="email-address"
+        <View style={{ marginTop: 24 }}>
+          <Button
+            text="Create account"
+            variant="primary"
+            leftIcon={{ Icon: User }}
+            onPress={handleSubmit}
+            isLoading={convertGuest.isPending}
           />
         </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-            Password
-          </Typography>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            placeholder="••••••••••••••••"
-            secureTextEntry
-            enterKeyHint="done"
-          />
-        </View>
-      </View>
-      <View style={{ marginTop: 24 }}>
-        <Button
-          text="Create account"
-          variant="primary"
-          leftIcon={{ Icon: User }}
-          onPress={handleSubmit}
-          isLoading={convertGuest.isPending}
-        />
-      </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

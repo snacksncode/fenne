@@ -20,12 +20,11 @@ import {
   startOfMonth,
   startOfToday,
   startOfTomorrow,
-  } from 'date-fns';
+} from 'date-fns';
 import { ChevronLeft, ChevronRight, WandSparkles } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { filter, find, pipe, values } from 'remeda';
-
 
 type Range = {
   startDateString: string;
@@ -37,7 +36,7 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const [range, setRange] = useState<Range>();
-const { scheduleMap, isLoading } = useSchedule({ weeks });
+  const { scheduleMap, isLoading } = useSchedule({ weeks });
   const previewQuery = useGroceryPreview({
     start: range?.startDateString,
     end: range?.endDateString,
@@ -68,7 +67,7 @@ const { scheduleMap, isLoading } = useSchedule({ weeks });
     });
   };
 
-const handleGenerate = () => {
+  const handleGenerate = () => {
     if (!range) return;
     previewQuery.refetch().then(() => {
       SheetManager.hide(props.sheetId);
@@ -81,59 +80,61 @@ const handleGenerate = () => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 4 }}>
-        Which days?
-      </Typography>
-      <Typography variant="body-base" weight="regular" style={{ marginBottom: 16, lineHeight: 16 * 1.4 }}>
-        Shopping list is for the{' '}
-        <Typography variant="body-base" weight="bold" style={{ color: colors.green[600] }}>
-          green
-        </Typography>{' '}
-        days only{'\n'}
-        <Typography variant="body-base" weight="bold" style={{ color: colors.orange[600] }}>
-          Pro tip:
-        </Typography>{' '}
-        Tap on a day to expand the selection!
-      </Typography>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography variant="body-base" weight="bold">
-          {format(currentMonthDate, 'MMMM yyyy')}
+      <BaseSheet.Container>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 4 }}>
+          Which days?
         </Typography>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <PressableWithHaptics
-            onPress={() => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1)))}
-            scaleTo={0.75}
-          >
-            <ChevronLeft size={24} color="#4A3E36" />
-          </PressableWithHaptics>
-          <PressableWithHaptics
-            onPress={() => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, 1)))}
-            scaleTo={0.75}
-          >
-            <ChevronRight size={24} color="#4A3E36" />
-          </PressableWithHaptics>
+        <Typography variant="body-base" weight="regular" style={{ marginBottom: 16, lineHeight: 16 * 1.4 }}>
+          Shopping list is for the{' '}
+          <Typography variant="body-base" weight="bold" style={{ color: colors.green[600] }}>
+            green
+          </Typography>{' '}
+          days only{'\n'}
+          <Typography variant="body-base" weight="bold" style={{ color: colors.orange[600] }}>
+            Pro tip:
+          </Typography>{' '}
+          Tap on a day to expand the selection!
+        </Typography>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Typography variant="body-base" weight="bold">
+            {format(currentMonthDate, 'MMMM yyyy')}
+          </Typography>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <PressableWithHaptics
+              onPress={() => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, -1)))}
+              scaleTo={0.75}
+            >
+              <ChevronLeft size={24} color="#4A3E36" />
+            </PressableWithHaptics>
+            <PressableWithHaptics
+              onPress={() => setCurrentMonthDate((prev) => startOfMonth(addMonths(prev, 1)))}
+              scaleTo={0.75}
+            >
+              <ChevronRight size={24} color="#4A3E36" />
+            </PressableWithHaptics>
+          </View>
         </View>
-      </View>
-      <Month
-        startOfMonthDate={currentMonthDate}
-        onDaySelect={tryExpandingRange}
-        selectedRange={range}
-        scheduleMap={isLoading || !range ? {} : scheduleMap}
-      />
-<Button
-        style={{ marginTop: 32 }}
-        variant="primary"
-        onPress={handleGenerate}
-        text="Generate"
-        leftIcon={{ Icon: WandSparkles }}
-        isLoading={previewQuery.isFetching}
-      />
-      <Button
-        style={{ marginTop: 12 }}
-        onPress={() => SheetManager.hide(props.sheetId)}
-        variant="outlined"
-        text="Cancel"
-      />
+        <Month
+          startOfMonthDate={currentMonthDate}
+          onDaySelect={tryExpandingRange}
+          selectedRange={range}
+          scheduleMap={isLoading || !range ? {} : scheduleMap}
+        />
+        <Button
+          style={{ marginTop: 32 }}
+          variant="primary"
+          onPress={handleGenerate}
+          text="Generate"
+          leftIcon={{ Icon: WandSparkles }}
+          isLoading={previewQuery.isFetching}
+        />
+        <Button
+          style={{ marginTop: 12 }}
+          onPress={() => SheetManager.hide(props.sheetId)}
+          variant="outlined"
+          text="Cancel"
+        />
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

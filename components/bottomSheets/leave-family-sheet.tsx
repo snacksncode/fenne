@@ -11,21 +11,23 @@ export const LeaveFamilySheet = (props: SheetProps<'leave-family-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        Leave your family?
-      </Typography>
-      <Typography variant="body-base" weight="medium">
-        Are you sure you want to leave your family? You&apos;ll need an invite to re-join
-      </Typography>
-      <View style={{ marginTop: 24 }}>
-        <Button
-          text="Leave"
-          variant="red-outlined"
-          rightIcon={{ Icon: LogOut }}
-          onPress={() => leaveFamily.mutate(undefined, { onSuccess: () => SheetManager.hide(props.sheetId) })}
-          isLoading={leaveFamily.isPending}
-        />
-      </View>
+      <BaseSheet.Container>
+        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+          Leave your family?
+        </Typography>
+        <Typography variant="body-base" weight="medium">
+          Are you sure you want to leave your family? You&apos;ll need an invite to re-join
+        </Typography>
+        <View style={{ marginTop: 24 }}>
+          <Button
+            text="Leave"
+            variant="red-outlined"
+            rightIcon={{ Icon: LogOut }}
+            onPress={() => leaveFamily.mutate(undefined, { onSuccess: () => SheetManager.hide(props.sheetId) })}
+            isLoading={leaveFamily.isPending}
+          />
+        </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };

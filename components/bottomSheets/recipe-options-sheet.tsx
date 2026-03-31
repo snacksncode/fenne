@@ -17,37 +17,39 @@ export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) =>
 
   return (
     <BaseSheet id={props.sheetId}>
-      <View style={{ marginBottom: 24 }}>
-        <Typography variant="heading-sm" weight="bold">
-          What to do with{' '}
-          <Typography
-            variant="heading-sm"
-            weight="bold"
-            style={{ backgroundColor: colors.orange[100], paddingHorizontal: 4, paddingVertical: 2, marginTop: 4 }}
-          >
-            &ldquo;{recipe.name}&rdquo;
+      <BaseSheet.Container>
+        <View style={{ marginBottom: 24 }}>
+          <Typography variant="heading-sm" weight="bold">
+            What to do with{' '}
+            <Typography
+              variant="heading-sm"
+              weight="bold"
+              style={{ backgroundColor: colors.orange[100], paddingHorizontal: 4, paddingVertical: 2, marginTop: 4 }}
+            >
+              &ldquo;{recipe.name}&rdquo;
+            </Typography>
+            ?
           </Typography>
-          ?
-        </Typography>
-      </View>
-      <View style={{ gap: 16, marginBottom: 12 }}>
-        <SheetAction
-          text="Edit"
-          icon={Edit2}
-          onPress={() => {
-            SheetManager.hide(props.sheetId);
-            router.push({ pathname: '/edit-recipe/[id]', params: { id: recipe.id } });
-          }}
-        />
-        <SheetAction
-          text="Remove"
-          icon={Trash2}
-          onPress={() => {
-            deleteRecipe.mutate({ id: recipe.id });
-            SheetManager.hide(props.sheetId);
-          }}
-        />
-      </View>
+        </View>
+        <View style={{ gap: 16, marginBottom: 12 }}>
+          <SheetAction
+            text="Edit"
+            icon={Edit2}
+            onPress={() => {
+              SheetManager.hide(props.sheetId);
+              router.push({ pathname: '/edit-recipe/[id]', params: { id: recipe.id } });
+            }}
+          />
+          <SheetAction
+            text="Remove"
+            icon={Trash2}
+            onPress={() => {
+              deleteRecipe.mutate({ id: recipe.id });
+              SheetManager.hide(props.sheetId);
+            }}
+          />
+        </View>
+      </BaseSheet.Container>
     </BaseSheet>
   );
 };
