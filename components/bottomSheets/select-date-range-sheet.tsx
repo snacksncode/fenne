@@ -7,7 +7,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
-import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { useRouter } from 'expo-router';
 import {
   addMonths,
@@ -32,6 +32,7 @@ type Range = {
 };
 
 export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'>) => {
+  const sheets = useSheets();
   const router = useRouter();
   const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
@@ -70,7 +71,7 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   const handleGenerate = () => {
     if (!range) return;
     previewQuery.refetch().then(() => {
-      SheetManager.hide(props.sheetId);
+      sheets.dismiss(props.sheetId);
       router.push({
         pathname: '/generate-preview',
         params: { startDate: range.startDateString, endDate: range.endDateString },
@@ -79,8 +80,24 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   };
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
+    <BaseSheet
+      id={props.sheetId}
+      footer={{
+        node: (
+          <View style={{ gap: 12 }}>
+            <Button
+              variant="primary"
+              onPress={handleGenerate}
+              text="Generate"
+              leftIcon={{ Icon: WandSparkles }}
+              isLoading={previewQuery.isFetching}
+            />
+            <Button onPress={() => sheets.dismiss(props.sheetId)} variant="outlined" text="Cancel" />
+          </View>
+        ),
+        height: 108,
+      }}
+    >
         <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 4 }}>
           Which days?
         </Typography>
@@ -120,21 +137,6 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
           selectedRange={range}
           scheduleMap={isLoading || !range ? {} : scheduleMap}
         />
-        <Button
-          style={{ marginTop: 32 }}
-          variant="primary"
-          onPress={handleGenerate}
-          text="Generate"
-          leftIcon={{ Icon: WandSparkles }}
-          isLoading={previewQuery.isFetching}
-        />
-        <Button
-          style={{ marginTop: 12 }}
-          onPress={() => SheetManager.hide(props.sheetId)}
-          variant="outlined"
-          text="Cancel"
-        />
-      </BaseSheet.Container>
     </BaseSheet>
   );
 };

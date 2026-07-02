@@ -1,8 +1,8 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
-import { View } from 'react-native';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
+import { ScrollView, View } from 'react-native';
 import { Button } from '@/components/button';
 
 export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'fl_oz' | 'cup' | 'tbsp' | 'tsp' | 'qt' | 'oz' | 'lb' | 'count';
@@ -23,35 +23,46 @@ export const UNITS: { value: Unit; label: LabelFn }[] = [
   { value: 'lb', label: () => 'Pounds' },
 ];
 
-export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
-  const selectedUnit = props.payload?.unit;
+type SelectUnitSheetData = SheetProps<'select-unit-sheet'>['data'];
+
+const SelectUnitSheetContent = ({
+  sheetId,
+  data,
+}: {
+  sheetId: SheetProps<'select-unit-sheet'>['sheetId'];
+  data: SelectUnitSheetData;
+}) => {
+  const sheets = useSheets();
+  const selectedUnit = data.unit;
 
   const handleSelect = (unit: Unit) => {
-    SheetManager.hide(props.sheetId, { payload: unit });
+    sheets.dismiss(sheetId, unit);
   };
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
-        <ScrollView>
-          <View style={{ backgroundColor: colors.cream[100] }}>
-            <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
-              Select unit
-            </Typography>
-          </View>
-          <View style={{ gap: 8, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
-            {UNITS.map((unit) => (
-              <Button
-                key={unit.value}
-                variant={unit.value === selectedUnit ? 'primary' : 'outlined'}
-                onPress={() => handleSelect(unit.value)}
-                text={unit.label({ count: 1 })}
-                size="small"
-              />
-            ))}
-          </View>
-        </ScrollView>
-      </BaseSheet.Container>
+    <BaseSheet id={sheetId}>
+      <ScrollView>
+        <View style={{ backgroundColor: colors.cream[100] }}>
+          <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
+            Select unit
+          </Typography>
+        </View>
+        <View style={{ gap: 8, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
+          {UNITS.map((unit) => (
+            <Button
+              key={unit.value}
+              variant={unit.value === selectedUnit ? 'primary' : 'outlined'}
+              onPress={() => handleSelect(unit.value)}
+              text={unit.label({ count: 1 })}
+              size="small"
+            />
+          ))}
+        </View>
+      </ScrollView>
     </BaseSheet>
   );
+};
+
+export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
+  return <SelectUnitSheetContent sheetId={props.sheetId} data={props.data} />;
 };

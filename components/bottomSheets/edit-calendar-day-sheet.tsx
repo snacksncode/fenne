@@ -1,7 +1,7 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { SheetAction } from '@/components/sheet-action';
 import { Typography } from '@/components/Typography';
-import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { CalendarPlus, CalendarSearch } from 'lucide-react-native';
 import { View } from 'react-native';
 import { Tag } from '@/components/svgs/tag';
@@ -9,12 +9,17 @@ import { format } from 'date-fns';
 import { getISOWeekString, parseISO } from '@/date-tools';
 import { colors } from '@/constants/colors';
 import { useSetAtom } from 'jotai';
-import { getFirstMissingMealType, scrollTargetAtom } from '@/components/menu/weekly-screen';
+import { scrollTargetAtom } from '@/components/menu/weekly-screen';
 import { useSchedule, useUpdateScheduleDay } from '@/api/schedules';
-import { ensure } from '@/utils';
 
-export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'>) => {
-  const { dateString, navigation } = ensure(props.payload);
+type EditCalendarDaySheetContentProps = {
+  sheetId: SheetProps<'edit-calendar-day-sheet'>['sheetId'];
+  data: SheetProps<'edit-calendar-day-sheet'>['data'];
+};
+
+const EditCalendarDaySheetContent = ({ sheetId, data }: EditCalendarDaySheetContentProps) => {
+  const sheets = useSheets();
+  const { dateString, navigation } = data;
   const { scheduleMap } = useSchedule({ weeks: dateString ? [getISOWeekString(dateString)] : [] });
   const setScrollTarget = useSetAtom(scrollTargetAtom);
   const updateScheduleDay = useUpdateScheduleDay();
@@ -23,9 +28,8 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
   const is_shopping_day = scheduleDay?.is_shopping_day ?? false;
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
-        <View style={{ marginBottom: 24 }}>
+    <>
+      <View style={{ marginBottom: 24 }}>
           <Typography variant="heading-sm" weight="bold">
             What to do with{'\n'}
             <Typography
@@ -37,15 +41,15 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             </Typography>
             ?
           </Typography>
-        </View>
-        <View style={{ gap: 16, marginBottom: 12 }}>
+      </View>
+      <View style={{ gap: 16, marginBottom: 12 }}>
           <SheetAction
             text="Schedule meal"
             icon={CalendarPlus}
-            onPress={async () => {
-              await SheetManager.hide(props.sheetId);
-              SheetManager.show('schedule-meal-sheet', {
-                payload: {
+            onPress={() => {
+              sheets.dismiss(sheetId);
+              sheets.present('schedule-meal-sheet', {
+                data: {
                   type: 'meal',
                   dateString,
                 },
@@ -58,7 +62,7 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             onPress={() => {
               setScrollTarget({ dateString });
               navigation.navigate('Weekly');
-              SheetManager.hide(props.sheetId);
+              sheets.dismiss(sheetId);
             }}
           />
           <SheetAction
@@ -66,11 +70,18 @@ export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'
             icon={Tag}
             onPress={() => {
               updateScheduleDay.mutate({ dateString, is_shopping_day: !is_shopping_day });
-              SheetManager.hide(props.sheetId);
+              sheets.dismiss(sheetId);
             }}
           />
-        </View>
-      </BaseSheet.Container>
+      </View>
+    </>
+  );
+};
+
+export const EditCalendarDaySheet = (props: SheetProps<'edit-calendar-day-sheet'>) => {
+  return (
+    <BaseSheet id={props.sheetId}>
+      <EditCalendarDaySheetContent sheetId={props.sheetId} data={props.data} />
     </BaseSheet>
   );
 };

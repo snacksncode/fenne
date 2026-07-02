@@ -16,6 +16,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
+    "@lodev09/react-native-true-sheet": "^3.11.0",
     "@lucide/lab": "^0.1.2",
     "@rails/actioncable": "^8.0.200",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -25,6 +26,7 @@
     "@react-navigation/native": "^7.0.14",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/query-async-storage-persister": "^5.90.12",
+    "@tanstack/react-form": "^1.33.0",
     "@tanstack/react-query": "^5.90.6",
     "@tanstack/react-query-persist-client": "^5.90.12",
     "@types/rails__actioncable": "^6.1.11",
@@ -55,7 +57,6 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-actions-sheet": "10.1.2",
     "react-native-advanced-input-mask": "^1.4.6",
     "react-native-enriched": "^0.4.0",
     "react-native-gesture-handler": "~2.28.0",
@@ -71,7 +72,8 @@
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
     "remeda": "^2.32.0",
-    "wretch": "^3.0.3"
+    "wretch": "^3.0.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

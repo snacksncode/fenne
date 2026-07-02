@@ -1,8 +1,8 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Typography } from '@/components/Typography';
-import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { BookMarked, CookingPot, SlidersHorizontal } from 'lucide-react-native';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useRecipes } from '@/api/recipes';
 import { RecipeDTO } from '@/api/types';
@@ -19,8 +19,10 @@ import { useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { TextInput } from '@/components/input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { queryKeys } from '@/api/query-keys';
 
 export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) => {
+  const sheets = useSheets();
   const recipes = useRecipes();
   const queryClient = useQueryClient();
   const addGroceryItem = useAddGroceryItem();
@@ -30,29 +32,33 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
   const [mealFilter, setMealFilter] = useState<MealFilter>('all');
   const [search, setSearch] = useState('');
 
-  useMount(() => void queryClient.prefetchQuery({ queryKey: ['recipes'] }));
+  useMount(() => void queryClient.prefetchQuery({ queryKey: queryKeys.recipes.all() }));
 
   const handleRecipeSelect = (recipe: RecipeDTO) => {
     recipe.ingredients.forEach((ingredient) => {
+      if (!ingredient.product_id) return;
       addGroceryItem.mutate({
-        name: ingredient.name,
+        type: 'product',
+        product_id: ingredient.product_id,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
-        aisle: ingredient.aisle,
-        status: 'pending',
       });
     });
-    SheetManager.hideAll();
+    sheets.dismiss(props.sheetId);
   };
 
   const handleGoToRecipes = async () => {
-    await SheetManager.hide(props.sheetId);
+    await sheets.dismiss(props.sheetId);
     router.push('/recipes');
   };
 
   const openFilterSheet = async () => {
-    const result = await SheetManager.show('recipe-filter-sheet', { payload: { current: mealFilter } });
-    if (result != null) setMealFilter(result);
+    const filter = await sheets.present('recipe-filter-sheet', {
+      data: {
+        current: mealFilter,
+      },
+    });
+    if (filter != null) setMealFilter(filter);
   };
 
   const hasRecipes = !isEmptyish(recipes.data);
@@ -60,8 +66,7 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
 
   return (
     <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container noBottomGutter>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 }}>
           <CookingPot color="#4A3E36" size={20} strokeWidth={2.5} />
           <Typography variant="heading-sm" weight="bold">
             Add from Recipe
@@ -109,8 +114,8 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
               ))
             )}
           </View>
-        </ScrollView>
-        {hasRecipes && (
+      </ScrollView>
+      {hasRecipes && (
           <Animated.View style={[styles.toolbar, { bottom: insets.bottom, left: 12, right: 12 }]}>
             <TextInput
               value={search}
@@ -125,8 +130,7 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
               style={{ paddingHorizontal: 0, width: 48 }}
             />
           </Animated.View>
-        )}
-      </BaseSheet.Container>
+      )}
     </BaseSheet>
   );
 };

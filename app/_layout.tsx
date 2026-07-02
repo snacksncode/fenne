@@ -1,4 +1,4 @@
-import { SheetProvider } from 'react-native-actions-sheet';
+import { SheetHost } from '@/lib/sheet-context';
 import { Sheets } from '@/sheets';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'react-native';
@@ -56,11 +56,11 @@ export default function Layout() {
         <SessionProvider>
           <GestureHandlerRootView>
             <KeyboardProvider>
-              <SheetProvider>
+              <SheetHost>
                 <Sheets />
                 <InvalidationChannel />
                 <RootLayout />
-              </SheetProvider>
+              </SheetHost>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </SessionProvider>

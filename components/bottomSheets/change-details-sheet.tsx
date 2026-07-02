@@ -1,65 +1,74 @@
 import { useCurrentUser, useChangeDetails } from '@/api/auth';
-import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
-import { TextInput } from '@/components/input';
+import { useAppForm } from '@/components/form/app-form';
 import { Typography } from '@/components/Typography';
-import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { User } from 'lucide-react-native';
-import { useState } from 'react';
 import { View } from 'react-native';
+import { z } from 'zod';
+
+const changeDetailsSchema = z.object({
+  name: z.string().trim().min(1, 'Display name is required'),
+  email: z.email('Enter a valid email address'),
+});
 
 export const ChangeDetailsSheet = (props: SheetProps<'change-details-sheet'>) => {
+  const sheets = useSheets();
   const changeDetails = useChangeDetails();
   const { data } = useCurrentUser();
-  const [name, setName] = useState(() => data?.user.name ?? '');
-  const [email, setEmail] = useState(() => data?.user.email ?? '');
-
-  const handleSubmit = () => {
-    changeDetails.mutate(
-      { email: email.trim(), name: name.trim() },
-      {
-        onSuccess: () => SheetManager.hide(props.sheetId),
-        onError: () => alert('Failed to update account details'),
-      }
-    );
-  };
+  const form = useAppForm({
+    defaultValues: {
+      name: data?.user.name ?? '',
+      email: data?.user.email ?? '',
+    },
+    validators: {
+      onSubmit: changeDetailsSchema,
+    },
+    onSubmit: ({ value }) => {
+      changeDetails.mutate(
+        { email: value.email.trim(), name: value.name.trim() },
+        {
+          onSuccess: () => sheets.dismiss(props.sheetId),
+          onError: () => alert('Failed to update account details'),
+        }
+      );
+    },
+  });
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
-        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-          Edit profile
-        </Typography>
+    <BaseSheet
+      id={props.sheetId}
+      footer={sheetFooter.buttonRow(
+        <Button
+          text="Save changes"
+          variant="primary"
+          rightIcon={{ Icon: User }}
+          onPress={() => form.handleSubmit()}
+          isLoading={changeDetails.isPending}
+        />
+      )}
+    >
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+        Edit profile
+      </Typography>
+      <form.AppForm>
         <View style={{ gap: 16 }}>
-          <View>
-            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Display name
-            </Typography>
-            <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Your name" />
-          </View>
-          <View>
-            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              Email
-            </Typography>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              placeholder="your@email.com"
-              keyboardType="email-address"
-            />
-          </View>
+          <form.AppField name="name">
+            {(field) => <field.TextField label="Display name" autoCapitalize="words" placeholder="Your name" />}
+          </form.AppField>
+          <form.AppField name="email">
+            {(field) => (
+              <field.TextField
+                label="Email"
+                autoCapitalize="none"
+                placeholder="your@email.com"
+                keyboardType="email-address"
+              />
+            )}
+          </form.AppField>
         </View>
-        <View style={{ marginTop: 24 }}>
-          <Button
-            text="Save changes"
-            variant="primary"
-            rightIcon={{ Icon: User }}
-            onPress={handleSubmit}
-            isLoading={changeDetails.isPending}
-          />
-        </View>
-      </BaseSheet.Container>
+      </form.AppForm>
     </BaseSheet>
   );
 };

@@ -1,35 +1,61 @@
-import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
-import { TextInput } from '@/components/input';
+import { useAppForm } from '@/components/form/app-form';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { Link2 } from 'lucide-react-native';
-import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
-import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
+import { z } from 'zod';
+
+const linkInputSchema = z.object({
+  url: z.url('Enter a valid URL'),
+});
 
 export const LinkInputSheet = (props: SheetProps<'link-input-sheet'>) => {
-  const selectedText = props.payload?.selectedText;
-  const [url, setUrl] = useState(props.payload?.existingUrl ?? '');
+  const sheets = useSheets();
+  const selectedText = props.data?.selectedText;
+  const form = useAppForm({
+    defaultValues: {
+      url: props.data?.existingUrl ?? '',
+    },
+    validators: {
+      onSubmit: linkInputSchema,
+    },
+    onSubmit: ({ value }) => {
+      sheets.dismiss(props.sheetId, value.url.trim());
+      Keyboard.dismiss();
+    },
+  });
 
   const handleApply = () => {
-    if (!url.trim()) return;
-    SheetManager.hide(props.sheetId, { payload: url.trim() });
-    Keyboard.dismiss();
+    form.handleSubmit();
   };
 
   const handleCancel = () => {
-    SheetManager.hide(props.sheetId);
+    sheets.dismiss(props.sheetId, null);
     Keyboard.dismiss();
   };
 
   return (
-    <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
-        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
-          Insert Link
-        </Typography>
+    <BaseSheet
+      id={props.sheetId}
+      footer={sheetFooter.buttonRow(
+        <View style={styles.buttonRow}>
+          <View style={{ flex: 1 }}>
+            <Button text="Cancel" variant="outlined" onPress={handleCancel} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button text="Apply" variant="primary" onPress={handleApply} />
+          </View>
+        </View>
+      )}
+    >
+      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 24 }}>
+        Insert Link
+      </Typography>
 
+      <form.AppForm>
         <View style={{ gap: 16 }}>
           {selectedText ? (
             <View>
@@ -45,30 +71,19 @@ export const LinkInputSheet = (props: SheetProps<'link-input-sheet'>) => {
             </View>
           ) : null}
 
-          <View>
-            <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-              URL
-            </Typography>
-            <TextInput
-              value={url}
-              onChangeText={setUrl}
-              placeholder="https://..."
-              keyboardType="url"
-              autoCapitalize="none"
-              autoFocus
-            />
-          </View>
+          <form.AppField name="url">
+            {(field) => (
+              <field.TextField
+                label="URL"
+                placeholder="https://..."
+                keyboardType="url"
+                autoCapitalize="none"
+                autoFocus
+              />
+            )}
+          </form.AppField>
         </View>
-
-        <View style={styles.buttonRow}>
-          <View style={{ flex: 1 }}>
-            <Button text="Cancel" variant="outlined" onPress={handleCancel} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button text="Apply" variant="primary" onPress={handleApply} />
-          </View>
-        </View>
-      </BaseSheet.Container>
+      </form.AppForm>
     </BaseSheet>
   );
 };
@@ -88,6 +103,5 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 24,
   },
 });

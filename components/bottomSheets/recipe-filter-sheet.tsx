@@ -1,7 +1,7 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
-import { SheetManager, SheetProps } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { View } from 'react-native';
 import { MealType } from '@/api/types';
 import { Pancake } from '@/components/svgs/pancake';
@@ -19,15 +19,15 @@ const options: { value: MealFilter; label: string; icon: FunctionComponent<{ siz
 ];
 
 export const RecipeFilterSheet = (props: SheetProps<'recipe-filter-sheet'>) => {
-  const current: MealFilter = props.payload?.current ?? 'all';
+  const sheets = useSheets();
+  const current: MealFilter = props.data?.current ?? 'all';
 
   const handleSelect = (value: MealFilter) => {
-    SheetManager.hide(props.sheetId, { payload: value });
+    sheets.dismiss(props.sheetId, value);
   };
 
   return (
     <BaseSheet id={props.sheetId}>
-      <BaseSheet.Container>
         <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
           Filter by meal type
         </Typography>
@@ -63,7 +63,6 @@ export const RecipeFilterSheet = (props: SheetProps<'recipe-filter-sheet'>) => {
             );
           })}
         </View>
-      </BaseSheet.Container>
     </BaseSheet>
   );
 };
