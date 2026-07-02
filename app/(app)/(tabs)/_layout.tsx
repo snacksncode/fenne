@@ -1,12 +1,12 @@
 import { TabBar } from '@/components/TabBar';
 import { Tabs } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { BookMarked, ShoppingBasket, Utensils } from 'lucide-react-native';
-import { useCurrentUser } from '@/api/auth';
+import { Archive, BookMarked, ShoppingBasket, Utensils } from 'lucide-react-native';
+import { useEnsureFamilyTimezone } from '@/api/auth';
 import { useInvitations } from '@/api/invitations';
 
 export default function Layout() {
-  useCurrentUser();
+  useEnsureFamilyTimezone();
   useInvitations();
 
   return (
@@ -26,6 +26,14 @@ export default function Layout() {
             title: 'Groceries',
             headerShown: false,
             tabBarIcon: (props) => <ShoppingBasket {...props} />,
+          }}
+        />
+        <Tabs.Screen
+          name="pantry"
+          options={{
+            title: 'Pantry',
+            headerShown: false,
+            tabBarIcon: (props) => <Archive {...props} />,
           }}
         />
         <Tabs.Screen

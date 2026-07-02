@@ -6,8 +6,9 @@ import {
   useInvitations,
   useRemoveSentInvite,
 } from '@/api/invitations';
+import { useAppForm } from '@/components/form/app-form';
 import { Option, SegmentedSelect } from '@/components/Select';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
@@ -17,20 +18,21 @@ import { useLogout } from '@/hooks/use-logout';
 import { router } from 'expo-router';
 import {
   ChevronLeft,
+  Globe2,
   Lock,
   LogOut,
   MailQuestionMark,
-  Ruler,
   Trash2,
   User,
   UserRoundCheck,
   UserRoundPlus,
   Weight,
 } from 'lucide-react-native';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmptyish, sort } from 'remeda';
+import { z } from 'zod';
 
 const Action = (props: {
   text: string;
@@ -185,8 +187,30 @@ const unitPreferenceOptions: Option<UnitPreference>[] = [
   { value: 'imperial', text: 'Imperial', icon: Weight },
 ];
 
+const getDeviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+
+const isSupportedTimezone = (timezone: string) => {
+  const trimmed = timezone.trim();
+  if (!trimmed) return false;
+
+  const supportedValuesOf = (Intl as typeof Intl & { supportedValuesOf?: (key: 'timeZone') => string[] }).supportedValuesOf;
+  if (supportedValuesOf) return supportedValuesOf('timeZone').includes(trimmed);
+
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: trimmed });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const timezoneSchema = z.object({
+  timezone: z.string().trim().refine(isSupportedTimezone, 'Use a valid IANA timezone, e.g. Europe/Warsaw.'),
+});
+
 const Settings = () => {
   const insets = useSafeAreaInsets();
+  const sheets = useSheets();
   const invitations = useInvitations();
 
   const { logOut } = useLogout();
@@ -197,6 +221,24 @@ const Settings = () => {
   };
 
   const updatePreferences = useUpdateFamilyPreferences();
+  const form = useAppForm({
+    defaultValues: {
+      timezone: family?.timezone ?? getDeviceTimezone(),
+    },
+    validators: {
+      onSubmit: timezoneSchema,
+    },
+    onSubmit: ({ value }) => {
+      const timezone = value.timezone.trim();
+      if (!family || timezone === family.timezone) return;
+      updatePreferences.mutate({ timezone });
+    },
+  });
+
+  useEffect(() => {
+    form.setFieldValue('timezone', family?.timezone ?? getDeviceTimezone());
+  }, [family?.timezone, form]);
+
   const handleUnitPreferenceChange = (value: UnitPreference) => {
     updatePreferences.mutate({ unit_preference: value });
   };
@@ -246,10 +288,10 @@ const Settings = () => {
             ACCOUNT
           </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={User} text="Edit profile" onPress={() => SheetManager.show('change-details-sheet')} />
+            <Action icon={User} text="Edit profile" onPress={() => sheets.present('change-details-sheet')} />
           </View>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={Lock} text="Change password" onPress={() => SheetManager.show('change-password-sheet')} />
+            <Action icon={Lock} text="Change password" onPress={() => sheets.present('change-password-sheet')} />
           </View>
         </View>
 
@@ -296,14 +338,14 @@ const Settings = () => {
                     leftIcon={{ Icon: UserRoundPlus }}
                     variant="outlined"
                     size="base"
-                    onPress={() => SheetManager.show('invite-family-member-sheet')}
+                    onPress={() => sheets.present('invite-family-member-sheet')}
                   />
                   {family.members.length > 1 ? (
                     <Button
                       leftIcon={{ Icon: LogOut }}
                       variant="red-outlined"
                       size="base"
-                      onPress={() => SheetManager.show('leave-family-sheet')}
+                      onPress={() => sheets.present('leave-family-sheet')}
                     />
                   ) : null}
                 </View>
@@ -321,6 +363,45 @@ const Settings = () => {
                 />
               </View>
             </View>
+            <View style={{ marginTop: 24 }}>
+              <Typography variant="body-base" weight="bold">
+                TIMEZONE
+              </Typography>
+              <View style={{ gap: 8, marginTop: 12 }}>
+                <View style={styles.timezoneRow}>
+                  <View style={styles.timezoneIcon}>
+                    <Globe2 color={colors.cream[100]} size={20} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
+                      Used for 4am meal consumption
+                    </Typography>
+                    <Typography variant="body-xs" weight="regular" color={colors.brown[700]}>
+                      Device: {getDeviceTimezone() || 'Unknown'}
+                    </Typography>
+                  </View>
+                </View>
+                <form.AppForm>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <form.AppField name="timezone">
+                        {(field) => (
+                          <field.TextField autoCapitalize="none" autoCorrect={false} placeholder="Europe/Warsaw" />
+                        )}
+                      </form.AppField>
+                    </View>
+                    <Button
+                      text="Save"
+                      variant="outlined"
+                      size="small"
+                      onPress={() => form.handleSubmit()}
+                      isLoading={updatePreferences.isPending}
+                      style={{ alignSelf: 'center' }}
+                    />
+                  </View>
+                </form.AppForm>
+              </View>
+            </View>
           </>
         ) : null}
 
@@ -330,7 +411,7 @@ const Settings = () => {
           </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
             <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
-            <Action icon={Trash2} text="Delete account" onPress={() => SheetManager.show('delete-account-sheet')} />
+            <Action icon={Trash2} text="Delete account" onPress={() => sheets.present('delete-account-sheet')} />
           </View>
         </View>
       </ScrollView>
@@ -343,6 +424,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF7EA',
     flex: 1,
     paddingHorizontal: 20,
+  },
+  timezoneRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timezoneIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.brown[900],
+    borderRadius: 999,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
   },
 });
 

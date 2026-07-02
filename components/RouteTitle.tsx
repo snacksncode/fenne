@@ -5,7 +5,7 @@ import { Cog, ListTodo } from 'lucide-react-native';
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
 import { colors } from '@/constants/colors';
 import { Button } from '@/components/button';
@@ -13,16 +13,18 @@ import { Button } from '@/components/button';
 type Props = {
   text: string;
   footerSlot?: ReactNode;
+  rightSlot?: ReactNode;
 };
 
-export const RouteTitle = ({ text, footerSlot }: Props) => {
+export const RouteTitle = ({ text, footerSlot, rightSlot }: Props) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const sheets = useSheets();
   const { isGuest } = useTutorialProgress();
 
   const onPress = () => {
     if (isGuest) {
-      SheetManager.show('tutorial-sheet');
+      sheets.present('tutorial-sheet');
     } else {
       router.push('/settings');
     }
@@ -47,7 +49,8 @@ export const RouteTitle = ({ text, footerSlot }: Props) => {
         <Typography variant="heading-lg" weight="black">
           {text}
         </Typography>
-        {!isGuest && (
+        {rightSlot}
+        {!rightSlot && !isGuest && (
           <PressableWithHaptics hitSlop={20} scaleTo={0.9} onPress={onPress} style={styles.button}>
             <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>
               Settings
@@ -55,7 +58,7 @@ export const RouteTitle = ({ text, footerSlot }: Props) => {
             <Cog color={colors.brown[900]} strokeWidth={2} size={24} />
           </PressableWithHaptics>
         )}
-        {isGuest && (
+        {!rightSlot && isGuest && (
           <Button onPress={onPress} variant="primary" size="small" text={`Todo list`} leftIcon={{ Icon: ListTodo }} />
         )}
       </View>
