@@ -2,5 +2,5 @@ import React from 'react';
 import { RecipeForm } from '@/components/recipe-form';
 
 export default function NewRecipe() {
-  return <RecipeForm />;
+  return <RecipeForm mode="create" />;
 }

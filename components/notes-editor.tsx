@@ -11,7 +11,7 @@ import {
 import { EnrichedTextInput } from 'react-native-enriched';
 import type { EnrichedTextInputInstance, OnChangeStateEvent } from 'react-native-enriched';
 import { Bold, Heading1, Heading2, Heading3, Italic, Link, List, ListOrdered, Underline } from 'lucide-react-native';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { colors } from '@/constants/colors';
 
@@ -40,6 +40,7 @@ type NotesEditorProps = {
 };
 
 export function NotesEditor({ defaultValue, style, ref }: NotesEditorProps) {
+  const sheets = useSheets();
   const editorRef = useRef<EnrichedTextInputInstance>(null);
   const selectionRef = useRef<{ start: number; end: number; text: string }>({ start: 0, end: 0, text: '' });
   const [stylesState, setStylesState] = useState<OnChangeStateEvent | null>(null);
@@ -108,12 +109,12 @@ export function NotesEditor({ defaultValue, style, ref }: NotesEditorProps) {
                 if (!isBlocking && editorRef.current) {
                   if (btn.stateKey === 'link') {
                     const { start, end, text } = selectionRef.current;
-                    const url = await SheetManager.show('link-input-sheet', {
-                      payload: { selectedText: text || undefined },
+                    const url = await sheets.present('link-input-sheet', {
+                      data: {
+                        selectedText: text || undefined,
+                      },
                     });
-                    if (url && editorRef.current) {
-                      editorRef.current.setLink(start, end, text, url);
-                    }
+                    if (url != null) editorRef.current?.setLink(start, end, text, url);
                   } else {
                     btn.toggle(editorRef.current);
                   }

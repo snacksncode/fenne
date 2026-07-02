@@ -10,8 +10,8 @@ import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'r
 import { isEmpty, isEmptyish } from 'remeda';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
 import { Typography } from '@/components/Typography';
-import { SheetManager } from 'react-native-actions-sheet';
-import { BookMarked, Funnel, Plus } from 'lucide-react-native';
+import { useSheets } from '@/lib/sheet-context';
+import { BookMarked, Check, Funnel, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { colors } from '@/constants/colors';
@@ -19,6 +19,7 @@ import { Button } from '@/components/button';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { TextInput } from '@/components/input';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
+import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 
 const EmptyList = () => {
   const router = useRouter();
@@ -81,12 +82,13 @@ const RecipesSkeleton = () => {
 
 const RecipeItem = ({ recipe }: { recipe: RecipeDTO }) => {
   const router = useRouter();
+  const sheets = useSheets();
   return (
     <Animated.View layout={LinearTransition.springify()} entering={FadeIn} exiting={FadeOut}>
       <Recipe
         recipe={recipe}
         onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id } })}
-        onLongPress={() => SheetManager.show('recipe-options-sheet', { payload: { recipe } })}
+        onLongPress={() => sheets.present('recipe-options-sheet', { data: { recipe } })}
       />
     </Animated.View>
   );
@@ -125,17 +127,20 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
 
 const Recipes = () => {
   const router = useRouter();
+  const sheets = useSheets();
   const recipes = useRecipes();
   const insets = useSafeAreaInsets();
   const [mealFilter, setMealFilter] = useState<MealFilter>('all');
   const [search, setSearch] = useState('');
+  const { isKeyboardOpen } = useKeyboardOpen();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom + 88, -keyboardHeight.value + 12) }));
 
   const tabFocusStyle = useTabFocusAnimation();
+
   const openFilterSheet = async () => {
-    const result = await SheetManager.show('recipe-filter-sheet', { payload: { current: mealFilter } });
-    if (result != null) setMealFilter(result);
+    const filter = await sheets.present('recipe-filter-sheet', { data: { current: mealFilter } });
+    if (filter != null) setMealFilter(filter);
   };
 
   return (
@@ -170,7 +175,11 @@ const Recipes = () => {
                 leftIcon={{ Icon: Funnel }}
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
-              <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
+              {isKeyboardOpen ? (
+                <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
+              ) : (
+                <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
+              )}
             </Animated.View>
           ) : null}
         </View>

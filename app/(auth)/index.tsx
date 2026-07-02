@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
-import { TextInput } from '@/components/input';
+import { useAppForm } from '@/components/form/app-form';
 import { useState } from 'react';
 import { useLogin, useLoginAsGuest } from '@/api/auth';
 import { APIError } from '@/api/client';
@@ -12,14 +12,37 @@ import Animated, { FadeIn, LayoutAnimationsValues, LinearTransition, withSpring 
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useSession } from '@/contexts/session';
 import { useIsFirstRender } from '@/hooks/use-is-first-render';
+import { z } from 'zod';
 
 type Mode = 'log-in' | 'landing';
+
+const loginSchema = z.object({
+  email: z.email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.SetStateAction<Mode>> }) => {
   const login = useLogin();
   const guestLogin = useLoginAsGuest();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const form = useAppForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    validators: {
+      onSubmit: loginSchema,
+    },
+    onSubmit: ({ value }) => {
+      login.mutate(
+        { email: value.email.trim(), password: value.password },
+        {
+          onError: (error) => {
+            return alert(error instanceof APIError ? 'Please check your credentials' : 'Something went wrong');
+          },
+        }
+      );
+    },
+  });
 
   const handleAction = () => {
     if (mode === 'landing') {
@@ -28,17 +51,8 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
       });
     }
 
-    if (!email || !password) return alert('Fill in the details');
     if (mode === 'log-in') {
-      login.mutate(
-        { email, password },
-        {
-          onError: (error) => {
-            if (error instanceof APIError) console.log('API Error: ', error.data);
-            return alert('Please check your credentials');
-          },
-        }
-      );
+      form.handleSubmit();
     }
   };
 
@@ -66,31 +80,31 @@ const Form = ({ mode, setMode }: { mode: Mode; setMode: React.Dispatch<React.Set
 
   return (
     <View style={{ paddingHorizontal: 24, marginTop: 'auto' }}>
-      <View style={{ gap: 8 }}>
-        <Typography variant="body-base" weight="bold">
-          Email
-        </Typography>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoComplete="email"
-          autoCapitalize="none"
-        />
-      </View>
-      <View style={{ marginTop: 12, gap: 8 }}>
-        <Typography variant="body-base" weight="bold">
-          Password
-        </Typography>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="••••••••••••••••"
-          secureTextEntry
-          autoCapitalize="none"
-        />
-      </View>
+      <form.AppForm>
+        <View style={{ gap: 12 }}>
+          <form.AppField name="email">
+            {(field) => (
+              <field.TextField
+                label="Email"
+                placeholder="you@example.com"
+                keyboardType="email-address"
+                autoComplete="email"
+                autoCapitalize="none"
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="password">
+            {(field) => (
+              <field.TextField
+                label="Password"
+                placeholder="••••••••••••••••"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            )}
+          </form.AppField>
+        </View>
+      </form.AppForm>
       <Button
         style={{ marginTop: 24, marginBottom: 16 }}
         text="Log in!"

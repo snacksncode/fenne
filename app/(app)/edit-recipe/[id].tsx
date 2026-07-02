@@ -25,5 +25,5 @@ export default function NewRecipe() {
     );
   }
 
-  return <RecipeForm recipe={recipe.data} />;
+  return <RecipeForm recipe={recipe.data} mode="edit" />;
 }

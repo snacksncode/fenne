@@ -1,10 +1,7 @@
-import {
-  useAddRecipe,
-  useEditRecipe,
-} from '@/api/recipes';
+import { useAddRecipe, useEditRecipe } from '@/api/recipes';
 import { RecipeDTO, RecipeFormData, recipeFromFormData, recipeToFormData, IngredientFormData, MealType } from '@/api/types';
 import { Button } from '@/components/button';
-import { NumberInput, TextInput } from '@/components/input';
+import { useAppForm } from '@/components/form/app-form';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, Trash2, Save } from 'lucide-react-native';
@@ -16,7 +13,7 @@ import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
 import { EnrichedTextInputInstance } from 'react-native-enriched';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import Animated, {
   Extrapolation,
   FadeOut,
@@ -37,6 +34,7 @@ import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { parseLocaleFloat } from '@/utils';
 import { tempId } from '@/api/optimistic';
+import { z } from 'zod';
 
 const SCREEN_TRANSITION_DURATION_MS = 600;
 
@@ -72,6 +70,7 @@ const IngredientItem = ({
   const swipeRef = useRef<SwipeableMethods>(null);
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const displayName = ingredient.name_override?.trim() || ingredient.product?.name || ingredient.productDraft?.name || ingredient.name;
 
   const closeSwipeable = () => swipeRef.current?.close();
 
@@ -106,8 +105,13 @@ const IngredientItem = ({
       >
         <Animated.View style={scaleStyle}>
           <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-            {ingredient.name}
+            {displayName}
           </Typography>
+          {ingredient.product && ingredient.product.name !== displayName && (
+            <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
+              Item: {ingredient.product.name}
+            </Typography>
+          )}
           {ingredient.quantity && (
             <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
               {ingredient.quantity}{' '}
@@ -206,106 +210,99 @@ const emptyRecipeFormData: RecipeFormData = {
   time_in_minutes: '',
 };
 
-export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
+const validIngredient = (ingredient: IngredientFormData) => {
+  if (parseLocaleFloat(ingredient.quantity) <= 0) return false;
+  if (ingredient.product_id || ingredient.productDraft) return true;
+  return false;
+};
+
+const recipeSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1, 'Name is required'),
+  ingredients: z.custom<IngredientFormData[]>().refine((ingredients) => ingredients.length > 0, 'Add at least one ingredient')
+    .refine((ingredients) => ingredients.every(validIngredient), 'Every ingredient needs an item and quantity'),
+  liked: z.boolean(),
+  meal_types: z.custom<MealType[]>().refine((mealTypes) => mealTypes.length > 0, 'Pick at least one meal type'),
+  notes: z.string(),
+  time_in_minutes: z.string().refine((value) => {
+    const time = parseLocaleFloat(value);
+    return Number.isFinite(time) && time > 0;
+  }, 'Cooking time is required'),
+});
+
+export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { recipe?: RecipeDTO; mode?: 'create' | 'edit' }) {
   const navigation = useNavigation();
+  const sheets = useSheets();
   const nameInputRef = useRef<TextInputType>(null);
   const notesEditorRef = useRef<EnrichedTextInputInstance>(null);
   const insets = useSafeAreaInsets();
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
-  const [formData, setFormData] = useState<RecipeFormData>(() => {
-    if (!recipe) return emptyRecipeFormData;
-    return recipeToFormData(recipe);
+  const form = useAppForm({
+    defaultValues: recipe ? recipeToFormData(recipe) : emptyRecipeFormData,
+    validators: {
+      onSubmit: recipeSchema,
+    },
+    onSubmit: async ({ value }) => {
+      Keyboard.dismiss();
+      const notes = ((await notesEditorRef.current?.getHTML()) ?? '')
+        .replaceAll(/<h[456]>/g, '<p>')
+        .replaceAll(/<\/h[456]>/g, '</p>');
+
+      const handleSuccess = () => navigation.goBack();
+      const recipeData = recipeFromFormData({ ...value, notes });
+      if (recipe) return editRecipe.mutate({ ...recipeData, id: recipe.id }, { onSuccess: handleSuccess });
+      addRecipe.mutate(recipeData, { onSuccess: handleSuccess });
+    },
   });
 
   useMount(() => {
     const id = setTimeout(() => {
-      if (isEmptyish(formData.name)) nameInputRef.current?.focus();
+      if (isEmptyish(form.state.values.name)) nameInputRef.current?.focus();
     }, SCREEN_TRANSITION_DURATION_MS);
     return () => clearTimeout(id);
   });
 
   const handleSaveIngredient = (ingredient: IngredientFormData) => {
-    setFormData((prevFormData) => {
-      const { ingredients } = prevFormData;
-      const _ingredient = ingredients.find((i) => i.id === ingredient.id);
-      if (!_ingredient) return { ...prevFormData, ingredients: [...ingredients, ingredient] };
-      return {
-        ...prevFormData,
-        ingredients: ingredients.map((i) => (i.id !== ingredient.id ? i : ingredient)),
-      };
-    });
+    const { ingredients } = form.state.values;
+    const existingIngredient = ingredients.find((item) => item.id === ingredient.id);
+    form.setFieldValue(
+      'ingredients',
+      existingIngredient ? ingredients.map((item) => (item.id !== ingredient.id ? item : ingredient)) : [...ingredients, ingredient]
+    );
   };
 
   const handleAddIngredient = async () => {
     Keyboard.dismiss();
     notesEditorRef.current?.blur();
-    const result = await SheetManager.show('edit-ingredient-sheet');
-    if (result) handleSaveIngredient(result);
+    const ingredient = await sheets.present('edit-ingredient-sheet', { data: { mode } });
+    if (ingredient != null) handleSaveIngredient(ingredient);
   };
 
   const handleEditIngredient = async (ingredient: IngredientFormData) => {
     Keyboard.dismiss();
     notesEditorRef.current?.blur();
-    const result = await SheetManager.show('edit-ingredient-sheet', { payload: { ingredient } });
-    if (result) handleSaveIngredient(result);
+    const updatedIngredient = await sheets.present('edit-ingredient-sheet', { data: { mode, ingredient } });
+    if (updatedIngredient != null) handleSaveIngredient(updatedIngredient);
   };
 
   const handleDeleteIngredient = (ingredient: IngredientFormData) => {
-    setFormData((prevFormData) => {
-      const { ingredients } = prevFormData;
-      return {
-        ...prevFormData,
-        ingredients: ingredients.filter((item) => item.id !== ingredient.id),
-      };
-    });
-  };
-
-  const setRecipeName = (newName: string) => {
-    setFormData((prevFormData) => ({ ...prevFormData, name: newName }));
-  };
-
-  const setTimeInMinutes = (newTime: string) => {
-    setFormData((prevFormData) => ({ ...prevFormData, time_in_minutes: newTime }));
+    form.setFieldValue(
+      'ingredients',
+      form.state.values.ingredients.filter((item) => item.id !== ingredient.id)
+    );
   };
 
   const toggleMealType = (mealType: MealType) => {
-    setFormData((prevFormData) => {
-      const { meal_types } = prevFormData;
-      if (meal_types.includes(mealType)) {
-        return {
-          ...prevFormData,
-          meal_types: meal_types.filter((type) => type !== mealType),
-        };
-      }
-
-      return {
-        ...prevFormData,
-        meal_types: [...meal_types, mealType],
-      };
-    });
+    const { meal_types } = form.state.values;
+    form.setFieldValue(
+      'meal_types',
+      meal_types.includes(mealType) ? meal_types.filter((type) => type !== mealType) : [...meal_types, mealType]
+    );
   };
 
   const handleSubmit = async () => {
-    Keyboard.dismiss();
-    if (
-      !formData.name.trim() ||
-      !parseLocaleFloat(formData.time_in_minutes) ||
-      isEmptyish(formData.meal_types) ||
-      isEmptyish(formData.ingredients)
-    ) {
-      return alert('Please fill in all required fields');
-    }
-
-    const notes = ((await notesEditorRef.current?.getHTML()) ?? '')
-      .replaceAll(/<h[456]>/g, '<p>')
-      .replaceAll(/<\/h[456]>/g, '</p>');
-
-    const handleSuccess = () => navigation.goBack();
-
-    const recipeData = recipeFromFormData({ ...formData, notes });
-    if (recipe) return editRecipe.mutate(recipeData, { onSuccess: handleSuccess });
-    addRecipe.mutate(recipeData, { onSuccess: handleSuccess });
+    await form.handleSubmit();
   };
 
   return (
@@ -332,78 +329,77 @@ export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
         contentContainerStyle={{ gap: 16, paddingBottom: 20 }}
         bottomOffset={150}
       >
-        <View>
-          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-            Name
-          </Typography>
-          <TextInput
-            ref={nameInputRef}
-            placeholder="e.g. Avocado Toast"
-            value={formData.name}
-            onChangeText={setRecipeName}
-          />
-        </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-            Cooking time (in minutes)
-          </Typography>
-          <NumberInput value={formData.time_in_minutes} onChangeText={setTimeInMinutes} placeholder="e.g. 30" />
-        </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-            Meal type
-          </Typography>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Button
-              onPress={() => toggleMealType('breakfast')}
-              leftIcon={{ Icon: Pancake }}
-              text="Breakfast"
-              variant={formData.meal_types.includes('breakfast') ? 'primary' : 'outlined'}
-              size="small"
-              style={{ flex: 1 }}
-            />
-            <Button
-              onPress={() => toggleMealType('lunch')}
-              leftIcon={{ Icon: Salad }}
-              text="Lunch"
-              variant={formData.meal_types.includes('lunch') ? 'primary' : 'outlined'}
-              size="small"
-              style={{ flex: 1 }}
-            />
-            <Button
-              onPress={() => toggleMealType('dinner')}
-              leftIcon={{ Icon: Ham }}
-              text="Dinner"
-              variant={formData.meal_types.includes('dinner') ? 'primary' : 'outlined'}
-              size="small"
-              style={{ flex: 1 }}
-            />
+        <form.AppForm>
+          <form.AppField name="name">
+            {(field) => <field.TextField ref={nameInputRef} label="Name" placeholder="e.g. Avocado Toast" />}
+          </form.AppField>
+          <form.AppField name="time_in_minutes">
+            {(field) => <field.NumberField label="Cooking time (in minutes)" placeholder="e.g. 30" />}
+          </form.AppField>
+          <form.Subscribe selector={(state) => state.values.meal_types}>
+            {(mealTypes) => (
+              <View>
+                <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+                  Meal type
+                </Typography>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button
+                    onPress={() => toggleMealType('breakfast')}
+                    leftIcon={{ Icon: Pancake }}
+                    text="Breakfast"
+                    variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    onPress={() => toggleMealType('lunch')}
+                    leftIcon={{ Icon: Salad }}
+                    text="Lunch"
+                    variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    onPress={() => toggleMealType('dinner')}
+                    leftIcon={{ Icon: Ham }}
+                    text="Dinner"
+                    variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </View>
+            )}
+          </form.Subscribe>
+          <form.Subscribe selector={(state) => state.values.ingredients}>
+            {(ingredients) => (
+              <View>
+                <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+                  Ingredients
+                </Typography>
+                <IngredientsList
+                  ingredients={ingredients}
+                  handleAddIngredient={handleAddIngredient}
+                  onIngredientEdit={handleEditIngredient}
+                  onIngredientDelete={handleDeleteIngredient}
+                />
+                <Button
+                  text="Add ingredient"
+                  variant="outlined"
+                  leftIcon={{ Icon: CirclePlus }}
+                  onPress={handleAddIngredient}
+                  style={{ marginTop: 8 }}
+                />
+              </View>
+            )}
+          </form.Subscribe>
+          <View>
+            <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
+              Notes
+            </Typography>
+            <NotesEditor ref={notesEditorRef} defaultValue={recipe?.notes} />
           </View>
-        </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-            Ingredients
-          </Typography>
-          <IngredientsList
-            ingredients={formData.ingredients}
-            handleAddIngredient={handleAddIngredient}
-            onIngredientEdit={handleEditIngredient}
-            onIngredientDelete={handleDeleteIngredient}
-          />
-          <Button
-            text="Add ingredient"
-            variant="outlined"
-            leftIcon={{ Icon: CirclePlus }}
-            onPress={handleAddIngredient}
-            style={{ marginTop: 8 }}
-          />
-        </View>
-        <View>
-          <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-            Notes
-          </Typography>
-          <NotesEditor ref={notesEditorRef} defaultValue={recipe?.notes} />
-        </View>
+        </form.AppForm>
       </KeyboardAwareScrollView>
       <View
         style={{

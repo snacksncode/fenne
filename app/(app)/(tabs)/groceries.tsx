@@ -40,7 +40,7 @@ import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda'
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
 type AisleDTO = {
@@ -199,6 +199,7 @@ const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void
 };
 
 const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
+  const sheets = useSheets();
   const swipeRef = useRef<SwipeableMethods>(null);
   const editGroceryItem = useEditGroceryItem();
   const deleteGroceryItem = useDeleteGroceryItem();
@@ -227,7 +228,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
   const closeSwipeable = () => swipeRef.current?.close();
   const handleEdit = () => {
     closeSwipeable();
-    SheetManager.show('grocery-item-sheet', { payload: { grocery: _item } });
+    sheets.present('grocery-item-sheet', { data: { grocery: _item } });
   };
   const onRemove = () => {
     deleteGroceryItem.mutate({ id: _item.id });
@@ -401,6 +402,7 @@ const parseAisles = (groceries: GroceryItemDTO[]): ListItem[] => {
 
 const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIsExpanded: (v: boolean) => void }) => {
   const insets = useSafeAreaInsets();
+  const sheets = useSheets();
   const groceries = useGroceries();
   const groceryCheckout = useGroceryCheckout();
 
@@ -475,7 +477,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
             >
               <Button
                 variant="outlined"
-                onPress={() => SheetManager.show('grocery-item-sheet')}
+                onPress={() => sheets.present('grocery-item-sheet')}
                 leftIcon={{ Icon: CirclePlus }}
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
@@ -497,7 +499,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                   variant="outlined"
                   onPress={() => {
                     setIsExpanded(false);
-                    SheetManager.show('add-from-recipe-sheet');
+                    sheets.present('add-from-recipe-sheet');
                   }}
                   text="Add from Recipe"
                   leftIcon={{ Icon: CookingPot }}
@@ -508,7 +510,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                   variant="outlined"
                   onPress={() => {
                     setIsExpanded(false);
-                    SheetManager.show('select-date-range-sheet');
+                    sheets.present('select-date-range-sheet');
                   }}
                   text="Generate from Menu"
                   leftIcon={{ Icon: WandSparkles }}
@@ -519,7 +521,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                   variant="primary"
                   onPress={() => {
                     setIsExpanded(false);
-                    SheetManager.show('grocery-item-sheet');
+                    sheets.present('grocery-item-sheet');
                   }}
                   text="What's missing?"
                   leftIcon={{ Icon: ListPlus }}

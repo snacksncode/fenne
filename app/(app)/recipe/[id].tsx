@@ -165,40 +165,51 @@ export default function RecipePreview() {
               overflow: 'hidden',
             }}
           >
-            {ingredients.map((ingredient, index) => (
-              <View
-                key={ingredient.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  ...(index > 0 && { borderTopWidth: 1, borderColor: colors.brown[900] }),
-                }}
-              >
-                <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
-                  {ingredient.name}
-                </Typography>
-                {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
-                  <View
-                    style={{
-                      borderRadius: 999,
-                      height: 24,
-                      paddingHorizontal: 6,
-                      backgroundColor: colors.orange[500],
-                      borderWidth: 2,
-                      borderBottomWidth: 3,
-                      borderColor: colors.orange[600],
-                    }}
-                  >
-                    <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-                      {ingredient.quantity} {prettyUnit(ingredient)}
+            {ingredients.map((ingredient, index) => {
+              const displayName = ingredient.name_override?.trim() || ingredient.name || ingredient.product.name;
+              const ingredientKey = ingredient.id || `${ingredient.product_id}-${ingredient.unit}-${ingredient.quantity}-${index}`;
+              return (
+                <View
+                  key={ingredientKey}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    ...(index > 0 && { borderTopWidth: 1, borderColor: colors.brown[900] }),
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+                      {displayName}
                     </Typography>
+                    {ingredient.product.name !== displayName && (
+                      <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
+                        Item: {ingredient.product.name}
+                      </Typography>
+                    )}
                   </View>
-                )}
-              </View>
-            ))}
+                  {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
+                    <View
+                      style={{
+                        borderRadius: 999,
+                        height: 24,
+                        paddingHorizontal: 6,
+                        backgroundColor: colors.orange[500],
+                        borderWidth: 2,
+                        borderBottomWidth: 3,
+                        borderColor: colors.orange[600],
+                      }}
+                    >
+                      <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
+                        {ingredient.quantity} {prettyUnit(ingredient)}
+                      </Typography>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         </View>
 

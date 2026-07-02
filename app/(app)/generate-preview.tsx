@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MealType, PreviewIngredientDTO, PreviewRecipeDTO } from '@/api/types';
+import { GroceryPreviewDTO, GroceryPreviewProductRowDTO, MealType } from '@/api/types';
 import { useGenerateGroceryItems, useGroceryPreview } from '@/api/groceries';
 import { parseISO } from '@/date-tools';
 import { Typography } from '@/components/Typography';
@@ -10,12 +10,13 @@ import { Checkbox, useCheckbox } from '@/components/checkbox';
 import { scheduleOnUI } from 'react-native-worklets';
 import { colors } from '@/constants/colors';
 import { Pancake } from '@/components/svgs/pancake';
-import { ChevronLeft, WandSparkles, Ham, Salad } from 'lucide-react-native';
+import { BellRing, ChevronLeft, ShoppingBasket, WandSparkles, Ham, Salad } from 'lucide-react-native';
 import { format } from 'date-fns';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { useState } from 'react';
 import { isEmptyish } from 'remeda';
 import { prettyUnit } from '@/utils/unit-formatters';
+import { useAppForm } from '@/components/form/app-form';
+import { z } from 'zod';
 
 // ─── Recipe Icon ──────────────────────────────────────────────────────────────
 
@@ -56,13 +57,14 @@ const Count = ({ count }: { count: number }) => {
 
 // ─── IngredientRow ─────────────────────────────────────────────────────────────
 
-type IngredientRowProps = {
-  ingredient: PreviewIngredientDTO;
+type ProductRowProps = {
+  productRow: GroceryPreviewProductRowDTO;
   isChecked: boolean;
   onToggle: (id: string) => void;
+  description: string;
 };
 
-const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) => {
+const ProductRow = ({ productRow, isChecked, onToggle, description }: ProductRowProps) => {
   const { progress } = useCheckbox(isChecked);
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -75,16 +77,23 @@ const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) 
       <Pressable
         onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.9)))}
         onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
-        onPress={() => onToggle(ingredient.id)}
+        onPress={() => onToggle(productRow.product_id)}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}
       >
         <Animated.View style={scaleStyle}>
           <Checkbox progress={progress} />
         </Animated.View>
-        <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
-          {ingredient.name}
-        </Typography>
-        {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
+        <View style={{ flex: 1, gap: 2 }}>
+          <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+            {productRow.product.name}
+          </Typography>
+          {description.length > 0 && (
+            <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+              {description}
+            </Typography>
+          )}
+        </View>
+        {!(productRow.quantity === 1 && productRow.unit === 'count') && (
           <View
             style={{
               borderRadius: 999,
@@ -98,7 +107,7 @@ const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) 
             }}
           >
             <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-              {ingredient.quantity} {prettyUnit(ingredient)}
+              {productRow.quantity} {prettyUnit(productRow)}
             </Typography>
           </View>
         )}
@@ -107,43 +116,118 @@ const IngredientRow = ({ ingredient, isChecked, onToggle }: IngredientRowProps) 
   );
 };
 
+type ProductSectionProps = {
+  title: string;
+  description: string;
+  icon: typeof BellRing;
+  products: GroceryPreviewProductRowDTO[];
+  selectedProductIds: Set<string>;
+  onToggle: (id: string) => void;
+  getDescription: (productRow: GroceryPreviewProductRowDTO) => string;
+};
+
+const ProductSection = ({
+  title,
+  description,
+  icon: Icon,
+  products,
+  selectedProductIds,
+  onToggle,
+  getDescription,
+}: ProductSectionProps) => {
+  if (isEmptyish(products)) return null;
+
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Icon size={22} color={colors.brown[800]} />
+        <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
+          {title}
+        </Typography>
+      </View>
+      <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+        {description}
+      </Typography>
+      <View
+        style={{
+          backgroundColor: '#FEF2DD',
+          borderWidth: 1,
+          borderBottomWidth: 2,
+          borderColor: colors.brown[900],
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
+        {products.map((productRow) => (
+          <ProductRow
+            key={productRow.product_id}
+            productRow={productRow}
+            isChecked={selectedProductIds.has(productRow.product_id)}
+            onToggle={onToggle}
+            description={getDescription(productRow)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const recipeDescription = (productRow: GroceryPreviewProductRowDTO) =>
+  productRow.recipes.map((recipe) => recipe.name).join(', ');
+
+const reminderDescription = (productRow: GroceryPreviewProductRowDTO) => {
+  const value = productRow.product.reminder_frequency_value;
+  const unit = productRow.product.reminder_frequency_unit;
+  const recipes = recipeDescription(productRow);
+  const reminder = value != null && unit != null ? `Reminder every ${value} ${unit}` : 'Reminder item';
+
+  return [reminder, recipes].filter(Boolean).join(' · ');
+};
+
 type ContentProps = {
-  recipes: PreviewRecipeDTO[];
+  preview: GroceryPreviewDTO;
   startDate: string;
   endDate: string;
 };
 
-const Content = ({ recipes, startDate, endDate }: ContentProps) => {
+const groceryGenerationSchema = z.object({
+  checked_product_ids: z.array(z.string()),
+});
+
+const Content = ({ preview, startDate, endDate }: ContentProps) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [selectedIds, setSelectedIds] = useState(() => new Set(recipes.flatMap((r) => r.ingredients.map((i) => i.id))));
-
-  const toggleIngredient = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const generateGroceryItems = useGenerateGroceryItems();
+  const form = useAppForm({
+    defaultValues: {
+      checked_product_ids: preview.products.filter((product) => product.checked).map((product) => product.product_id),
+    },
+    validators: {
+      onSubmit: groceryGenerationSchema,
+    },
+    onSubmit: ({ value }) => {
+      generateGroceryItems.mutate(
+        { start: startDate, end: endDate, checked_product_ids: value.checked_product_ids },
+        { onSuccess: () => router.back() }
+      );
+    },
+  });
 
-  const handleSubmit = () => {
-    const ingredients: Record<string, number> = {};
-    for (const recipe of recipes) {
-      for (const ingredient of recipe.ingredients) {
-        if (selectedIds.has(ingredient.id)) {
-          ingredients[ingredient.id] = 1;
-        }
-      }
-    }
-    generateGroceryItems.mutate({ start: startDate, end: endDate, ingredients }, { onSuccess: () => router.back() });
+  const toggleProduct = (productId: string) => {
+    const current = form.state.values.checked_product_ids;
+    const next = current.includes(productId)
+      ? current.filter((selectedId) => selectedId !== productId)
+      : [...current, productId];
+    form.setFieldValue('checked_product_ids', next);
   };
+
+  const reminderProducts = preview.products.filter(
+    (productRow) => productRow.running_low || productRow.product.shape === 'timed'
+  );
+  const shoppingProducts = preview.products.filter(
+    (productRow) => !(productRow.running_low || productRow.product.shape === 'timed')
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FEF7EA' }}>
@@ -166,52 +250,83 @@ const Content = ({ recipes, startDate, endDate }: ContentProps) => {
         </Typography>
       </View>
 
-      {/* Recipe list */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, gap: 32, paddingBottom: insets.bottom + 100 }}
-      >
-        {recipes.map((recipe) => (
-          <View key={recipe.id} style={{ gap: 4 }}>
-            {/* Recipe header */}
-            <View style={{ gap: 8, flexDirection: 'row', alignItems: 'center', flex: 1, marginBottom: 4 }}>
-              <Typography
-                variant="heading-sm"
-                weight="bold"
-                color={colors.brown[800]}
-                style={{ flex: 1, marginRight: '25%' }}
-              >
-                {recipe.name}
-              </Typography>
-              <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-end' }}>
-                <RecipeIcon mealType={recipe.meal_type} />
-                {recipe.amount > 1 && <Count count={recipe.amount} />}
-              </View>
-            </View>
+      <form.AppForm>
+        <form.Subscribe selector={(state) => state.values.checked_product_ids}>
+          {(checkedProductIds) => {
+            const selectedProductIds = new Set(checkedProductIds);
 
-            {/* Ingredients box */}
-            <View
-              style={{
-                backgroundColor: '#FEF2DD',
-                borderWidth: 1,
-                borderBottomWidth: 2,
-                borderColor: colors.brown[900],
-                borderRadius: 8,
-                overflow: 'hidden',
-              }}
-            >
-              {recipe.ingredients.map((ingredient) => (
-                <IngredientRow
-                  key={ingredient.id}
-                  ingredient={ingredient}
-                  isChecked={selectedIds.has(ingredient.id)}
-                  onToggle={toggleIngredient}
+            return (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 20,
+                  paddingTop: 16,
+                  gap: 32,
+                  paddingBottom: insets.bottom + 100,
+                }}
+              >
+                <ProductSection
+                  title="Do you have these?"
+                  description="Reminder items are optional. Check the ones you want added to this grocery list."
+                  icon={BellRing}
+                  products={reminderProducts}
+                  selectedProductIds={selectedProductIds}
+                  onToggle={toggleProduct}
+                  getDescription={reminderDescription}
                 />
-              ))}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+
+                <ProductSection
+                  title="Shopping list"
+                  description="These are the product quantities needed for the scheduled meals."
+                  icon={ShoppingBasket}
+                  products={shoppingProducts}
+                  selectedProductIds={selectedProductIds}
+                  onToggle={toggleProduct}
+                  getDescription={recipeDescription}
+                />
+
+                {isEmptyish(preview.products) && (
+                  <View
+                    style={{
+                      backgroundColor: '#FEF2DD',
+                      borderWidth: 1,
+                      borderBottomWidth: 2,
+                      borderColor: colors.brown[900],
+                      borderRadius: 8,
+                      padding: 20,
+                      gap: 4,
+                    }}
+                  >
+                    <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+                      Nothing to add
+                    </Typography>
+                    <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+                      The scheduled meals are covered by kitchen basics or pantry stock.
+                    </Typography>
+                  </View>
+                )}
+
+                {!isEmptyish(preview.recipes) && (
+                  <View style={{ gap: 8 }}>
+                    <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
+                      Meals included
+                    </Typography>
+                    {preview.recipes.map((recipe) => (
+                      <View key={recipe.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <RecipeIcon mealType={recipe.meal_type} />
+                        <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
+                          {recipe.name}
+                        </Typography>
+                        {recipe.amount > 1 && <Count count={recipe.amount} />}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            );
+          }}
+        </form.Subscribe>
+      </form.AppForm>
 
       {/* Bottom button */}
       <View
@@ -232,7 +347,7 @@ const Content = ({ recipes, startDate, endDate }: ContentProps) => {
           variant="primary"
           text="Generate"
           leftIcon={{ Icon: WandSparkles }}
-          onPress={handleSubmit}
+          onPress={() => form.handleSubmit()}
           isLoading={generateGroceryItems.isPending}
         />
       </View>
@@ -244,7 +359,7 @@ export default function GeneratePreview() {
   const { startDate, endDate } = useLocalSearchParams<{ startDate: string; endDate: string }>();
   const preview = useGroceryPreview({ start: startDate, end: endDate });
 
-  if (isEmptyish(preview.data)) {
+  if (preview.data == null) {
     return (
       <View style={{ flex: 1, backgroundColor: '#FEF7EA', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="small" color={colors.brown[900]} />
@@ -252,5 +367,5 @@ export default function GeneratePreview() {
     );
   }
 
-  return <Content recipes={preview.data} startDate={startDate} endDate={endDate} />;
+  return <Content preview={preview.data} startDate={startDate} endDate={endDate} />;
 }
