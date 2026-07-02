@@ -2,7 +2,6 @@ import { colors } from '@/constants/colors';
 import { ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
-import { MaskedTextInput } from 'react-native-advanced-input-mask';
 
 export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>) => {
   return (
@@ -15,21 +14,27 @@ export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>
   );
 };
 
-type NumberInputProps = Omit<
-  ComponentProps<typeof MaskedTextInput>,
-  'onChangeText' | 'keyboardType' | 'mask' | 'allowedKeys' | 'autocomplete' | 'validationRegex'
-> & {
+type NumberInputProps = Omit<ComponentProps<typeof _TextInput>, 'onChangeText' | 'keyboardType'> & {
   onChangeText: (value: string) => void;
 };
 
-export const NumberInput = ({ onChangeText, onBlur, style, ...props }: NumberInputProps) => (
-  <MaskedTextInput
-    mask="[099999999].[099]"
-    allowedKeys="0123456789.,"
-    validationRegex={'^(?!.*[.,].*[.,])(?!0\\d)\\d*[.,]?\\d*$'}
-    autocomplete={false}
+const cleanNumberText = (value: string) => {
+  const digitsAndSeparators = value.replace(/[^0-9.,]/g, '');
+  const separatorIndex = digitsAndSeparators.search(/[.,]/);
+
+  if (separatorIndex === -1) return digitsAndSeparators;
+
+  const before = digitsAndSeparators.slice(0, separatorIndex);
+  const separator = digitsAndSeparators[separatorIndex];
+  const after = digitsAndSeparators.slice(separatorIndex + 1).replace(/[.,]/g, '');
+
+  return `${before}${separator}${after}`;
+};
+
+export const NumberInput = ({ onChangeText, style, ...props }: NumberInputProps) => (
+  <_TextInput
     keyboardType="decimal-pad"
-    onChangeText={onChangeText}
+    onChangeText={(value) => onChangeText(cleanNumberText(value))}
     placeholderTextColor={colors.brown[800] + 'C0'}
     autoCorrect={false}
     style={[styles.input, style]}
