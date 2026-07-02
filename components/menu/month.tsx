@@ -142,11 +142,11 @@ const Day = memo(function Day({
           ...(isHighlighted && { borderColor: colors.green[600], borderWidth: 2, borderBottomWidth: 3 }),
         }}
       />
-       <View style={{ ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }) }}>
-         <Typography variant="body-base" weight="black" style={{ zIndex: 1 }}>
-           {format(date, 'd')}
-         </Typography>
-       </View>
+      <View style={{ ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }) }}>
+        <Typography variant="body-base" weight="black" style={{ zIndex: 1 }}>
+          {format(date, 'd')}
+        </Typography>
+      </View>
       <View
         style={{
           flexDirection: 'row',
@@ -195,16 +195,11 @@ export const Month = memo(function Month({
           marginBottom: 8,
         }}
       >
-         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((weekday) => (
-           <Typography
-             key={weekday}
-             variant="body-xs"
-             weight="medium"
-             style={{ flex: 1, textAlign: 'center' }}
-           >
-             {weekday}
-           </Typography>
-         ))}
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((weekday) => (
+          <Typography key={weekday} variant="body-xs" weight="medium" style={{ flex: 1, textAlign: 'center' }}>
+            {weekday}
+          </Typography>
+        ))}
       </View>
       <View style={{ gap: 6 }}>
         {weeks.map((week, index) => {

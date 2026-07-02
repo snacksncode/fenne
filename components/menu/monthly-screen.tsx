@@ -25,7 +25,7 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmpty, pipe } from 'remeda';
 import { useBackToToday } from '@/components/menu/shared';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { Month } from '@/components/menu/month';
 import { colors } from '@/constants/colors';
 
@@ -41,6 +41,7 @@ const Item = memo(function Item({
   dateString: string;
 }) {
   const navigation = useNavigation<Navigation>();
+  const sheets = useSheets();
   const setScrollTarget = useSetAtom(scrollTargetAtom);
   const startOfMonthDate = startOfMonth(parseISO(dateString));
 
@@ -73,7 +74,7 @@ const Item = memo(function Item({
           navigation.navigate('Weekly');
         }}
         onDayLongPress={({ dateString }) => {
-          SheetManager.show('edit-calendar-day-sheet', { payload: { dateString, navigation } });
+          sheets.present('edit-calendar-day-sheet', { data: { dateString, navigation } });
         }}
       />
     </View>

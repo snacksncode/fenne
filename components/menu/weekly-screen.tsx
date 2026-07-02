@@ -34,7 +34,7 @@ import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import { Button } from '@/components/button';
 import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
 import { useBackToToday } from '@/components/menu/shared';
-import { SheetManager } from 'react-native-actions-sheet';
+import { useSheets } from '@/lib/sheet-context';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -171,6 +171,7 @@ export function getThreeWeekSlice(today: Date) {
 
 const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealType }; dateString: string }) => {
   const router = useRouter();
+  const sheets = useSheets();
   return (
     <PressableWithHaptics
       onPress={
@@ -179,8 +180,8 @@ const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealTy
           : undefined
       }
       onLongPress={() => {
-        SheetManager.show('edit-meal-sheet', {
-          payload: { data: { ...entry, dateString } },
+        sheets.present('edit-meal-sheet', {
+          data: { entry: { ...entry, dateString } },
         });
       }}
       style={{ gap: 2 }}
@@ -204,6 +205,7 @@ export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDa
 };
 
 const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
+  const sheets = useSheets();
   const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const entries = [
     data.breakfast ? { ...data.breakfast, mealType: 'breakfast' as const } : null,
@@ -212,8 +214,8 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
   ].filter(isTruthy);
 
   const onPress = () => {
-    SheetManager.show('schedule-meal-sheet', {
-      payload: { type: 'meal', dateString: data.date },
+    sheets.present('schedule-meal-sheet', {
+      data: { type: 'meal', dateString: data.date },
     });
   };
 
@@ -334,11 +336,12 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
 };
 
 const Day = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | undefined }) => {
+  const sheets = useSheets();
   if (!data) return <DayCardSkeleton />;
 
   if (!data.breakfast && !data.lunch && !data.dinner) {
     const onPress = () => {
-      SheetManager.show('schedule-meal-sheet', { payload: { type: 'meal', dateString } });
+      sheets.present('schedule-meal-sheet', { data: { type: 'meal', dateString } });
     };
     return <EmptyDayCard onPress={onPress} />;
   }

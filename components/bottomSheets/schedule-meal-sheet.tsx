@@ -1,32 +1,13 @@
-import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Pancake } from '@/components/svgs/pancake';
 import { Typography } from '@/components/Typography';
 import { parseISO } from '@/date-tools';
-import { SheetManager, SheetProps, ScrollView } from 'react-native-actions-sheet';
+import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { format } from 'date-fns';
-import {
-  BookMarked,
-  CalendarClock,
-  Check,
-  ChefHat,
-  ChevronLeft,
-  Funnel,
-  Ham,
-  Plus,
-  Salad,
-} from 'lucide-react-native';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView as RNScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-  SlideInDown,
-  SlideOutDown,
-  useAnimatedStyle,
-} from 'react-native-reanimated';
-import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import { BookMarked, CalendarClock, Check, ChefHat, ChevronLeft, Funnel, Ham, Plus, Salad } from 'lucide-react-native';
+import { FunctionComponent, useRef, useState } from 'react';
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { recipesOptions, useRecipes } from '@/api/recipes';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMount } from '@/hooks/use-mount';
@@ -40,9 +21,11 @@ import { ensure } from '@/utils';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/button';
 import { sortRecipes, filterRecipes } from '@/utils/recipe-utils';
-import { useSheetClosing } from '@/hooks/use-sheet-closing';
 import { TextInput } from '@/components/input';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
+import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
+import { useAppForm } from '@/components/form/app-form';
+import { z } from 'zod';
 
 type MealTypeOption = {
   value: MealType;
@@ -55,6 +38,10 @@ const mealTypeOptions: MealTypeOption[] = [
   { value: 'lunch', label: 'Lunch', icon: Ham },
   { value: 'dinner', label: 'Dinner', icon: Salad },
 ];
+
+const diningOutSchema = z.object({
+  restaurant: z.string().trim().min(1, 'Place is required'),
+});
 
 const MealTypeButton = ({
   option,
@@ -78,24 +65,22 @@ const MealTypeButton = ({
   );
 };
 
-export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
-  const payload = ensure(props.payload);
+type ScheduleMealSheetContentProps = {
+  sheetId: SheetProps<'schedule-meal-sheet'>['sheetId'];
+  data: SheetProps<'schedule-meal-sheet'>['data'];
+};
+
+const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealSheetContentProps) => {
+  const sheets = useSheets();
   const recipes = useRecipes();
   const queryClient = useQueryClient();
   const updateScheduleDay = useUpdateScheduleDay();
   const router = useRouter();
-  const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const toolbarStyle = useAnimatedStyle(() => ({
-    bottom: Math.max(insets.bottom - 8, -keyboardHeight.value + 12),
-  }));
-
-  const [mode, setMode] = useState<'meal' | 'restaurant'>(payload.type);
+  const [mode, setMode] = useState<'meal' | 'restaurant'>(sheetData.type);
 
   const initialMealType = (() => {
-    if (payload.type === 'meal') return payload.mealType;
-    return payload.defaultMealType;
+    if (sheetData.type === 'meal') return sheetData.mealType;
+    return sheetData.defaultMealType;
   })();
 
   const [mealType, setMealType] = useState(initialMealType);
@@ -105,29 +90,33 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
     return initialMealType ? 'select-meal' : 'select-type';
   });
 
-  const scrollRef = useRef<RNScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const [search, setSearch] = useState('');
   const [mealFilter, setMealFilter] = useState<MealFilter>('all');
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const { isKeyboardOpen } = useKeyboardOpen();
 
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true));
-    const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardOpen(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  const [restaurant, setRestaurant] = useState(() => {
-    return payload.type === 'restaurant' ? (payload.defaultRestaurant ?? '') : '';
+  const restaurantForm = useAppForm({
+    defaultValues: {
+      restaurant: sheetData.type === 'restaurant' ? (sheetData.defaultRestaurant ?? '') : '',
+    },
+    validators: {
+      onSubmit: diningOutSchema,
+    },
+    onSubmit: ({ value }) => {
+      const type = ensure(mealType);
+      updateScheduleDay.mutate({
+        dateString: sheetData.dateString,
+        [type]: { type: 'dining_out', name: value.restaurant.trim() },
+        ...getSwapCleanup(),
+      });
+      Keyboard.dismiss();
+      sheets.dismissAll();
+    },
   });
-
-  const { isClosing, onBeforeClose } = useSheetClosing();
 
   useMount(() => void queryClient.prefetchQuery(recipesOptions));
 
-  const isEditingRestaurant = payload.type === 'restaurant' && !!payload.defaultRestaurant;
+  const isEditingRestaurant = sheetData.type === 'restaurant' && !!sheetData.defaultRestaurant;
 
   const getSwapCleanup = () => {
     if (originalMealType.current && originalMealType.current !== mealType) {
@@ -139,38 +128,31 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
   const handleMealSelect = (meal: RecipeDTO) => {
     const type = ensure(mealType);
     updateScheduleDay.mutate({
-      dateString: payload.dateString,
+      dateString: sheetData.dateString,
       [type]: { type: 'recipe', recipe_id: meal.id },
       ...getSwapCleanup(),
     });
-    SheetManager.hideAll();
-  };
-
-  const handleRestaurantConfirm = () => {
-    const type = ensure(mealType);
-    updateScheduleDay.mutate({
-      dateString: payload.dateString,
-      [type]: { type: 'dining_out', name: restaurant },
-      ...getSwapCleanup(),
-    });
-    Keyboard.dismiss();
-    SheetManager.hideAll();
+    sheets.dismissAll();
   };
 
   const handleGoToRecipes = async () => {
-    await SheetManager.hide(props.sheetId);
+    await sheets.dismiss(sheetId);
     router.push('/recipes');
   };
 
   const handleNewRecipe = async () => {
-    await SheetManager.hide(props.sheetId);
+    await sheets.dismiss(sheetId);
     router.push('/new-recipe');
   };
 
   const openFilterSheet = async () => {
-    const result = await SheetManager.show('recipe-filter-sheet', { payload: { current: mealFilter } });
-    if (result != null) {
-      setMealFilter(result);
+    const filter = await sheets.present('recipe-filter-sheet', {
+      data: {
+        current: mealFilter,
+      },
+    });
+    if (filter != null) {
+      setMealFilter(filter);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
@@ -183,142 +165,146 @@ export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
   const filteredRecipes = filterRecipes(recipes.data ?? [], { search: search || undefined, mealFilter });
   const sortedRecipes = sortRecipes(filteredRecipes, mealType ?? undefined);
   const hasRecipes = !isEmpty(recipes.data ?? []);
+  const isRecipeListStep = step === 'select-meal' && mode === 'meal' && hasRecipes;
 
   return (
     <BaseSheet
-      id={props.sheetId}
-      onBeforeClose={onBeforeClose}
-      extraOverlay={
-        hasRecipes && !isClosing && step === 'select-meal' && mode === 'meal' ? (
-          <Animated.View
-            entering={SlideInDown.springify()}
-            exiting={SlideOutDown.springify()}
-            style={[styles.toolbar, toolbarStyle]}
-          >
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search recipes..."
-              style={styles.searchInput}
-            />
-            <Button
-              onPress={openFilterSheet}
-              variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
-              leftIcon={{ Icon: Funnel }}
-              style={{ paddingHorizontal: 0, width: 48 }}
-            />
-            {keyboardOpen ? (
-              <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
-            ) : (
-              <Button onPress={handleNewRecipe} variant="primary" leftIcon={{ Icon: Plus }} />
-            )}
-          </Animated.View>
-        ) : undefined
-      }
-    >
-      <BaseSheet.Container noBottomGutter={step === 'select-meal' && mode === 'meal'}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-          {step === 'select-meal' && (
-            <PressableWithHaptics
-              onPress={() => {
-                setStep('select-type');
-                setSearch('');
-              }}
-              scaleTo={0.85}
-              style={{ marginRight: 4 }}
-            >
-              <ChevronLeft color={colors.brown[900]} size={22} />
-            </PressableWithHaptics>
-          )}
-          {mode === 'meal' ? (
-            <>
-              <CalendarClock color="#4A3E36" size={20} strokeWidth={2.5} />
-              <Typography variant="heading-sm" weight="bold">
-                {format(parseISO(payload.dateString), 'EEEE, MMM d')}
-              </Typography>
-              <PressableWithHaptics onPress={() => setMode('restaurant')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
-                <ChefHat color={colors.brown[900]} />
-              </PressableWithHaptics>
-            </>
-          ) : (
-            <>
-              <ChefHat color="#4A3E36" size={20} strokeWidth={2.5} />
-              <Typography variant="heading-sm" weight="bold">
-                {isEditingRestaurant ? 'Edit dining out?' : 'Dining out?'}
-              </Typography>
-              <PressableWithHaptics onPress={() => setMode('meal')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
-                <BookMarked color={colors.brown[900]} />
-              </PressableWithHaptics>
-            </>
-          )}
-        </View>
-
-        {/* Step 1: Meal type selection */}
-        {step === 'select-type' && (
-          <View style={{ gap: 8 }}>
-            {mealTypeOptions.map((option) => (
-              <MealTypeButton
-                key={option.value}
-                option={option}
-                isSelected={mealType === option.value}
-                onPress={() => handleMealTypePick(option.value)}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* Step 2: Recipe list or restaurant input */}
-        {step === 'select-meal' &&
-          (mode === 'meal' ? (
-            <ScrollView
-              ref={scrollRef}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-              style={{ maxHeight: windowHeight * 0.5 }}
-            >
-              <View style={{ gap: 8, paddingBottom: hasRecipes ? 88 : 0 }}>
-                {isEmpty(sortedRecipes) ? (
-                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
-                    <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
-                    <View style={{ alignItems: 'center', gap: 4 }}>
-                      <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
-                        {search ? 'No recipes match your search' : 'No recipes found'}
-                      </Typography>
-                      <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginBottom: 8 }}>
-                        {search ? 'Try a different search term' : 'Add some recipes to start planning your meals'}
-                      </Typography>
-                    </View>
-                    {!search && <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />}
-                  </View>
+      id={sheetId}
+      sizing={isRecipeListStep ? { type: 'scrollable', detents: [0.5, 1] } : { type: 'auto' }}
+      footer={
+        isRecipeListStep
+          ? sheetFooter.buttonRow(
+              <View style={styles.toolbar}>
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search recipes..."
+                  style={styles.searchInput}
+                />
+                <Button
+                  onPress={openFilterSheet}
+                  variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
+                  leftIcon={{ Icon: Funnel }}
+                  style={{ paddingHorizontal: 0, width: 48 }}
+                />
+                {isKeyboardOpen ? (
+                  <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
                 ) : (
-                  sortedRecipes.map((recipe) => (
-                    <Animated.View
-                      layout={LinearTransition.springify()}
-                      key={recipe.id}
-                      entering={FadeIn}
-                      exiting={FadeOut}
-                    >
-                      <Recipe recipe={recipe} onPress={() => handleMealSelect(recipe)} />
-                    </Animated.View>
-                  ))
+                  <Button onPress={handleNewRecipe} variant="primary" leftIcon={{ Icon: Plus }} />
                 )}
               </View>
-            </ScrollView>
-          ) : (
+            )
+          : undefined
+      }
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+        {step === 'select-meal' && (
+          <PressableWithHaptics
+            onPress={() => {
+              setStep('select-type');
+              setSearch('');
+            }}
+            scaleTo={0.85}
+            style={{ marginRight: 4 }}
+          >
+            <ChevronLeft color={colors.brown[900]} size={22} />
+          </PressableWithHaptics>
+        )}
+        {mode === 'meal' ? (
+          <>
+            <CalendarClock color="#4A3E36" size={20} strokeWidth={2.5} />
+            <Typography variant="heading-sm" weight="bold">
+              {format(parseISO(sheetData.dateString), 'EEEE, MMM d')}
+            </Typography>
+            <PressableWithHaptics onPress={() => setMode('restaurant')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
+              <ChefHat color={colors.brown[900]} />
+            </PressableWithHaptics>
+          </>
+        ) : (
+          <>
+            <ChefHat color="#4A3E36" size={20} strokeWidth={2.5} />
+            <Typography variant="heading-sm" weight="bold">
+              {isEditingRestaurant ? 'Edit dining out?' : 'Dining out?'}
+            </Typography>
+            <PressableWithHaptics onPress={() => setMode('meal')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
+              <BookMarked color={colors.brown[900]} />
+            </PressableWithHaptics>
+          </>
+        )}
+      </View>
+
+      {/* Step 1: Meal type selection */}
+      {step === 'select-type' && (
+        <View style={{ gap: 8 }}>
+          {mealTypeOptions.map((option) => (
+            <MealTypeButton
+              key={option.value}
+              option={option}
+              isSelected={mealType === option.value}
+              onPress={() => handleMealTypePick(option.value)}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Step 2: Recipe list or restaurant input */}
+      {step === 'select-meal' &&
+        (mode === 'meal' ? (
+          <ScrollView
+            ref={scrollRef}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
+            <View style={{ gap: 8, paddingBottom: hasRecipes ? 88 : 0 }}>
+              {isEmpty(sortedRecipes) ? (
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
+                  <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
+                  <View style={{ alignItems: 'center', gap: 4 }}>
+                    <Typography variant="body-lg" weight="bold" style={{ textAlign: 'center' }}>
+                      {search ? 'No recipes match your search' : 'No recipes found'}
+                    </Typography>
+                    <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginBottom: 8 }}>
+                      {search ? 'Try a different search term' : 'Add some recipes to start planning your meals'}
+                    </Typography>
+                  </View>
+                  {!search && <Button variant="primary" text="Go to Recipes" onPress={handleGoToRecipes} />}
+                </View>
+              ) : (
+                sortedRecipes.map((recipe) => (
+                  <Animated.View
+                    layout={LinearTransition.springify()}
+                    key={recipe.id}
+                    entering={FadeIn}
+                    exiting={FadeOut}
+                  >
+                    <Recipe recipe={recipe} onPress={() => handleMealSelect(recipe)} />
+                  </Animated.View>
+                ))
+              )}
+            </View>
+          </ScrollView>
+        ) : (
+          <restaurantForm.AppForm>
             <View>
-              <TextInput placeholder="What's the place?" value={restaurant} onChangeText={setRestaurant} />
+              <restaurantForm.AppField name="restaurant">
+                {(field) => <field.TextField placeholder="What's the place?" />}
+              </restaurantForm.AppField>
               <Button
                 variant="primary"
                 text={isEditingRestaurant ? 'Update' : 'Confirm'}
                 style={{ marginTop: 16 }}
-                onPress={handleRestaurantConfirm}
+                onPress={() => restaurantForm.handleSubmit()}
               />
             </View>
-          ))}
-      </BaseSheet.Container>
+          </restaurantForm.AppForm>
+        ))}
     </BaseSheet>
   );
+};
+
+export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
+  return <ScheduleMealSheetContent sheetId={props.sheetId} data={props.data} />;
 };
 
 const styles = StyleSheet.create({
@@ -338,9 +324,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brown[900],
   },
   toolbar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
