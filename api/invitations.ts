@@ -2,6 +2,7 @@ import { api } from '@/api';
 import { UserDTO } from '@/api/auth';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryClient } from '@/query-client';
+import { queryKeys } from '@/api/query-keys';
 
 export type InvitationDTO = {
   id: string;
@@ -15,7 +16,7 @@ export type InvitationsDTO = {
 };
 
 export const invitationsOptions = queryOptions({
-  queryKey: ['invitations'],
+  queryKey: queryKeys.invitations.all(),
   queryFn: api.invitations.getAll,
   staleTime: Infinity,
 });

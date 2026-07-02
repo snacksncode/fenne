@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEY } from '@/contexts/session';
 import { authSignal } from '@/api/auth-event';
 
-export const getBaseUrl = () => `api.fenneplanner.com`;
+export const getBaseUrl = () => `127.0.0.1:3069`;
 export class APIError extends Error {
   data: unknown;
   constructor(data: unknown) {
@@ -15,7 +15,10 @@ type RequestProps = ({ method: 'GET' | 'DELETE' } | { method: 'POST' | 'PATCH' |
   path: string;
 };
 
-const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T> => {
+export type V2SuccessResponse<T> = { status: 'success'; data: T; meta?: unknown };
+type V2Response<T> = V2SuccessResponse<T> | { status: 'error'; errors: unknown };
+
+const requestEnvelope = async <T>({ path, ...requestDetails }: RequestProps): Promise<V2SuccessResponse<T>> => {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
 
   const headers = {
@@ -23,7 +26,7 @@ const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T>
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
-  const url = `https://${getBaseUrl()}${path}`;
+  const url = `http://${getBaseUrl()}/v2${path}`;
   const options: RequestInit = {
     method: requestDetails.method,
     headers,
@@ -33,14 +36,21 @@ const request = async <T>({ path, ...requestDetails }: RequestProps): Promise<T>
   const res = await fetch(url, options);
   if (res.status === 401 && SecureStore.getItem(TOKEN_KEY) != null) {
     authSignal.handleUnauthorized();
-    return {} as T;
+    return { status: 'success', data: {} as T };
   }
   if (!res.ok) {
     const json = await res.json();
-    throw new APIError(json);
+    throw new APIError(json?.errors ?? json);
   }
-  if (res.status === 204) return {} as T; // stupid patch
-  return res.json();
+  if (res.status === 204) return { status: 'success', data: {} as T }; // stupid patch
+  const json = (await res.json()) as V2Response<T>;
+  if (json.status === 'error') throw new APIError(json.errors);
+  return json;
+};
+
+const request = async <T>(props: RequestProps): Promise<T> => {
+  const json = await requestEnvelope<T>(props);
+  return json.data;
 };
 
 export const client = {
@@ -49,4 +59,5 @@ export const client = {
   patch: <T = any>(path: string, body?: any) => request<T>({ method: 'PATCH', path, body }),
   put: <T = any>(path: string, body?: any) => request<T>({ method: 'PUT', path, body }),
   delete: <T = any>(path: string) => request<T>({ method: 'DELETE', path }),
+  deleteWithMeta: <T = any>(path: string) => requestEnvelope<T>({ method: 'DELETE', path }),
 };

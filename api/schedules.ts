@@ -7,10 +7,11 @@ import { recipesOptions } from '@/api/recipes';
 import { useRef } from 'react';
 import { tempId, useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
+import { queryKeys } from '@/api/query-keys';
 
 export const scheduleOptions = (weekKey: string) => {
   return queryOptions({
-    queryKey: ['schedule', weekKey] as const,
+    queryKey: queryKeys.schedules.week(weekKey),
     queryFn: () => api.schedules.get(weekKey),
     staleTime: Infinity,
   });
@@ -112,7 +113,7 @@ export const useDeleteScheduleEntry = () => {
       if (context) revert(context);
     },
     onSettled: (_data, _error, { dateString }) => {
-      queryClient.invalidateQueries({ queryKey: scheduleOptions(getISOWeekString(dateString)).queryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules.week(getISOWeekString(dateString)) });
     },
   });
 };

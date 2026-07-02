@@ -1,10 +1,11 @@
 import { api } from '@/api';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOptimisticUpdate, tempId } from '@/api/optimistic';
+import { useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
+import { queryKeys } from '@/api/query-keys';
 
 export const groceriesOptions = queryOptions({
-  queryKey: ['groceries'] as const,
+  queryKey: queryKeys.groceries.all(),
   queryFn: api.groceries.getAll,
   staleTime: Infinity,
 });
@@ -15,7 +16,7 @@ export const useGroceries = () => {
 
 export const groceryPreviewOptions = (start: string, end: string) =>
   queryOptions({
-    queryKey: ['grocery-preview', start, end] as const,
+    queryKey: queryKeys.groceries.preview(start, end),
     queryFn: () => api.groceries.preview({ start, end }),
   });
 
@@ -48,32 +49,21 @@ export const useEditGroceryItem = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
     },
   });
 };
 
 queryClient.setMutationDefaults(['addGroceryItem'], { mutationFn: api.groceries.add });
 export const useAddGroceryItem = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: ['addGroceryItem'],
     mutationFn: api.groceries.add,
-    onMutate: async (newItemData) => {
-      const { previousData } = await update({
-        queryKey: groceriesOptions.queryKey,
-        updateFn: (state) => {
-          state.push({ ...newItemData, id: tempId() });
-        },
-      });
-      return { previousData, queryKey: groceriesOptions.queryKey };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
     onSettled: () => {
       queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
     },
   });
 };
@@ -84,7 +74,10 @@ export const useGenerateGroceryItems = () => {
   return useMutation({
     mutationKey: ['generateGroceryItems'],
     mutationFn: api.groceries.generate,
-    onSettled: () => queryClient.invalidateQueries(groceriesOptions),
+    onSettled: () => {
+      queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+    },
   });
 };
 
@@ -106,7 +99,8 @@ export const useDeleteGroceryItem = () => {
       if (context) revert(context);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
     },
   });
 };
@@ -129,7 +123,8 @@ export const useGroceryCheckout = () => {
       if (context) revert(context);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: groceriesOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
     },
   });
 };

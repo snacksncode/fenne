@@ -2,10 +2,23 @@ import { first, isDefined, last, pickBy } from 'remeda';
 import { client } from '@/api/client';
 import { getDatesFromISOWeek } from '@/date-tools';
 import { ensure } from '@/utils';
-import { AisleCategory, GroceryItemDTO, PreviewRecipeDTO, RecipeDTO, MealType, ScheduleDayDTO, ScheduleDayInput } from '@/api/types';
+import {
+  GroceryItemDTO,
+  GroceryItemInput,
+  GroceryPreviewDTO,
+  ProductSearchResult,
+  RecipeDTO,
+  RecipeInputDTO,
+  MealType,
+  ScheduleDayDTO,
+  ScheduleDayInput,
+  ProductDTO,
+  ProductDraft,
+  PantryEntryDTO,
+  ConsumptionLogDTO,
+} from '@/api/types';
 import { AuthResponse, CurrentUserDTO, UnitPreference } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
-import { IngredientOption } from '@/api/food-items';
 
 export const api = {
   auth: {
@@ -25,7 +38,7 @@ export const api = {
       return client.post('/change_password', data);
     },
     changeDetails: (data: { name?: string; email?: string }) => {
-      return client.post('/change_details', { data });
+      return client.post('/change_details', data);
     },
     deleteAccount: () => {
       return client.delete('/delete_account');
@@ -35,22 +48,22 @@ export const api = {
     getAll: () => {
       return client.get<GroceryItemDTO[]>('/grocery_items');
     },
-    add: (itemData: Omit<GroceryItemDTO, 'id'>) => {
-      return client.post('/grocery_items', { data: itemData });
+    add: (itemData: GroceryItemInput) => {
+      return client.post<GroceryItemDTO>('/grocery_items', itemData);
     },
-    edit: (data: Partial<GroceryItemDTO>) => {
+    edit: (data: Pick<GroceryItemDTO, 'id'> & Partial<Pick<GroceryItemDTO, 'quantity' | 'unit' | 'status'>>) => {
       const { id, ...itemData } = data;
-      return client.patch(`/grocery_items/${id}`, { data: itemData });
+      return client.patch<GroceryItemDTO>(`/grocery_items/${id}`, itemData);
     },
     delete: (data: { id: string }) => {
       return client.delete(`/grocery_items/${data.id}`);
     },
-    generate: (data: { start: string; end: string; ingredients: Record<string, number> }) => {
+    generate: (data: { start: string; end: string; checked_product_ids: string[] }) => {
       return client.post('/grocery_items/generate', data);
     },
     preview: (data: { start: string; end: string }) => {
       const params = new URLSearchParams({ start: data.start, end: data.end });
-      return client.get<PreviewRecipeDTO[]>(`/grocery_items/preview?${params}`);
+      return client.get<GroceryPreviewDTO>(`/grocery_items/preview?${params}`);
     },
     checkout: () => {
       return client.post('/grocery_items/checkout');
@@ -63,11 +76,12 @@ export const api = {
     get: (id: string) => {
       return client.get<RecipeDTO>(`/recipes/${id}`);
     },
-    add: (recipe: RecipeDTO) => {
-      return client.post('/recipes', { data: recipe });
+    add: (recipe: RecipeInputDTO) => {
+      return client.post<RecipeDTO>('/recipes', recipe);
     },
-    edit: (recipe: Partial<RecipeDTO> & { id: string }) => {
-      return client.patch(`/recipes/${recipe.id}`, { data: pickBy(recipe, isDefined) });
+    edit: (recipe: RecipeInputDTO & { id: string }) => {
+      const { id, ...recipeData } = recipe;
+      return client.patch<RecipeDTO>(`/recipes/${id}`, pickBy(recipeData, isDefined));
     },
     delete: (data: { id: string }) => {
       return client.delete(`/recipes/${data.id}`);
@@ -115,19 +129,59 @@ export const api = {
     },
   },
   family: {
-    updatePreferences: (data: { unit_preference: UnitPreference }) => {
-      return client.patch('/family/preferences', { data });
+    updatePreferences: (data: { unit_preference?: UnitPreference; timezone?: string | null }) => {
+      return client.patch('/family/preferences', data);
     },
   },
-  foodItems: {
-    byQuery: (query: string) => {
-      return client.get<IngredientOption[]>(`/food_items?q=${encodeURIComponent(query)}`);
+  products: {
+    getAll: () => {
+      return client.get<ProductDTO[]>('/products');
     },
-    createIfNeeded: (body: { name: string; aisle: AisleCategory }) => {
-      return client.post<IngredientOption>('/food_items', body);
+    edit: (data: Pick<ProductDTO, 'id'> & Partial<ProductDraft> & { impact_acknowledged?: boolean }) => {
+      const { id, ...productData } = data;
+      return client.patch<ProductDTO>(`/products/${id}`, productData);
     },
-    delete: (id: string) => {
-      return client.delete(`/food_items/${id}`);
+    suggestions: (query: string, context: 'recipe' | 'shopping' | 'pantry' = 'recipe') => {
+      const params = new URLSearchParams({ q: query, context });
+      return client.get<ProductSearchResult>(`/suggestions?${params}`);
+    },
+  },
+  pantry: {
+    getAll: () => {
+      return client.get<PantryEntryDTO[]>('/pantry_entries');
+    },
+    add: (data: {
+      product_id: string;
+      quantity_remaining?: number | null;
+      last_acquired?: string | null;
+      reminder_frequency_value?: number | null;
+      reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
+    }) => {
+      return client.post<PantryEntryDTO>('/pantry_entries', data);
+    },
+    edit: (
+      data: Pick<PantryEntryDTO, 'id'> &
+        Partial<Pick<PantryEntryDTO, 'quantity_remaining' | 'last_acquired'>> & {
+          reminder_frequency_value?: number | null;
+          reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
+        }
+    ) => {
+      const { id, ...entryData } = data;
+      return client.patch<PantryEntryDTO>(`/pantry_entries/${id}`, entryData);
+    },
+    delete: (data: { id: string }) => {
+      return client.delete(`/pantry_entries/${data.id}`);
+    },
+  },
+  consumptionLogs: {
+    getAll: () => {
+      return client.get<ConsumptionLogDTO[]>('/consumption_logs');
+    },
+    add: (data: { recipe_id: string; meal_type: MealType; schedule_date: string }) => {
+      return client.post<ConsumptionLogDTO>('/consumption_logs', data);
+    },
+    delete: (data: { id: string }) => {
+      return client.deleteWithMeta<null>(`/consumption_logs/${data.id}`);
     },
   },
 };

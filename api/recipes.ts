@@ -4,16 +4,17 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 import { useOptimisticUpdate } from '@/api/optimistic';
 import { isDefined, pickBy } from 'remeda';
 import { queryClient } from '@/query-client';
+import { queryKeys } from '@/api/query-keys';
 
 export const recipesOptions = queryOptions({
-  queryKey: ['recipes'] as const,
+  queryKey: queryKeys.recipes.all(),
   queryFn: api.recipes.getAll,
   staleTime: Infinity,
 });
 
 export const recipeOptions = (id: string) => {
   return queryOptions({
-    queryKey: ['recipes', id] as const,
+    queryKey: queryKeys.recipes.detail(id),
     queryFn: () => api.recipes.get(id),
     staleTime: Infinity,
   });
@@ -34,24 +35,10 @@ export const useRecipe = ({ id }: { id: string }) => {
 
 queryClient.setMutationDefaults(['addRecipe'], { mutationFn: api.recipes.add });
 export const useAddRecipe = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['addRecipe'],
     mutationFn: api.recipes.add,
-    onMutate: async (newRecipeData) => {
-      const { previousData } = await update({
-        queryKey: recipesOptions.queryKey,
-        updateFn: (state) => {
-          state.push(newRecipeData);
-        },
-      });
-
-      return { previousData, queryKey: recipesOptions.queryKey };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
     onSettled: () => queryClient.invalidateQueries(recipesOptions),
   });
 };
@@ -65,7 +52,8 @@ export const useEditRecipe = () => {
     mutationFn: api.recipes.edit,
     onMutate: async (newRecipeData) => {
       const optimisticUpdateRecipe = (recipe: RecipeDTO) => {
-        Object.assign(recipe, pickBy(recipe, isDefined));
+        const { ingredients: _ingredients, ...scalarRecipeData } = newRecipeData;
+        Object.assign(recipe, pickBy(scalarRecipeData, isDefined));
       };
 
       const recipesContext = await update({

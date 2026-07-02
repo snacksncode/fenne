@@ -3,6 +3,8 @@ import { useSession } from '@/contexts/session';
 import { useLogout } from '@/hooks/use-logout';
 import { useOptimisticUpdate } from '@/api/optimistic';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/api/query-keys';
+import { useEffect } from 'react';
 
 export type UserDTO = {
   email: string;
@@ -15,6 +17,7 @@ export type UnitPreference = 'metric' | 'imperial';
 export type FamilyDTO = {
   id: string;
   unit_preference: UnitPreference;
+  timezone: string | null;
   members: UserDTO[];
 };
 
@@ -23,7 +26,7 @@ export type CurrentUserDTO = {
   family: FamilyDTO;
 };
 
-export type AuthResponse = { status: 'success'; session_token: string } | { status: 'error'; error: string };
+export type AuthResponse = { session_token: string };
 
 export const useLogin = () => {
   const { setSessionToken } = useSession();
@@ -31,7 +34,7 @@ export const useLogin = () => {
     mutationKey: ['logIn'],
     mutationFn: api.auth.login,
     onSuccess: (response) => {
-      if (response.status === 'success') setSessionToken(response.session_token);
+      setSessionToken(response.session_token);
     },
   });
 };
@@ -51,7 +54,7 @@ export const useLoginAsGuest = () => {
     mutationKey: ['logInAsGuest'],
     mutationFn: api.auth.loginAsGuest,
     onSuccess: (response) => {
-      if (response.status === 'success') setSessionToken(response.session_token);
+      setSessionToken(response.session_token);
     },
   });
 };
@@ -82,7 +85,7 @@ export const useChangeDetails = () => {
 };
 
 export const currentUserOptions = queryOptions({
-  queryKey: ['currentUser'],
+  queryKey: queryKeys.auth.currentUser(),
   queryFn: api.auth.getCurrentUser,
   staleTime: Infinity,
 });
@@ -102,7 +105,8 @@ export const useUpdateFamilyPreferences = () => {
       const { previousData } = await update({
         queryKey: currentUserOptions.queryKey,
         updateFn: (state) => {
-          if (state) state.family.unit_preference = newPrefs.unit_preference;
+          if (state && newPrefs.unit_preference) state.family.unit_preference = newPrefs.unit_preference;
+          if (state && 'timezone' in newPrefs) state.family.timezone = newPrefs.timezone ?? null;
         },
       });
       return { previousData, queryKey: currentUserOptions.queryKey };
@@ -114,4 +118,23 @@ export const useUpdateFamilyPreferences = () => {
       queryClient.invalidateQueries(currentUserOptions);
     },
   });
+};
+
+const deviceTimezone = () => {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return timezone || null;
+};
+
+export const useEnsureFamilyTimezone = () => {
+  const currentUser = useCurrentUser();
+  const updatePreferences = useUpdateFamilyPreferences();
+
+  useEffect(() => {
+    if (!currentUser.data || currentUser.data.family.timezone || updatePreferences.isPending) return;
+
+    const timezone = deviceTimezone();
+    if (!timezone) return;
+
+    updatePreferences.mutate({ timezone });
+  }, [currentUser.data, updatePreferences]);
 };
