@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { EnrichedTextInput } from 'react-native-enriched-html';
 import type { EnrichedTextInputInstance, OnChangeStateEvent } from 'react-native-enriched-html';
-import { Bold, Heading1, Heading2, Heading3, Italic, Link, List, ListOrdered, Underline } from 'lucide-react-native';
-import { useSheets } from '@/lib/sheet-context';
+import { Bold, Heading1, Heading2, Heading3, Italic, List, ListOrdered, Underline } from 'lucide-react-native';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { colors } from '@/constants/colors';
 
@@ -30,7 +29,6 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { icon: Heading1, stateKey: 'h1', toggle: (r) => r.toggleH1() },
   { icon: Heading2, stateKey: 'h2', toggle: (r) => r.toggleH2() },
   { icon: Heading3, stateKey: 'h3', toggle: (r) => r.toggleH3() },
-  { icon: Link, stateKey: 'link', toggle: () => {} },
 ];
 
 type NotesEditorProps = {
@@ -40,9 +38,7 @@ type NotesEditorProps = {
 };
 
 export function NotesEditor({ defaultValue, style, ref }: NotesEditorProps) {
-  const sheets = useSheets();
   const editorRef = useRef<EnrichedTextInputInstance>(null);
-  const selectionRef = useRef<{ start: number; end: number; text: string }>({ start: 0, end: 0, text: '' });
   const [stylesState, setStylesState] = useState<OnChangeStateEvent | null>(null);
 
   const [showLeftShadow, setShowLeftShadow] = useState(false);
@@ -107,17 +103,7 @@ export function NotesEditor({ defaultValue, style, ref }: NotesEditorProps) {
               ]}
               onPress={async () => {
                 if (!isBlocking && editorRef.current) {
-                  if (btn.stateKey === 'link') {
-                    const { start, end, text } = selectionRef.current;
-                    const url = await sheets.present('link-input-sheet', {
-                      data: {
-                        selectedText: text || undefined,
-                      },
-                    });
-                    if (url != null) editorRef.current?.setLink(start, end, text, url);
-                  } else {
-                    btn.toggle(editorRef.current);
-                  }
+                  btn.toggle(editorRef.current);
                 }
               }}
               disabled={isBlocking}
@@ -140,13 +126,6 @@ export function NotesEditor({ defaultValue, style, ref }: NotesEditorProps) {
         defaultValue={defaultValue}
         scrollEnabled={false}
         onChangeState={(e) => setStylesState(e.nativeEvent)}
-        onChangeSelection={(e) => {
-          selectionRef.current = {
-            start: e.nativeEvent.start,
-            end: e.nativeEvent.end,
-            text: e.nativeEvent.text,
-          };
-        }}
         style={styles.editor}
         placeholderTextColor="#958270"
         placeholder="Add notes about this recipe..."

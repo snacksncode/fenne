@@ -29,7 +29,6 @@ import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
 import { SelectDateRangeSheet } from '@/components/bottomSheets/select-date-range-sheet';
 import { TutorialSheet } from '@/components/bottomSheets/tutorial-sheet';
 import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet';
-import { LinkInputSheet } from '@/components/bottomSheets/link-input-sheet';
 import { DeleteAccountSheet } from '@/components/bottomSheets/delete-account-sheet';
 import { RecipeFilterSheet, MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { AddFromRecipeSheet } from '@/components/bottomSheets/add-from-recipe-sheet';
@@ -94,10 +93,6 @@ declare module '@/lib/sheet-context' {
     'select-date-range-sheet': {};
 
     'tutorial-sheet': {};
-    'link-input-sheet': {
-      data?: { selectedText?: string; existingUrl?: string };
-      result: string | null;
-    };
     'delete-account-sheet': {
       data?: { variant?: 'account' | 'guest' };
       result: boolean;
@@ -146,7 +141,6 @@ export const Sheets = () => (
       'select-date-sheet': SelectDateSheet,
       'select-date-range-sheet': SelectDateRangeSheet,
       'tutorial-sheet': TutorialSheet,
-      'link-input-sheet': LinkInputSheet,
       'delete-account-sheet': DeleteAccountSheet,
       'recipe-filter-sheet': RecipeFilterSheet,
       'add-from-recipe-sheet': AddFromRecipeSheet,
