@@ -8,8 +8,8 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { EnrichedTextInput } from 'react-native-enriched';
-import type { EnrichedTextInputInstance, OnChangeStateEvent } from 'react-native-enriched';
+import { EnrichedTextInput } from 'react-native-enriched-html';
+import type { EnrichedTextInputInstance, OnChangeStateEvent } from 'react-native-enriched-html';
 import { Bold, Heading1, Heading2, Heading3, Italic, Link, List, ListOrdered, Underline } from 'lucide-react-native';
 import { useSheets } from '@/lib/sheet-context';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';

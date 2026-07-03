@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Typography } from '@/components/Typography';
 import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
-import { EnrichedTextInputInstance } from 'react-native-enriched';
+import { EnrichedTextInputInstance } from 'react-native-enriched-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSheets } from '@/lib/sheet-context';
 import Animated, {
