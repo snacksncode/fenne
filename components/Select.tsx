@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
 
   borderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderWidth: 1,
     borderColor: BORDER,
     borderBottomWidth: 2,

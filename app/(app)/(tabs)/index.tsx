@@ -1,4 +1,5 @@
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { createMaterialTopTabNavigator } from 'expo-router/js-top-tabs';
+import type { MaterialTopTabBarProps } from 'expo-router/js-top-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopTabBar } from '@/components/TopTabBar';
 import { RouteTitle } from '@/components/RouteTitle';
@@ -75,7 +76,7 @@ const Index = () => {
             />
           </View>
         )}
-        tabBar={(props) => (
+        tabBar={(props: MaterialTopTabBarProps) => (
           <RouteTitle
             text="Menu"
             footerSlot={

@@ -5,8 +5,8 @@ import { hasWeeklyScreenLoadedAtom, scrollTargetAtom } from './weekly-screen';
 import { useSchedule } from '@/api/schedules';
 import { ScheduleDayDTO } from '@/api/types';
 import { formatDateToISO, getISOWeekString, parseISO } from '@/date-tools';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from 'expo-router/js-tabs';
+import { useIsFocused, useNavigation } from 'expo-router/react-navigation';
 import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
 import {
   addMonths,

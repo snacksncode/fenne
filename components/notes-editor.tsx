@@ -16,7 +16,7 @@ import { colors } from '@/constants/colors';
 
 type ToolbarButton = {
   icon: React.ElementType;
-  stateKey: keyof OnChangeStateEvent;
+  stateKey: 'bold' | 'italic' | 'underline' | 'orderedList' | 'unorderedList' | 'h1' | 'h2' | 'h3';
   toggle: (ref: EnrichedTextInputInstance) => void;
 };
 

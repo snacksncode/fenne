@@ -22,6 +22,7 @@ import {
   Lock,
   LogOut,
   MailQuestionMark,
+  Ruler,
   Trash2,
   User,
   UserRoundCheck,

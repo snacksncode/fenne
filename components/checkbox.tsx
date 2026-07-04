@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { colors } from '@/constants/colors';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
@@ -10,17 +10,24 @@ import Animated, {
   withSpring,
   SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnUI } from 'react-native-worklets';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export const useCheckbox = (isChecked: boolean) => {
   const progress = useSharedValue(isChecked ? 1 : 0);
 
-  useEffect(() => {
-    progress.value = withSpring(isChecked ? 1 : 0);
-  }, [isChecked, progress]);
+  const setChecked = useCallback((nextChecked: boolean) => {
+    scheduleOnUI(() => {
+      progress.value = withSpring(nextChecked ? 1 : 0);
+    });
+  }, [progress]);
 
-  return { progress };
+  useEffect(() => {
+    setChecked(isChecked);
+  }, [isChecked, setChecked]);
+
+  return { progress, setChecked };
 };
 
 export const Checkbox = ({ progress }: { progress: SharedValue<number> }) => {

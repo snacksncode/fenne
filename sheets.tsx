@@ -32,7 +32,7 @@ import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet
 import { DeleteAccountSheet } from '@/components/bottomSheets/delete-account-sheet';
 import { RecipeFilterSheet, MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { AddFromRecipeSheet } from '@/components/bottomSheets/add-from-recipe-sheet';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { BottomTabNavigationProp } from 'expo-router/js-tabs';
 import { SelectRecipeSheet } from '@/components/bottomSheets/select-recipe-sheet';
 import { PantryEntrySheet } from '@/components/bottomSheets/pantry-entry-sheet';
 import { ProductEditSheet } from '@/components/bottomSheets/product-edit-sheet';

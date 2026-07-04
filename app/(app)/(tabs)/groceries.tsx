@@ -207,7 +207,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isCompleted = item.status === 'completed';
-  const { progress } = useCheckbox(isCompleted);
+  const { progress, setChecked } = useCheckbox(isCompleted);
 
   const vibrate = () => {
     const style = Haptics.ImpactFeedbackStyle.Light;
@@ -216,7 +216,7 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
 
   const handlePress = () => {
     vibrate();
-    progress.value = withSpring(isCompleted ? 0 : 1);
+    setChecked(!isCompleted);
     setTimeout(() => {
       editGroceryItem.mutate({
         id: _item.id,

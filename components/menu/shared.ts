@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 export const useBackToToday = () => {
-  const [show, setShow] = useState({ state: false, lock: Date.now() });
+  const [show, setShow] = useState(() => ({ state: false, lock: Date.now() }));
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.8);
 

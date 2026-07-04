@@ -30,8 +30,8 @@ type Data =
   | { resource: 'family' }
   | { resource: 'family_members' };
 
-global.addEventListener = () => {};
-global.removeEventListener = () => {};
+globalThis.addEventListener = () => {};
+globalThis.removeEventListener = () => {};
 
 export const useInvalidationChannel = () => {
   const { data: user } = useCurrentUser();

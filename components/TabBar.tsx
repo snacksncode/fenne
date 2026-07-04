@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, LayoutChangeEvent } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import Animated, { useSharedValue, useDerivedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Typography } from '@/components/Typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
-import { NavigationRoute, ParamListBase } from '@react-navigation/native';
+import { NavigationRoute, ParamListBase } from 'expo-router/react-navigation';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { colors } from '@/constants/colors';
 

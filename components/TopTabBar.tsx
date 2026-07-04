@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, TouchableOpacity, Platform, StyleSheet, LayoutChangeEvent, Animated as RNAnimated } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
-import type { MaterialTopTabBarProps } from '@react-navigation/material-top-tabs';
+import type { MaterialTopTabBarProps } from 'expo-router/js-top-tabs';
 import { Typography } from '@/components/Typography';
 
 const PILL = '#4A3E36';
@@ -11,6 +11,8 @@ const BORDER = '#4A3E36';
 const R = 999;
 
 type Props = MaterialTopTabBarProps;
+type TopTabRoute = MaterialTopTabBarProps['state']['routes'][number];
+type TopTabLabel = Pick<TopTabRoute, 'key' | 'name' | 'params'> & { label: string };
 
 export function TopTabBar({ state, descriptors, navigation, position }: Props) {
   const [rowWidth, setRowWidth] = useState(0);
@@ -24,13 +26,13 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
   const translateX = useMemo(() => {
     if (!tabWidth) return new RNAnimated.Value(0);
 
-    const inputRange = state.routes.map((_, i) => i);
-    const outputRange = state.routes.map((_, i) => i * tabWidth);
+    const inputRange = state.routes.map((_route: TopTabRoute, i: number) => i);
+    const outputRange = state.routes.map((_route: TopTabRoute, i: number) => i * tabWidth);
 
     return position.interpolate({ inputRange, outputRange, extrapolate: 'clamp' });
   }, [position, tabWidth, state.routes]);
 
-  const labels = state.routes.map((route) => {
+  const labels: TopTabLabel[] = state.routes.map((route: TopTabRoute) => {
     const { options } = descriptors[route.key];
     const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : (options.title ?? route.name);
     return { key: route.key, name: route.name, params: route.params, label };
@@ -45,7 +47,7 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
         {/* 1) Dark layer: always visible everywhere */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <View style={styles.rowInner}>
-            {labels.map((l) => (
+            {labels.map((l: TopTabLabel) => (
               <View key={l.key} style={styles.item}>
                 <Typography variant="body-sm" weight="bold" color={TEXT_INACTIVE} numberOfLines={1}>
                   {l.label}
@@ -66,7 +68,7 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
             {/* Fill the pill color under the light text so the pill is visible */}
             <View style={styles.pillBg} />
             <View style={styles.rowInner}>
-              {labels.map((l) => (
+              {labels.map((l: TopTabLabel) => (
                 <View key={l.key} style={styles.item}>
                   <Typography variant="body-sm" weight="bold" color={TEXT_ACTIVE} numberOfLines={1}>
                     {l.label}
@@ -81,7 +83,7 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
       {/* Touch targets */}
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <View style={styles.rowTouch}>
-          {state.routes.map((route, index) => {
+          {state.routes.map((route: TopTabRoute, index: number) => {
             const { options } = descriptors[route.key];
             const isFocused = state.index === index;
 
@@ -129,7 +131,7 @@ const styles = StyleSheet.create({
   },
 
   borderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderWidth: 1,
     borderColor: BORDER,
     borderBottomWidth: 2,

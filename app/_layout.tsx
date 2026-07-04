@@ -78,7 +78,10 @@ const RootLayout = () => {
 
   // connect react-less API layer to react context via this "ping"
   const { logOut } = useLogout();
-  authSignal.handleUnauthorized = logOut;
+
+  useEffect(() => {
+    authSignal.handleUnauthorized = logOut;
+  }, [logOut]);
 
   useOnAppActive(() => {
     queryClient.invalidateQueries();

@@ -3,7 +3,7 @@ import { RecipeDTO, RecipeFormData, recipeFromFormData, recipeToFormData, Ingred
 import { Button } from '@/components/button';
 import { useAppForm } from '@/components/form/app-form';
 import { Pancake } from '@/components/svgs/pancake';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router/react-navigation';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, Trash2, Save } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
