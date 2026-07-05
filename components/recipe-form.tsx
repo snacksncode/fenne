@@ -70,7 +70,7 @@ const IngredientItem = ({
   const swipeRef = useRef<SwipeableMethods>(null);
   const scale = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const displayName = ingredient.name_override?.trim() || ingredient.product?.name || ingredient.productDraft?.name || ingredient.name;
+  const displayName = ingredient.name_override?.trim() || ingredient.selectedProduct.product.name || ingredient.name;
 
   const closeSwipeable = () => swipeRef.current?.close();
 
@@ -107,9 +107,9 @@ const IngredientItem = ({
           <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
             {displayName}
           </Typography>
-          {ingredient.product && ingredient.product.name !== displayName && (
+          {ingredient.selectedProduct.type === 'existing' && ingredient.selectedProduct.product.name !== displayName && (
             <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
-              Item: {ingredient.product.name}
+              Item: {ingredient.selectedProduct.product.name}
             </Typography>
           )}
           {ingredient.quantity && (
@@ -212,8 +212,7 @@ const emptyRecipeFormData: RecipeFormData = {
 
 const validIngredient = (ingredient: IngredientFormData) => {
   if (parseLocaleFloat(ingredient.quantity) <= 0) return false;
-  if (ingredient.product_id || ingredient.productDraft) return true;
-  return false;
+  return ingredient.selectedProduct.product.name.trim().length > 0;
 };
 
 const recipeSchema = z.object({

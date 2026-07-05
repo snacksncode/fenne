@@ -1,4 +1,11 @@
-import { AisleCategory, IngredientFormData, ProductDTO, ProductDraft, ProductSuggestionDTO } from '@/api/types';
+import {
+  AisleCategory,
+  IngredientFormData,
+  IngredientProductSelection,
+  ProductDTO,
+  ProductDraft,
+  ProductSuggestionDTO,
+} from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
@@ -17,7 +24,8 @@ import { Keyboard, StyleSheet, View } from 'react-native';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { z } from 'zod';
 
-type SelectedProduct = { type: 'existing'; product: ProductDTO } | { type: 'draft'; product: ProductDraft };
+type SelectedProduct = IngredientProductSelection;
+type IngredientDetailsFormData = Omit<IngredientFormData, 'selectedProduct'>;
 
 type Phase = 'search' | 'product' | 'ingredient';
 type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
@@ -48,11 +56,8 @@ const productSummary = (selected: SelectedProduct) => {
   return 'Counted item';
 };
 
-const ingredientFromProduct = (selected: SelectedProduct, previous?: IngredientFormData): IngredientFormData => ({
+const ingredientFromProduct = (selected: SelectedProduct, previous?: IngredientDetailsFormData): IngredientDetailsFormData => ({
   id: previous?.id ?? nanoid(),
-  product_id: selected.type === 'existing' ? selected.product.id : undefined,
-  product: selected.type === 'existing' ? selected.product : undefined,
-  productDraft: selected.type === 'draft' ? selected.product : undefined,
   name: previous?.name_override?.trim() || productName(selected),
   name_override: previous?.name_override ?? null,
   quantity: previous?.quantity ?? selected.product.quantity?.toString() ?? '1',
@@ -123,7 +128,7 @@ const productDraftFromForm = (form: ProductDraftForm): ProductDraft => {
 
 const emptyProductForm = productFormFromQuery('');
 
-const emptyIngredientForm = (): IngredientFormData => ({
+const emptyIngredientForm = (): IngredientDetailsFormData => ({
   id: nanoid(),
   name: '',
   name_override: null,
@@ -165,9 +170,6 @@ const productDraftSchema = z
 
 const ingredientSchema = z.object({
   id: z.string(),
-  product_id: z.string().optional(),
-  product: z.custom<ProductDTO>().optional(),
-  productDraft: z.custom<ProductDraft>().optional(),
   name: z.string(),
   name_override: z.string().nullable(),
   unit: z.custom<Unit>(),
@@ -214,17 +216,16 @@ const EditIngredientSheetContent = ({
 }) => {
   const sheets = useSheets();
   const initialIngredient = data.ingredient;
-  const initialSelected: SelectedProduct | null = initialIngredient?.product
-    ? { type: 'existing', product: initialIngredient.product }
-    : initialIngredient?.productDraft
-      ? { type: 'draft', product: initialIngredient.productDraft }
-      : null;
+  const initialSelected = initialIngredient?.selectedProduct ?? null;
 
   const [phase, setPhase] = useState<Phase>(initialSelected ? 'ingredient' : 'search');
   const [query, setQuery] = useState(initialIngredient?.name ?? '');
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(initialSelected);
   const productForm = useAppForm({
-    defaultValues: initialIngredient?.productDraft ? productFormFromDraft(initialIngredient.productDraft) : emptyProductForm,
+    defaultValues:
+      initialIngredient?.selectedProduct.type === 'draft'
+        ? productFormFromDraft(initialIngredient.selectedProduct.product)
+        : emptyProductForm,
     validators: {
       onSubmit: productDraftSchema,
     },
@@ -247,6 +248,7 @@ const EditIngredientSheetContent = ({
 
       sheets.dismiss(sheetId, {
         ...value,
+        selectedProduct,
         name: displayName,
         aisle: productAisle(selectedProduct),
         unit: value.unit,
@@ -266,11 +268,8 @@ const EditIngredientSheetContent = ({
     productForm.setFieldValue('reminder_frequency_unit', form.reminder_frequency_unit);
   };
 
-  const setIngredientFormValues = (ingredient: IngredientFormData) => {
+  const setIngredientFormValues = (ingredient: IngredientDetailsFormData) => {
     ingredientForm.setFieldValue('id', ingredient.id);
-    ingredientForm.setFieldValue('product_id', ingredient.product_id);
-    ingredientForm.setFieldValue('product', ingredient.product);
-    ingredientForm.setFieldValue('productDraft', ingredient.productDraft);
     ingredientForm.setFieldValue('name', ingredient.name);
     ingredientForm.setFieldValue('name_override', ingredient.name_override);
     ingredientForm.setFieldValue('quantity', ingredient.quantity);

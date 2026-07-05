@@ -171,39 +171,45 @@ export type IngredientDTO = {
   aisle: AisleCategory;
 };
 
+export type IngredientProductSelection =
+  | { type: 'existing'; product: ProductDTO }
+  | { type: 'draft'; product: ProductDraft };
+
 export type IngredientFormData = {
   id: string;
-  product_id?: string;
-  product?: ProductDTO;
+  selectedProduct: IngredientProductSelection;
   name: string;
   name_override: string | null;
   unit: Unit;
   aisle: AisleCategory;
   quantity: string;
-  productDraft?: ProductDraft;
 };
 
 export const ingredientToFormData = (ingredient: IngredientDTO): IngredientFormData => ({
   ...ingredient,
+  selectedProduct: { type: 'existing', product: ingredient.product },
   quantity: ingredient.quantity.toString(),
 });
 
 export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO => ({
   id: form.id,
-  product_id: form.product_id ?? '',
-  product: form.product ?? ({
-    id: '',
-    name: form.productDraft?.name ?? form.name,
-    aisle: form.productDraft?.aisle ?? form.aisle,
-    quantity: form.productDraft?.quantity ?? null,
-    unit: form.productDraft?.unit ?? form.unit,
-    pack_count: form.productDraft?.pack_count ?? null,
-    reminder_frequency_value: form.productDraft?.reminder_frequency_value ?? null,
-    reminder_frequency_unit: form.productDraft?.reminder_frequency_unit ?? null,
-    is_kitchen_basic: form.productDraft?.is_kitchen_basic ?? false,
-    shape: 'counted',
-    conversions: form.productDraft?.conversions ?? {},
-  } as ProductDTO),
+  product_id: form.selectedProduct.type === 'existing' ? form.selectedProduct.product.id : '',
+  product:
+    form.selectedProduct.type === 'existing'
+      ? form.selectedProduct.product
+      : ({
+          id: '',
+          name: form.selectedProduct.product.name,
+          aisle: form.selectedProduct.product.aisle,
+          quantity: form.selectedProduct.product.quantity ?? null,
+          unit: form.selectedProduct.product.unit,
+          pack_count: form.selectedProduct.product.pack_count ?? null,
+          reminder_frequency_value: form.selectedProduct.product.reminder_frequency_value ?? null,
+          reminder_frequency_unit: form.selectedProduct.product.reminder_frequency_unit ?? null,
+          is_kitchen_basic: form.selectedProduct.product.is_kitchen_basic ?? false,
+          shape: 'counted',
+          conversions: form.selectedProduct.product.conversions ?? {},
+        } as ProductDTO),
   name: form.name,
   name_override: form.name_override,
   unit: form.unit,
@@ -258,7 +264,10 @@ export const recipeFromFormData = (form: RecipeFormData): RecipeInputDTO => ({
     quantity: parseLocaleFloat(ingredient.quantity),
     unit: ingredient.unit,
     name_override: ingredient.name_override?.trim() || null,
-    product: ingredient.productDraft ?? { id: ingredient.product_id ?? '' },
+    product:
+      ingredient.selectedProduct.type === 'existing'
+        ? { id: ingredient.selectedProduct.product.id }
+        : ingredient.selectedProduct.product,
   })),
   time_in_minutes: parseLocaleFloat(form.time_in_minutes),
   liked: form.liked,
