@@ -41,10 +41,6 @@ type ProductDraftForm = {
   reminder_frequency_unit: 'days' | 'weeks' | 'months';
 };
 
-const productName = (selected: SelectedProduct) => selected.product.name;
-const productAisle = (selected: SelectedProduct) => selected.product.aisle;
-const productUnit = (selected: SelectedProduct) => selected.product.unit;
-
 const productSummary = (selected: SelectedProduct) => {
   const product = selected.product;
   if (product.is_kitchen_basic) return 'Kitchen basic';
@@ -58,11 +54,11 @@ const productSummary = (selected: SelectedProduct) => {
 
 const ingredientFromProduct = (selected: SelectedProduct, previous?: IngredientDetailsFormData): IngredientDetailsFormData => ({
   id: previous?.id ?? nanoid(),
-  name: previous?.name_override?.trim() || productName(selected),
+  name: previous?.name_override?.trim() || selected.product.name,
   name_override: previous?.name_override ?? null,
   quantity: previous?.quantity ?? selected.product.quantity?.toString() ?? '1',
-  unit: previous?.unit ?? productUnit(selected),
-  aisle: productAisle(selected),
+  unit: previous?.unit ?? selected.product.unit,
+  aisle: selected.product.aisle,
 });
 
 const productFormFromSuggestion = (suggestion: ProductSuggestionDTO): ProductDraftForm => ({
@@ -243,14 +239,14 @@ const EditIngredientSheetContent = ({
     },
     onSubmit: ({ value }) => {
       if (!selectedProduct) return;
-      const displayName = value.name_override?.trim() || productName(selectedProduct);
+      const displayName = value.name_override?.trim() || selectedProduct.product.name;
       if (!displayName.trim()) return;
 
       sheets.dismiss(sheetId, {
         ...value,
         selectedProduct,
         name: displayName,
-        aisle: productAisle(selectedProduct),
+        aisle: selectedProduct.product.aisle,
         unit: value.unit,
       });
       Keyboard.dismiss();
@@ -527,7 +523,7 @@ const EditIngredientSheetContent = ({
                           Item
                         </Typography>
                         <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-                          {productName(selectedProduct)}
+                          {selectedProduct.product.name}
                         </Typography>
                         <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
                           {productSummary(selectedProduct)}
@@ -546,7 +542,7 @@ const EditIngredientSheetContent = ({
                     </View>
 
                     <ingredientForm.AppField name="name_override">
-                      {(field) => <field.TextField label="Display name" placeholder={productName(selectedProduct)} />}
+                      {(field) => <field.TextField label="Display name" placeholder={selectedProduct.product.name} />}
                     </ingredientForm.AppField>
 
                     <View style={{ flexDirection: 'row', gap: 12 }}>
