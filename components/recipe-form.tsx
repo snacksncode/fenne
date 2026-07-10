@@ -1,5 +1,14 @@
 import { useAddRecipe, useEditRecipe } from '@/api/recipes';
-import { RecipeDTO, RecipeFormData, recipeFromFormData, recipeToFormData, IngredientFormData, MealType } from '@/api/types';
+import { missingRecipeConversionsFromError } from '@/api/errors';
+import {
+  RecipeDTO,
+  RecipeFormData,
+  recipeFromFormData,
+  recipeToFormData,
+  IngredientFormData,
+  MealType,
+  MissingRecipeConversionDTO,
+} from '@/api/types';
 import { Button } from '@/components/button';
 import { useAppForm } from '@/components/form/app-form';
 import { Pancake } from '@/components/svgs/pancake';
@@ -237,23 +246,103 @@ export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { reci
   const insets = useSafeAreaInsets();
   const editRecipe = useEditRecipe();
   const addRecipe = useAddRecipe();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useAppForm({
     defaultValues: recipe ? recipeToFormData(recipe) : emptyRecipeFormData,
     validators: {
       onSubmit: recipeSchema,
     },
     onSubmit: async ({ value }) => {
+      setSubmitError(null);
       Keyboard.dismiss();
       const notes = ((await notesEditorRef.current?.getHTML()) ?? '')
         .replaceAll(/<h[456]>/g, '<p>')
         .replaceAll(/<\/h[456]>/g, '</p>');
 
-      const handleSuccess = () => navigation.goBack();
-      const recipeData = recipeFromFormData({ ...value, notes });
-      if (recipe) return editRecipe.mutate({ ...recipeData, id: recipe.id }, { onSuccess: handleSuccess });
-      addRecipe.mutate(recipeData, { onSuccess: handleSuccess });
+      let ingredients = value.ingredients;
+      const maximumSaveAttempts = 4;
+
+      for (let attempt = 0; attempt < maximumSaveAttempts; attempt += 1) {
+        const recipeData = recipeFromFormData({ ...value, ingredients, notes });
+
+        try {
+          if (recipe) {
+            await editRecipe.mutateAsync({ ...recipeData, id: recipe.id });
+          } else {
+            await addRecipe.mutateAsync(recipeData);
+          }
+          navigation.goBack();
+          return;
+        } catch (error) {
+          const missingConversions = missingRecipeConversionsFromError(error);
+          if (!missingConversions) {
+            setSubmitError('Could not save recipe');
+            return;
+          }
+          if (attempt === maximumSaveAttempts - 1) {
+            setSubmitError('Could not resolve every item conversion');
+            return;
+          }
+
+          const resolvedIngredients = await resolveMissingConversions(ingredients, missingConversions);
+          if (!resolvedIngredients) {
+            setSubmitError('Recipe not saved. Resolve the missing item conversions to continue.');
+            return;
+          }
+
+          ingredients = resolvedIngredients;
+          form.setFieldValue('ingredients', ingredients);
+        }
+      }
     },
   });
+
+  const resolveMissingConversions = async (
+    ingredients: IngredientFormData[],
+    requirements: MissingRecipeConversionDTO[]
+  ) => {
+    let resolvedIngredients = [...ingredients];
+    const uniqueRequirements = requirements.filter((requirement, index, all) => {
+      const identity = requirement.product_id ?? `ingredient:${requirement.ingredient_index}`;
+      return (
+        all.findIndex(
+          (candidate) =>
+            (candidate.product_id ?? `ingredient:${candidate.ingredient_index}`) === identity &&
+            candidate.ingredient_unit === requirement.ingredient_unit
+        ) === index
+      );
+    });
+
+    for (const requirement of uniqueRequirements) {
+      const ingredient = resolvedIngredients[requirement.ingredient_index];
+      if (!ingredient) return null;
+
+      const updatedIngredient = await sheets.present('edit-ingredient-sheet', {
+        data: { mode, ingredient },
+      });
+      if (!updatedIngredient) return null;
+
+      resolvedIngredients = resolvedIngredients.map((current, index) => {
+        if (index === requirement.ingredient_index) return updatedIngredient;
+        if (
+          updatedIngredient.selectedProduct.type === 'existing' &&
+          current.selectedProduct.type === 'existing' &&
+          current.selectedProduct.product.id === updatedIngredient.selectedProduct.product.id
+        ) {
+          return {
+            ...current,
+            selectedProduct: {
+              type: 'existing' as const,
+              product: updatedIngredient.selectedProduct.product,
+            },
+          };
+        }
+        return current;
+      });
+    }
+
+    return resolvedIngredients;
+  };
 
   useMount(() => {
     const id = setTimeout(() => {
@@ -410,6 +499,11 @@ export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { reci
           borderColor: colors.brown[800],
         }}
       >
+        {submitError ? (
+          <Typography variant="body-xs" weight="bold" color={colors.red[500]} style={{ marginBottom: 8 }}>
+            {submitError}
+          </Typography>
+        ) : null}
         <Button
           text="Save recipe"
           variant="primary"

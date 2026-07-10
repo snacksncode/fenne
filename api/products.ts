@@ -28,6 +28,7 @@ export const useEditProduct = () => {
       queryClient.invalidateQueries(pantryOptions);
       queryClient.invalidateQueries(groceriesOptions);
       queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recipes.all() });
     },
   });
 };

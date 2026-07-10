@@ -23,6 +23,7 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
                 variant="primary"
                 rightIcon={{ Icon: ArrowRight }}
                 onPress={editor.action.onPress}
+                isLoading={editor.action.isLoading}
               />
             )
           : undefined
@@ -53,7 +54,11 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
             selectedProduct={editor.selectedProduct}
             onClearProduct={editor.clearProduct}
             onEditDraftProduct={editor.editDraftProduct}
+            onEditExistingProduct={editor.editExistingProduct}
             onSelectUnit={editor.selectIngredientUnit}
+            conversionValues={editor.conversionValues}
+            conversionError={editor.conversionError}
+            onConversionChange={editor.setConversionValue}
           />
           <View style={{ height: 72 }} />
         </>

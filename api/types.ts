@@ -224,6 +224,14 @@ export type IngredientInput = {
   product: { id: string } | ProductDraft;
 };
 
+export type MissingRecipeConversionDTO = {
+  ingredient_index: number;
+  product_id: string | null;
+  product_name: string;
+  ingredient_unit: Unit;
+  product_unit: Unit;
+};
+
 // Recipes
 
 export type RecipeDTO = {

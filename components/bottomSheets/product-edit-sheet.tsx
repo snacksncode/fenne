@@ -1,4 +1,4 @@
-import { APIError } from '@/api/client';
+import { missingProductConversionsFromError, productImpactFromError } from '@/api/errors';
 import { useEditProduct } from '@/api/products';
 import { AisleCategory, ProductDTO, ProductDraft } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
@@ -8,12 +8,14 @@ import { Button } from '@/components/button';
 import { Checkbox, useCheckbox } from '@/components/checkbox';
 import { useAppForm } from '@/components/form/app-form';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { ProductConversionFields } from '@/components/product-conversion-fields';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
+import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 
@@ -101,8 +103,6 @@ const productEditSchema = z
     }
   });
 
-const errorData = (error: Error) => (error instanceof APIError ? error.data : null);
-
 const impactLabels: Record<string, string> = {
   pantry: 'current pantry entries',
   shopping_list: 'active grocery rows',
@@ -142,8 +142,11 @@ type ProductEditSheetContentProps = {
 const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentProps) => {
   const sheets = useSheets();
   const editProduct = useEditProduct();
+  const scrollRef = useRef<ScrollView>(null);
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missingConversions, setMissingConversions] = useState<Unit[]>([]);
+  const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
   const form = useAppForm({
     defaultValues: formFromProduct(product),
     validators: {
@@ -151,33 +154,46 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     },
     onSubmit: ({ value }) => {
       setError(null);
+      const requiredConversions =
+        value.mode === 'measured'
+          ? missingConversions.filter((unit) => unitsRequireProductConversion(unit, value.unit))
+          : [];
+      const conversions = conversionValuesPayload(conversionValues);
+      if (requiredConversions.some((unit) => conversions[unit] == null)) {
+        setError('Enter every conversion before saving');
+        return;
+      }
 
       editProduct.mutate(
         {
           id: product.id,
           ...draftFromForm(value),
+          ...(requiredConversions.length > 0 && { conversions }),
           impact_acknowledged: impact != null,
         },
         {
-          onSuccess: () => {
+          onSuccess: (updatedProduct) => {
             Keyboard.dismiss();
-            sheets.dismiss(sheetId);
+            sheets.dismiss(sheetId, updatedProduct);
           },
           onError: (mutationError) => {
-            const data = errorData(mutationError);
-            if (data && typeof data === 'object' && 'impact' in data && Array.isArray(data.impact)) {
-              setImpact(data.impact.filter((item): item is string => typeof item === 'string'));
+            const nextImpact = productImpactFromError(mutationError);
+            if (nextImpact) {
+              setImpact(nextImpact);
               setError(null);
               return;
             }
 
-            if (
-              data &&
-              typeof data === 'object' &&
-              'missing_conversions' in data &&
-              Array.isArray(data.missing_conversions)
-            ) {
-              setError(`Missing conversions: ${data.missing_conversions.join(', ')}`);
+            const nextMissingConversions = missingProductConversionsFromError(mutationError);
+            if (nextMissingConversions) {
+              setMissingConversions(nextMissingConversions);
+              setConversionValues((current) =>
+                Object.fromEntries(
+                  nextMissingConversions.map((unit) => [unit, current[unit] ?? product.conversions[unit]?.toString() ?? ''])
+                )
+              );
+              setError(null);
+              requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
               return;
             }
 
@@ -202,7 +218,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         />
       )}
     >
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <form.AppForm>
           <View style={{ gap: 16, paddingBottom: 72 }}>
             <View>
@@ -276,7 +292,11 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                                       const unit = await sheets.present('select-unit-sheet', {
                                         data: { unit: field.state.value },
                                       });
-                                      if (unit != null && unit !== 'count') field.handleChange(unit);
+                                      if (unit != null && unit !== 'count' && unit !== field.state.value) {
+                                        field.handleChange(unit);
+                                        setConversionValues({});
+                                        setError(null);
+                                      }
                                     }}
                                   >
                                     <View style={styles.unitButton}>
@@ -340,6 +360,31 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               )}
             </form.Subscribe>
 
+            {missingConversions.length > 0 ? (
+              <form.Subscribe selector={(state) => state.values}>
+                {(values) => {
+                  const requiredConversions =
+                    values.mode === 'measured'
+                      ? missingConversions.filter((unit) => unitsRequireProductConversion(unit, values.unit))
+                      : [];
+
+                  return requiredConversions.length > 0 ? (
+                    <ProductConversionFields
+                      productName={values.name.trim() || product.name}
+                      productUnit={values.unit}
+                      units={requiredConversions}
+                      values={conversionValues}
+                      onChange={(unit, value) => {
+                        setConversionValues((current) => ({ ...current, [unit]: value }));
+                        setError(null);
+                      }}
+                      error={error}
+                    />
+                  ) : null;
+                }}
+              </form.Subscribe>
+            ) : null}
+
             {impact ? (
               <View style={styles.warning}>
                 <Typography variant="body-sm" weight="bold">
@@ -351,7 +396,9 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               </View>
             ) : null}
 
-            {error ? (
+            {error &&
+            (form.state.values.mode !== 'measured' ||
+              !missingConversions.some((unit) => unitsRequireProductConversion(unit, form.state.values.unit))) ? (
               <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
                 {error}
               </Typography>

@@ -2,7 +2,9 @@ import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
+import { ProductConversionFields } from '@/components/product-conversion-fields';
 import { colors } from '@/constants/colors';
+import { productConversionRequirement } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { X } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
@@ -14,7 +16,11 @@ type IngredientDetailsStepProps = {
   selectedProduct: SelectedProduct;
   onClearProduct: () => void;
   onEditDraftProduct: () => void;
+  onEditExistingProduct: () => void;
   onSelectUnit: () => void;
+  conversionValues: IngredientEditor['conversionValues'];
+  conversionError: string | null;
+  onConversionChange: IngredientEditor['setConversionValue'];
 };
 
 export const IngredientDetailsStep = ({
@@ -22,63 +28,85 @@ export const IngredientDetailsStep = ({
   selectedProduct,
   onClearProduct,
   onEditDraftProduct,
+  onEditExistingProduct,
   onSelectUnit,
+  conversionValues,
+  conversionError,
+  onConversionChange,
 }: IngredientDetailsStepProps) => (
   <form.AppForm>
     <form.Subscribe selector={(state) => state.values}>
-      {(ingredient) => (
-        <View style={{ gap: 16 }}>
-          <View style={styles.productPin}>
-            <View style={{ flex: 1 }}>
-              <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
-                Item
-              </Typography>
-              <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-                {selectedProduct.product.name}
-              </Typography>
-              <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
-                {productSummary(selectedProduct)}
-              </Typography>
-            </View>
-            {selectedProduct.type === 'draft' && (
-              <Button text="Edit" variant="outlined" size="small" onPress={onEditDraftProduct} />
-            )}
-            <Button
-              size="small"
-              variant="outlined"
-              leftIcon={{ Icon: X }}
-              onPress={onClearProduct}
-              style={{ paddingHorizontal: 0, width: 42 }}
-            />
-          </View>
+      {(ingredient) => {
+        const conversion = productConversionRequirement(selectedProduct.product, ingredient.unit);
 
-          <form.AppField name="name_override">
-            {(field) => <field.TextField label="Display name" placeholder={selectedProduct.product.name} />}
-          </form.AppField>
+        return (
+          <View style={{ gap: 16 }}>
+            <View style={styles.productPin}>
+              <View style={{ flex: 1 }}>
+                <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
+                  Item
+                </Typography>
+                <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+                  {selectedProduct.product.name}
+                </Typography>
+                <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
+                  {productSummary(selectedProduct)}
+                </Typography>
+              </View>
+              <Button
+                text="Edit"
+                variant="outlined"
+                size="small"
+                onPress={selectedProduct.type === 'draft' ? onEditDraftProduct : onEditExistingProduct}
+              />
+              <Button
+                size="small"
+                variant="outlined"
+                leftIcon={{ Icon: X }}
+                onPress={onClearProduct}
+                style={{ paddingHorizontal: 0, width: 42 }}
+              />
+            </View>
 
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <form.AppField name="quantity">
-                {(field) => <field.NumberField label="Quantity" placeholder="e.g. 2" />}
-              </form.AppField>
+            <form.AppField name="name_override">
+              {(field) => <field.TextField label="Display name" placeholder={selectedProduct.product.name} />}
+            </form.AppField>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <form.AppField name="quantity">
+                  {(field) => <field.NumberField label="Quantity" placeholder="e.g. 2" />}
+                </form.AppField>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
+                  Unit
+                </Typography>
+                <PressableWithHaptics onPress={onSelectUnit}>
+                  <View style={styles.unitButton}>
+                    <Typography variant="body-sm" weight="medium">
+                      {UNITS.find((unit) => unit.value === ingredient.unit)?.label({
+                        count: parseLocaleFloat(ingredient.quantity),
+                      })}
+                    </Typography>
+                  </View>
+                </PressableWithHaptics>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-                Unit
-              </Typography>
-              <PressableWithHaptics onPress={onSelectUnit}>
-                <View style={styles.unitButton}>
-                  <Typography variant="body-sm" weight="medium">
-                    {UNITS.find((unit) => unit.value === ingredient.unit)?.label({
-                      count: parseLocaleFloat(ingredient.quantity),
-                    })}
-                  </Typography>
-                </View>
-              </PressableWithHaptics>
-            </View>
+
+            {conversion ? (
+              <ProductConversionFields
+                productName={selectedProduct.product.name}
+                productUnit={conversion.productUnit}
+                units={[conversion.ingredientUnit]}
+                values={conversionValues}
+                onChange={onConversionChange}
+                error={conversionError}
+              />
+            ) : null}
           </View>
-        </View>
-      )}
+        );
+      }}
     </form.Subscribe>
   </form.AppForm>
 );

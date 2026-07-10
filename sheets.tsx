@@ -118,6 +118,7 @@ declare module '@/lib/sheet-context' {
     };
     'product-edit-sheet': {
       data: { product: ProductDTO };
+      result: ProductDTO;
     };
   }
 }

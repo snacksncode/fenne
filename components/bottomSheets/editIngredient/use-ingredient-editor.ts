@@ -1,9 +1,16 @@
+import { useEditProduct } from '@/api/products';
 import { ProductDTO } from '@/api/types';
 import { useAppForm } from '@/components/form/app-form';
 import { ProductChoice } from '@/components/product-search-step';
+import {
+  productConversionRequirement,
+  withProductConversion,
+} from '@/lib/product-conversions';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
+import { parseLocaleFloat } from '@/utils';
 import { Keyboard } from 'react-native';
 import { useState } from 'react';
+import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import {
   emptyIngredientForm,
   emptyProductForm,
@@ -29,12 +36,45 @@ type UseIngredientEditorParams = {
 
 export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams) => {
   const sheets = useSheets();
+  const editProduct = useEditProduct();
   const initialIngredient = data.ingredient;
   const initialSelected = initialIngredient?.selectedProduct ?? null;
 
   const [phase, setPhase] = useState<IngredientEditorPhase>(initialSelected ? 'ingredient' : 'search');
   const [query, setQuery] = useState(initialIngredient?.name ?? '');
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(initialSelected);
+  const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
+  const [conversionError, setConversionError] = useState<string | null>(null);
+
+  const resolveIngredientProduct = async (ingredient: IngredientDetailsFormData) => {
+    if (!selectedProduct) return null;
+
+    const requirement = productConversionRequirement(selectedProduct.product, ingredient.unit);
+    if (!requirement) return selectedProduct;
+
+    const conversion = parseLocaleFloat(conversionValues[requirement.ingredientUnit] ?? '');
+    if (!Number.isFinite(conversion) || conversion <= 0) {
+      setConversionError('Enter a conversion greater than 0');
+      return null;
+    }
+
+    try {
+      const product =
+        selectedProduct.type === 'existing'
+          ? await editProduct.mutateAsync({
+              id: selectedProduct.product.id,
+              conversions: { [requirement.ingredientUnit]: conversion },
+            })
+          : withProductConversion(selectedProduct.product, requirement.ingredientUnit, conversion);
+      const resolved: SelectedProduct = { type: selectedProduct.type, product } as SelectedProduct;
+      setSelectedProduct(resolved);
+      setConversionError(null);
+      return resolved;
+    } catch {
+      setConversionError('Could not save this conversion');
+      return null;
+    }
+  };
 
   const productForm = useAppForm({
     defaultValues:
@@ -57,16 +97,18 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     validators: {
       onSubmit: ingredientSchema,
     },
-    onSubmit: ({ value }) => {
-      if (!selectedProduct) return;
-      const displayName = value.name_override?.trim() || selectedProduct.product.name;
+    onSubmit: async ({ value }) => {
+      const resolvedProduct = await resolveIngredientProduct(value);
+      if (!resolvedProduct) return;
+
+      const displayName = value.name_override?.trim() || resolvedProduct.product.name;
       if (!displayName.trim()) return;
 
       sheets.dismiss(sheetId, {
         ...value,
-        selectedProduct,
+        selectedProduct: resolvedProduct,
         name: displayName,
-        aisle: selectedProduct.product.aisle,
+        aisle: resolvedProduct.product.aisle,
         unit: value.unit,
       });
       Keyboard.dismiss();
@@ -96,6 +138,8 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
   const selectExistingProduct = (product: ProductDTO) => {
     const selected: SelectedProduct = { type: 'existing', product };
     setSelectedProduct(selected);
+    setConversionValues({});
+    setConversionError(null);
     setIngredientFormValues(ingredientFromProduct(selected, ingredientForm.state.values));
     setPhase('ingredient');
     Keyboard.dismiss();
@@ -103,6 +147,8 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
 
   const startDraftProduct = (form: ProductDraftForm) => {
     setProductFormValues(form);
+    setConversionValues({});
+    setConversionError(null);
     setPhase('product');
     Keyboard.dismiss();
   };
@@ -128,6 +174,22 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     setPhase('product');
   };
 
+  const editExistingProduct = async () => {
+    if (selectedProduct?.type !== 'existing') return;
+    Keyboard.dismiss();
+
+    const updatedProduct = await sheets.present('product-edit-sheet', {
+      data: { product: selectedProduct.product },
+    });
+
+    if (updatedProduct == null) return;
+
+    const selected: SelectedProduct = { type: 'existing', product: updatedProduct };
+    setSelectedProduct(selected);
+    setConversionError(null);
+    setIngredientFormValues(ingredientFromProduct(selected, ingredientForm.state.values));
+  };
+
   const clearProduct = () => setPhase('search');
 
   const selectProductUnit = async () => {
@@ -147,7 +209,16 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
         unit: ingredientForm.state.values.unit,
       },
     });
-    if (unit != null) ingredientForm.setFieldValue('unit', unit);
+    if (unit != null) {
+      ingredientForm.setFieldValue('unit', unit);
+      setConversionValues((current) => ({ ...current, [unit]: current[unit] ?? '' }));
+      setConversionError(null);
+    }
+  };
+
+  const setConversionValue = (unit: Unit, value: string) => {
+    setConversionValues((current) => ({ ...current, [unit]: value }));
+    setConversionError(null);
   };
 
   const selectAisle = async () => {
@@ -163,7 +234,15 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     phase === 'product'
       ? { text: 'Next', onPress: submitProduct }
       : phase === 'ingredient'
-        ? { text: 'Save ingredient', onPress: saveIngredient }
+        ? {
+            text:
+              selectedProduct &&
+              productConversionRequirement(selectedProduct.product, ingredientForm.state.values.unit)
+                ? 'Save conversion & ingredient'
+                : 'Save ingredient',
+            onPress: saveIngredient,
+            isLoading: editProduct.isPending,
+          }
         : null;
 
   const title = phase === 'product' ? 'Item Details' : initialIngredient ? 'Edit Ingredient' : 'Add Ingredient';
@@ -173,7 +252,10 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     back,
     canGoBack: phase !== 'search',
     clearProduct,
+    conversionError,
+    conversionValues,
     editDraftProduct,
+    editExistingProduct,
     ingredientForm,
     phase,
     productForm,
@@ -183,6 +265,7 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     selectProductChoice,
     selectProductUnit,
     selectedProduct,
+    setConversionValue,
     setQuery,
     title,
   };

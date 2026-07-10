@@ -23,6 +23,9 @@ export const UNITS: { value: Unit; label: LabelFn }[] = [
   { value: 'lb', label: () => 'Pounds' },
 ];
 
+export const isUnit = (value: unknown): value is Unit =>
+  typeof value === 'string' && UNITS.some((unit) => unit.value === value);
+
 type SelectUnitSheetData = SheetProps<'select-unit-sheet'>['data'];
 
 const SelectUnitSheetContent = ({
