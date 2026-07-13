@@ -176,21 +176,33 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
           ? sheetFooter.buttonRow(
               <View style={styles.toolbar}>
                 <TextInput
+                  variant="search"
                   value={search}
                   onChangeText={setSearch}
                   placeholder="Search recipes..."
                   style={styles.searchInput}
                 />
                 <Button
+                  accessibilityLabel="Filter recipes"
                   onPress={openFilterSheet}
                   variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
                   leftIcon={{ Icon: Funnel }}
                   style={{ paddingHorizontal: 0, width: 48 }}
                 />
                 {isKeyboardOpen ? (
-                  <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
+                  <Button
+                    accessibilityLabel="Close keyboard"
+                    onPress={() => Keyboard.dismiss()}
+                    variant="secondary"
+                    leftIcon={{ Icon: Check }}
+                  />
                 ) : (
-                  <Button onPress={handleNewRecipe} variant="primary" leftIcon={{ Icon: Plus }} />
+                  <Button
+                    accessibilityLabel="Add recipe"
+                    onPress={handleNewRecipe}
+                    variant="primary"
+                    leftIcon={{ Icon: Plus }}
+                  />
                 )}
               </View>
             )
@@ -330,9 +342,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 3,
     color: colors.brown[900],
   },
 });

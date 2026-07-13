@@ -3,7 +3,7 @@ import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
 import { Typography } from '@/components/Typography';
-import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
+import { formatDateToISO, getISOWeeksForMonth, parseISO } from '@/date-tools';
 import { useOnPressWithFeedback } from '@/hooks/use-tap-feedback-gesture';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { addMonths, format, startOfMonth, startOfToday } from 'date-fns';
@@ -29,13 +29,20 @@ const slideOutRight = SlideOutRight.duration(450).build();
 
 export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
   const sheets = useSheets();
-  const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(startOfToday()));
+  const mode = props.data?.mode ?? 'schedule';
+  const initialDate = props.data?.initialDate ?? formatDateToISO(startOfToday());
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => startOfMonth(parseISO(initialDate)));
   const [animationsEnabled, setAnimationsEnabled] = useState(false);
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const { scheduleMap } = useSchedule({ weeks });
   const direction = useSharedValue<'left' | 'right' | null>(null);
 
   const handleDaySelect = ({ dateString }: { dateString: string }) => {
+    if (mode === 'select') {
+      sheets.dismiss(props.sheetId, dateString);
+      return;
+    }
+
     sheets.present('schedule-meal-sheet', { data: { type: 'meal', dateString } });
   };
 
@@ -77,11 +84,11 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
       id={props.sheetId}
       onDidPresent={() => setAnimationsEnabled(true)}
       footer={sheetFooter.buttonRow(
-        <Button onPress={() => sheets.dismiss(props.sheetId)} variant="outlined" text="Cancel" />
+        <Button onPress={() => sheets.dismiss(props.sheetId, undefined)} variant="outlined" text="Cancel" />
       )}
     >
       <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 16 }}>
-        Select a day
+        {mode === 'select' ? 'Select a date' : 'Select a day'}
       </Typography>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
         <Animated.View
@@ -113,7 +120,14 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
             entering={animationsEnabled ? entering : undefined}
             exiting={animationsEnabled ? exiting : undefined}
           >
-            <Month startOfMonthDate={currentMonthDate} onDaySelect={handleDaySelect} scheduleMap={scheduleMap} />
+            <Month
+              startOfMonthDate={currentMonthDate}
+              onDaySelect={handleDaySelect}
+              scheduleMap={scheduleMap}
+              selectedRange={
+                mode === 'select' ? { startDateString: initialDate, endDateString: initialDate } : undefined
+              }
+            />
           </Animated.View>
         </Animated.View>
       </GestureDetector>

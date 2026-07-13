@@ -3,16 +3,16 @@ import { ProductDTO } from '@/api/types';
 import { AisleIcon } from '@/components/aisle-header';
 import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
+import { DateSelectInput } from '@/components/date-select-input';
 import { useAppForm } from '@/components/form/app-form';
+import { InlineQuantityInput } from '@/components/inline-quantity-input';
 import { ProductChoice, ProductSearchStep } from '@/components/product-search-step';
-import { ReminderFrequencyFields, ReminderFrequencyUnit } from '@/components/reminder-frequency-fields';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO } from '@/date-tools';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { parseLocaleFloat } from '@/utils';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { format } from 'date-fns';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
@@ -40,13 +40,16 @@ const shapeLabel = (product: ProductDTO) => {
   return 'Measured item';
 };
 
+const pantryShape = (product: ProductDTO) => {
+  if (product.shape === 'measured' || product.shape === 'timed') return product.shape;
+  return 'counted';
+};
+
 const pantryAddSchema = z
   .object({
     productShape: z.enum(['counted', 'measured', 'timed']),
     quantity: z.string(),
     lastAcquired: z.string(),
-    reminderFrequencyValue: z.string(),
-    reminderFrequencyUnit: z.enum(['days', 'weeks', 'months']),
   })
   .superRefine((value, context) => {
     if (value.productShape === 'timed') {
@@ -54,14 +57,6 @@ const pantryAddSchema = z
         context.addIssue({ code: 'custom', path: ['lastAcquired'], message: 'Use YYYY-MM-DD' });
       }
 
-      const frequency = parseInt(value.reminderFrequencyValue, 10);
-      if (!Number.isFinite(frequency) || frequency <= 0) {
-        context.addIssue({
-          code: 'custom',
-          path: ['reminderFrequencyValue'],
-          message: 'Reminder frequency must be greater than 0',
-        });
-      }
       return;
     }
 
@@ -85,8 +80,6 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
       productShape: 'counted' as 'counted' | 'measured' | 'timed',
       quantity: '1',
       lastAcquired: formatDateToISO(new Date()),
-      reminderFrequencyValue: '1',
-      reminderFrequencyUnit: 'months' as ReminderFrequencyUnit,
     },
     validators: {
       onSubmit: pantryAddSchema,
@@ -103,8 +96,6 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
           {
             product_id: selectedProduct.id,
             last_acquired: isoDate,
-            reminder_frequency_value: parseInt(value.reminderFrequencyValue, 10),
-            reminder_frequency_unit: value.reminderFrequencyUnit,
           },
           {
             onSuccess: () => {
@@ -135,11 +126,12 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
 
     const product = choice.product;
     setSelectedProduct(product);
-    form.setFieldValue('productShape', product.shape === 'measured' || product.shape === 'timed' ? product.shape : 'counted');
-    form.setFieldValue('quantity', product.shape === 'timed' ? '0' : '1');
-    form.setFieldValue('lastAcquired', format(new Date(), 'yyyy-MM-dd'));
-    form.setFieldValue('reminderFrequencyValue', product.reminder_frequency_value?.toString() ?? '1');
-    form.setFieldValue('reminderFrequencyUnit', product.reminder_frequency_unit ?? 'months');
+    form.setFieldValue('productShape', pantryShape(product));
+    form.setFieldValue(
+      'quantity',
+      product.shape === 'timed' ? '0' : product.shape === 'measured' ? (product.quantity?.toString() ?? '1') : '1'
+    );
+    form.setFieldValue('lastAcquired', formatDateToISO(new Date()));
     setError(null);
     setPhase('details');
     Keyboard.dismiss();
@@ -171,6 +163,7 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
       <View style={styles.header}>
         {phase === 'details' && (
           <Button
+            accessibilityLabel="Go back"
             size="small"
             variant="outlined"
             leftIcon={{ Icon: ArrowLeft }}
@@ -214,25 +207,16 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
               <View style={styles.field}>
                 <form.AppField name="lastAcquired">
                   {(field) => (
-                    <field.TextField
+                    <DateSelectInput
                       label="Last acquired"
-                      placeholder="YYYY-MM-DD"
-                      keyboardType="numbers-and-punctuation"
+                      value={field.state.value}
+                      onPress={async () => {
+                        const date = await sheets.present('select-date-sheet', {
+                          data: { mode: 'select', initialDate: field.state.value },
+                        });
+                        if (date) field.handleChange(date);
+                      }}
                     />
-                  )}
-                </form.AppField>
-                <form.AppField name="reminderFrequencyValue">
-                  {(valueField) => (
-                    <form.AppField name="reminderFrequencyUnit">
-                      {(unitField) => (
-                        <ReminderFrequencyFields
-                          value={valueField.state.value}
-                          unit={unitField.state.value}
-                          onValueChange={valueField.handleChange}
-                          onUnitChange={unitField.handleChange}
-                        />
-                      )}
-                    </form.AppField>
                   )}
                 </form.AppField>
               </View>
@@ -245,27 +229,59 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
                 </Typography>
                 <View style={styles.quantityRow}>
                   <form.AppField name="quantity">
-                    {(field) => (
-                      <field.NumberField
-                        containerStyle={styles.quantityInput}
-                        placeholder="0"
-                        style={styles.quantityInputControl}
-                      />
-                    )}
+                    {(field) => {
+                      const quantity = parseLocaleFloat(field.state.value);
+                      const quantityError =
+                        field.state.value.trim() !== '' && (!Number.isFinite(quantity) || quantity <= 0)
+                          ? 'Quantity must be positive'
+                          : null;
+
+                      return (
+                        <View style={styles.quantityField}>
+                          <InlineQuantityInput
+                            accessibilityLabel="Quantity remaining"
+                            onBlur={field.handleBlur}
+                            onChangeText={field.handleChange}
+                            unit={unitLabel(selectedProduct, quantity)}
+                            value={field.state.value}
+                          />
+                          {quantityError ? (
+                            <View
+                              accessible
+                              accessibilityLabel={quantityError}
+                              accessibilityLiveRegion="assertive"
+                              accessibilityRole="alert"
+                            >
+                              <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
+                                {quantityError}
+                              </Typography>
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    }}
                   </form.AppField>
-                  <form.Subscribe selector={(state) => state.values.quantity}>
-                    {(quantity) => (
-                      <View style={styles.unitPill}>
-                        <Typography variant="body-base" weight="bold" color={colors.brown[900]} numberOfLines={1}>
-                          {unitLabel(selectedProduct, parseLocaleFloat(quantity))}
-                        </Typography>
-                      </View>
-                    )}
-                  </form.Subscribe>
                 </View>
               </View>
             </form.AppForm>
           )}
+
+          <form.Subscribe selector={(state) => state.errors.map(errorMessage).filter((message) => message != null)}>
+            {(errors) =>
+              errors[0] ? (
+                <View
+                  accessible
+                  accessibilityLabel={errors[0]}
+                  accessibilityLiveRegion="assertive"
+                  accessibilityRole="alert"
+                >
+                  <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
+                    {errors[0]}
+                  </Typography>
+                </View>
+              ) : null
+            }
+          </form.Subscribe>
 
           {error ? (
             <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
@@ -276,6 +292,14 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
       ) : null}
     </BaseSheet>
   );
+};
+
+const errorMessage = (error: unknown) => {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return null;
 };
 
 const styles = StyleSheet.create({
@@ -310,28 +334,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quantityRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    width: '100%',
   },
-  quantityInput: {
-    flex: 1,
-    minWidth: 0,
-  },
-  quantityInputControl: {
-    fontSize: 22,
-    textAlign: 'center',
-  },
-  unitPill: {
-    alignItems: 'center',
-    backgroundColor: colors.cream[100],
-    borderColor: colors.brown[900],
-    borderRadius: 8,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    height: 48,
-    justifyContent: 'center',
-    minWidth: 104,
-    paddingHorizontal: 12,
+  quantityField: {
+    gap: 6,
   },
 });

@@ -68,6 +68,7 @@ const EditMealSheetContent = ({ sheetId, scheduledEntry }: EditMealSheetContentP
           <SheetAction
             text="Remove"
             icon={Trash2}
+            tone="danger"
             onPress={() => {
               deleteScheduleEntry.mutate({ dateString, mealType });
               sheets.dismiss(sheetId);

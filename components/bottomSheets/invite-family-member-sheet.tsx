@@ -41,7 +41,13 @@ export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-
     <BaseSheet
       id={props.sheetId}
       footer={sheetFooter.buttonRow(
-        <Button text="Invite" variant="primary" rightIcon={{ Icon: MailPlus }} onPress={() => form.handleSubmit()} />
+        <Button
+          text="Invite"
+          variant="primary"
+          rightIcon={{ Icon: MailPlus }}
+          onPress={() => form.handleSubmit()}
+          isLoading={postInvite.isPending}
+        />
       )}
     >
       <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>

@@ -1,11 +1,14 @@
 import { Typography } from '@/components/Typography';
-import { FunctionComponent } from 'react';
+import { ComponentProps, FunctionComponent } from 'react';
 import { StyleProp, StyleSheet, ViewStyle, ActivityIndicator, View } from 'react-native';
 import { filter, isTruthy } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { colors } from '@/constants/colors';
 
-type Props = {
+type Props = Omit<
+  ComponentProps<typeof PressableWithHaptics>,
+  'children' | 'style' | 'onPress' | 'onLongPress' | 'scaleTo'
+> & {
   onPress: () => void;
   text?: string;
   leftIcon?: {
@@ -22,14 +25,31 @@ type Props = {
   isLoading?: boolean;
 };
 
-export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, size, isLoading }: Props) => {
+export const Button = ({
+  onPress,
+  leftIcon,
+  rightIcon,
+  variant,
+  text,
+  style,
+  size,
+  isLoading,
+  disabled,
+  ...props
+}: Props) => {
   const textColor =
     variant === 'outlined' ? colors.brown[900] : variant === 'red-outlined' ? colors.red[500] : colors.cream[100];
+  const isBusy = isLoading === true;
+  const isDisabled = disabled === true || isBusy;
 
   return (
     <PressableWithHaptics
+      {...props}
       onPress={onPress}
-      disabled={isLoading}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={props.accessibilityLabel ?? text}
+      accessibilityState={{ ...props.accessibilityState, disabled: isDisabled, busy: isBusy }}
       style={filter(
         [
           styles.container,
@@ -39,7 +59,7 @@ export const Button = ({ onPress, leftIcon, rightIcon, variant, text, style, siz
           variant === 'outlined' && styles.outlinedColors,
           variant === 'green' && styles.greenColors,
           variant === 'red-outlined' && styles.redOutlinedColors,
-          isLoading && styles.disabled,
+          isDisabled && styles.disabled,
           style,
         ],
         isTruthy
@@ -96,7 +116,7 @@ const styles = StyleSheet.create({
   container: {
     flexShrink: 0,
     borderRadius: 999,
-    height: 48,
+    minHeight: 48,
     paddingHorizontal: 24,
     borderWidth: 2,
     borderBottomWidth: 3,
@@ -106,11 +126,11 @@ const styles = StyleSheet.create({
     borderColor: colors.orange[600],
   },
   secondaryColors: {
-    backgroundColor: '#594B40',
-    borderColor: '#493D34',
+    backgroundColor: colors.brown[800],
+    borderColor: colors.brown[900],
   },
   greenColors: {
-    backgroundColor: colors.green[500],
+    backgroundColor: colors.green[700],
     borderColor: colors.green[600],
   },
   redOutlinedColors: {
@@ -119,10 +139,10 @@ const styles = StyleSheet.create({
   },
   outlinedColors: {
     backgroundColor: colors.cream[100],
-    borderColor: '#493D34',
+    borderColor: colors.brown[900],
   },
   small: {
-    height: 36,
+    minHeight: 44,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderBottomWidth: 2,

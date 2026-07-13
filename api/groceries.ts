@@ -68,6 +68,18 @@ export const useAddGroceryItem = () => {
   });
 };
 
+export const useAddRecipeToGroceries = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.groceries.addFromRecipe,
+    onSuccess: () => {
+      queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+    },
+  });
+};
+
 queryClient.setMutationDefaults(['generateGroceryItems'], { mutationFn: api.groceries.generate });
 export const useGenerateGroceryItems = () => {
   const queryClient = useQueryClient();

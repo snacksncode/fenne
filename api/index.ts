@@ -17,7 +17,7 @@ import {
   PantryEntryDTO,
   ConsumptionLogDTO,
 } from '@/api/types';
-import { AuthResponse, CurrentUserDTO, UnitPreference } from '@/api/auth';
+import { AuthResponse, CurrentUserDTO } from '@/api/auth';
 import { InvitationsDTO } from '@/api/invitations';
 
 export const api = {
@@ -50,6 +50,9 @@ export const api = {
     },
     add: (itemData: GroceryItemInput) => {
       return client.post<GroceryItemDTO>('/grocery_items', itemData);
+    },
+    addFromRecipe: (data: { recipe_id: string }) => {
+      return client.post('/grocery_items/from_recipe', data);
     },
     edit: (data: Pick<GroceryItemDTO, 'id'> & Partial<Pick<GroceryItemDTO, 'quantity' | 'unit' | 'status'>>) => {
       const { id, ...itemData } = data;
@@ -129,7 +132,7 @@ export const api = {
     },
   },
   family: {
-    updatePreferences: (data: { unit_preference?: UnitPreference; timezone?: string | null }) => {
+    updatePreferences: (data: { timezone?: string | null }) => {
       return client.patch('/family/preferences', data);
     },
   },
@@ -154,17 +157,12 @@ export const api = {
       product_id: string;
       quantity_remaining?: number | null;
       last_acquired?: string | null;
-      reminder_frequency_value?: number | null;
-      reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
     }) => {
       return client.post<PantryEntryDTO>('/pantry_entries', data);
     },
     edit: (
       data: Pick<PantryEntryDTO, 'id'> &
-        Partial<Pick<PantryEntryDTO, 'quantity_remaining' | 'last_acquired'>> & {
-          reminder_frequency_value?: number | null;
-          reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
-        }
+        Partial<Pick<PantryEntryDTO, 'quantity_remaining' | 'last_acquired'>>
     ) => {
       const { id, ...entryData } = data;
       return client.patch<PantryEntryDTO>(`/pantry_entries/${id}`, entryData);

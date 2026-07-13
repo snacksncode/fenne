@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { useSheets } from '@/lib/sheet-context';
 import { hasWeeklyScreenLoadedAtom, WeeklyScreen } from '@/components/menu/weekly-screen';
 import { MonthlyScreen } from '@/components/menu/monthly-screen';
-import { CalendarPlus } from 'lucide-react-native';
+import { CalendarPlus, Utensils } from 'lucide-react-native';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
 import { useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
@@ -78,6 +78,7 @@ const Index = () => {
         )}
         tabBar={(props: MaterialTopTabBarProps) => (
           <RouteTitle
+            icon={Utensils}
             text="Menu"
             footerSlot={
               <View style={{ marginTop: 12 }}>

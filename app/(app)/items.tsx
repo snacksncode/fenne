@@ -1,6 +1,7 @@
 import { useProducts } from '@/api/products';
 import { ProductDTO } from '@/api/types';
 import { AisleIcon } from '@/components/aisle-header';
+import { EmptyState } from '@/components/empty-state';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
@@ -11,7 +12,9 @@ import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { ChevronLeft, PackageSearch } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const aisleLabels: Record<ProductDTO['aisle'], string> = {
@@ -78,23 +81,21 @@ const ProductRow = ({ product }: { product: ProductDTO }) => {
 };
 
 const EmptyCatalog = ({ search }: { search: string }) => (
-  <View style={styles.emptyContainer}>
-    <View style={styles.emptyIcon}>
-      <PackageSearch size={44} color={colors.cream[100]} strokeWidth={3} absoluteStrokeWidth />
-    </View>
-    <Typography variant="heading-md" weight="black" style={{ marginTop: 10, textAlign: 'center' }}>
-      {search.trim() ? 'No products found' : 'No products yet'}
-    </Typography>
-    <Typography variant="body-sm" weight="medium" color={colors.brown[700]} style={styles.emptyText}>
-      {search.trim() ? 'Try a different search.' : 'Products appear here as recipes and tracked groceries create them.'}
-    </Typography>
-  </View>
+  <EmptyState
+    icon={PackageSearch}
+    title={search.trim() ? 'No products found' : 'No products yet'}
+    description={
+      search.trim() ? 'Try a different search.' : 'Products appear here as recipes and tracked groceries create them.'
+    }
+  />
 );
 
 const Items = () => {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const products = useProducts();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom, -keyboardHeight.value + 12) }));
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -105,33 +106,47 @@ const Items = () => {
   }, [products.data, search]);
 
   return (
-    <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <View style={styles.headerRow}>
-          <Pressable hitSlop={20} onPress={() => router.back()}>
-            <ChevronLeft color={colors.brown[900]} size={28} strokeWidth={2.25} />
-          </Pressable>
-          <Typography variant="heading-lg" weight="black">
-            Items
-          </Typography>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.screen}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <View style={styles.headerRow}>
+            <Pressable accessibilityLabel="Go back" accessibilityRole="button" hitSlop={20} onPress={() => router.back()}>
+              <ChevronLeft color={colors.brown[900]} size={28} strokeWidth={2.25} />
+            </Pressable>
+            <Typography variant="heading-lg" weight="black">
+              Items
+            </Typography>
+          </View>
         </View>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search items..." style={styles.searchInput} />
+        <FlashList
+          data={filteredProducts}
+          renderItem={({ item }) => <ProductRow product={item} />}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={<EmptyCatalog search={search} />}
+          style={styles.list}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{
+            ...(filteredProducts.length === 0 && { flexGrow: 1 }),
+            paddingHorizontal: 20,
+            paddingTop: insets.top + 76,
+            paddingBottom: insets.bottom + 64,
+          }}
+        />
+        {(products.data ?? []).length > 0 ? (
+          <Animated.View style={[styles.toolbar, toolbarStyle]}>
+            <TextInput
+              variant="search"
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search items..."
+              style={styles.searchInput}
+            />
+          </Animated.View>
+        ) : null}
       </View>
-      <FlashList
-        data={filteredProducts}
-        renderItem={({ item }) => <ProductRow product={item} />}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={<EmptyCatalog search={search} />}
-        style={styles.list}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        contentContainerStyle={{
-          ...(filteredProducts.length === 0 && { flexGrow: 1 }),
-          paddingHorizontal: 20,
-          paddingTop: insets.top + 140,
-          paddingBottom: insets.bottom + 24,
-        }}
-      />
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -146,8 +161,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingBottom: 12,
-    gap: 12,
     backgroundColor: colors.cream[100],
     borderBottomColor: colors.brown[900],
     borderBottomWidth: 1,
@@ -159,11 +172,16 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   searchInput: {
-    height: 44,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 3,
+    flex: 1,
     color: colors.brown[900],
+  },
+  toolbar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
   },
   list: {
     flex: 1,
@@ -181,22 +199,6 @@ const styles = StyleSheet.create({
     borderColor: colors.brown[900],
     borderRadius: 8,
     backgroundColor: '#FEF2DD',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyIcon: {
-    backgroundColor: colors.brown[900],
-    paddingHorizontal: 36,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
 

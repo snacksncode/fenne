@@ -89,6 +89,8 @@ export default function RecipePreview() {
         }}
       >
         <Pressable
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={{
             marginLeft: -8,

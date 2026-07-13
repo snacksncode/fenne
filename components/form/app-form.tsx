@@ -35,9 +35,16 @@ const FieldFrame = ({ label, children, style }: FieldFrameProps) => {
       ) : null}
       {children}
       {showErrors ? (
-        <Typography variant="body-xs" weight="medium" color={colors.red[500]} style={styles.error}>
-          {errors[0]}
-        </Typography>
+        <View
+          accessible
+          accessibilityLabel={errors[0]}
+          accessibilityLiveRegion="assertive"
+          accessibilityRole="alert"
+        >
+          <Typography variant="body-xs" weight="medium" color={colors.red[500]} style={styles.error}>
+            {errors[0]}
+          </Typography>
+        </View>
       ) : null}
     </View>
   );
@@ -48,7 +55,7 @@ type TextFieldProps = Omit<ComponentProps<typeof TextInput>, 'value' | 'onChange
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const TextField = ({ label, containerStyle, ...props }: TextFieldProps) => {
+const TextField = ({ label, containerStyle, accessibilityLabel, ...props }: TextFieldProps) => {
   const field = useFieldContext<string | null | undefined>();
 
   return (
@@ -58,6 +65,7 @@ const TextField = ({ label, containerStyle, ...props }: TextFieldProps) => {
         onChangeText={field.handleChange}
         onBlur={field.handleBlur}
         {...props}
+        accessibilityLabel={accessibilityLabel ?? label}
       />
     </FieldFrame>
   );
@@ -68,12 +76,18 @@ type NumberFieldProps = Omit<ComponentProps<typeof NumberInput>, 'value' | 'onCh
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const NumberField = ({ label, containerStyle, ...props }: NumberFieldProps) => {
+const NumberField = ({ label, containerStyle, accessibilityLabel, ...props }: NumberFieldProps) => {
   const field = useFieldContext<string>();
 
   return (
     <FieldFrame label={label} style={containerStyle}>
-      <NumberInput value={field.state.value} onChangeText={field.handleChange} onBlur={field.handleBlur} {...props} />
+      <NumberInput
+        value={field.state.value}
+        onChangeText={field.handleChange}
+        onBlur={field.handleBlur}
+        {...props}
+        accessibilityLabel={accessibilityLabel ?? label}
+      />
     </FieldFrame>
   );
 };

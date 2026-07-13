@@ -92,8 +92,8 @@ const productEditSchema = z
     }
 
     if (value.mode === 'timed') {
-      const frequency = parseInt(value.reminder_frequency_value, 10);
-      if (!Number.isFinite(frequency) || frequency <= 0) {
+      const frequency = value.reminder_frequency_value.trim();
+      if (!/^\d+$/.test(frequency) || Number(frequency) <= 0) {
         context.addIssue({
           code: 'custom',
           path: ['reminder_frequency_value'],
@@ -218,7 +218,11 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         />
       )}
     >
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <form.AppForm>
           <View style={{ gap: 16, paddingBottom: 72 }}>
             <View>
@@ -253,12 +257,6 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                           </PressableWithHaptics>
                         </View>
                       )}
-                    </form.AppField>
-                  )}
-
-                  {values.mode !== 'kitchen_basic' && (
-                    <form.AppField name="pack_count">
-                      {(field) => <field.NumberField label="Sold in packs of" placeholder="e.g. 12" />}
                     </form.AppField>
                   )}
 
@@ -335,7 +333,10 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                                         text={unit}
                                         size="small"
                                         variant={field.state.value === unit ? 'primary' : 'outlined'}
-                                        onPress={() => field.handleChange(unit)}
+                                        onPress={() => {
+                                          Keyboard.dismiss();
+                                          field.handleChange(unit);
+                                        }}
                                       />
                                     ))}
                                   </>
@@ -356,6 +357,12 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                       </View>
                     )}
                   </form.AppField>
+
+                  {values.mode !== 'kitchen_basic' && (
+                    <form.AppField name="pack_count">
+                      {(field) => <field.NumberField label="Sold in packs of" placeholder="e.g. 12" />}
+                    </form.AppField>
+                  )}
                 </>
               )}
             </form.Subscribe>

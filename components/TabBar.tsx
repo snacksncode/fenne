@@ -15,13 +15,17 @@ const Tab = ({
   route,
   navigation,
   descriptors,
+  isFocused,
 }: {
   route: NavigationRoute<ParamListBase, string>;
   navigation: BottomTabBarProps['navigation'];
   descriptors: BottomTabBarProps['descriptors'];
+  isFocused: boolean;
 }) => {
   const { options } = descriptors[route.key];
   const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : (options.title ?? route.name);
+  const accessibilityLabel = options.tabBarAccessibilityLabel ?? label;
+  const contentColor = colors.cream[100];
 
   const onPress = () => {
     const event = navigation.emit({
@@ -38,16 +42,29 @@ const Tab = ({
 
   return (
     <GestureDetector gesture={gesture}>
-      <View key={route.key} testID={options.tabBarButtonTestID} style={styles.tab}>
+      <View
+        key={route.key}
+        accessible
+        accessibilityActions={[{ name: 'activate' }]}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isFocused }}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'activate') onPress();
+        }}
+        onAccessibilityTap={onPress}
+        testID={options.tabBarButtonTestID}
+        style={styles.tab}
+      >
         <Animated.View style={[styles.tabInner, scaleStyle]}>
           {options.tabBarIcon
             ? options.tabBarIcon({
-                focused: false,
+                focused: isFocused,
                 size: 28,
-                color: colors.cream[100],
+                color: contentColor,
               })
             : null}
-          <Typography variant="body-xs" weight="bold" color={colors.cream[100]}>
+          <Typography variant="body-xs" weight="bold" color={contentColor}>
             {label}
           </Typography>
         </Animated.View>
@@ -90,7 +107,13 @@ export const TabBar = ({ state, navigation, descriptors }: Props) => {
       <View onLayout={onLayout} style={styles.tabBar}>
         {tabWidth > 0 && <Animated.View pointerEvents="none" style={[styles.pill, { width: tabWidth }, pillStyle]} />}
         {routes.map((route) => (
-          <Tab key={route.name} route={route} navigation={navigation} descriptors={descriptors} />
+          <Tab
+            key={route.name}
+            route={route}
+            navigation={navigation}
+            descriptors={descriptors}
+            isFocused={state.routes[state.index]?.key === route.key}
+          />
         ))}
       </View>
     </View>

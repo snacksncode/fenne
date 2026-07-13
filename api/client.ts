@@ -18,6 +18,13 @@ type RequestProps = ({ method: 'GET' | 'DELETE' } | { method: 'POST' | 'PATCH' |
 export type V2SuccessResponse<T> = { status: 'success'; data: T; meta?: unknown };
 type V2Response<T> = V2SuccessResponse<T> | { status: 'error'; errors: unknown };
 
+const abandonUnauthorizedRequest = () => new Promise<never>(() => {});
+
+const handleUnauthorizedRequest = () => {
+  authSignal.handleUnauthorized();
+  return abandonUnauthorizedRequest();
+};
+
 const requestEnvelope = async <T>({ path, ...requestDetails }: RequestProps): Promise<V2SuccessResponse<T>> => {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
 
@@ -35,8 +42,7 @@ const requestEnvelope = async <T>({ path, ...requestDetails }: RequestProps): Pr
 
   const res = await fetch(url, options);
   if (res.status === 401 && SecureStore.getItem(TOKEN_KEY) != null) {
-    authSignal.handleUnauthorized();
-    return { status: 'success', data: {} as T };
+    return handleUnauthorizedRequest();
   }
   if (!res.ok) {
     const json = await res.json();

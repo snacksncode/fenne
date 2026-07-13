@@ -89,7 +89,13 @@ declare module '@/lib/sheet-context' {
       };
     };
     'invite-family-member-sheet': {};
-    'select-date-sheet': {};
+    'select-date-sheet': {
+      data?: {
+        initialDate?: string;
+        mode?: 'schedule' | 'select';
+      };
+      result: string | undefined;
+    };
     'select-date-range-sheet': {};
 
     'tutorial-sheet': {};

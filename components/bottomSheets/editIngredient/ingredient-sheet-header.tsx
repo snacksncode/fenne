@@ -13,6 +13,7 @@ export const IngredientSheetHeader = ({ canGoBack, onBack, title }: IngredientSh
   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 }}>
     {canGoBack && (
       <Button
+        accessibilityLabel="Go back"
         size="small"
         variant="outlined"
         leftIcon={{ Icon: ArrowLeft }}

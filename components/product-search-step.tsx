@@ -84,6 +84,7 @@ export const ProductSearchStep = ({
   return (
     <View style={styles.container}>
       <TextInput
+        variant="search"
         value={query}
         onChangeText={onQueryChange}
         placeholder={placeholder}

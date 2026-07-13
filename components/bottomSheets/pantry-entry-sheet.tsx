@@ -2,8 +2,9 @@ import { useDeletePantryEntry, useEditPantryEntry } from '@/api/pantry';
 import { PantryEntryDTO } from '@/api/types';
 import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
+import { DateSelectInput } from '@/components/date-select-input';
 import { useAppForm } from '@/components/form/app-form';
-import { ReminderFrequencyFields, ReminderFrequencyUnit } from '@/components/reminder-frequency-fields';
+import { InlineQuantityInput } from '@/components/inline-quantity-input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO } from '@/date-tools';
@@ -11,10 +12,12 @@ import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { parseLocaleFloat } from '@/utils';
 import { prettyUnit } from '@/utils/unit-formatters';
 import { format, parseISO } from 'date-fns';
-import { Trash2 } from 'lucide-react-native';
+import { Pen, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
+
+const POSITIVE_QUANTITY_ERROR = 'Quantity must be positive';
 
 const initialDate = (entry: PantryEntryDTO) => {
   if (!entry.last_acquired) return formatDateToISO(new Date());
@@ -38,14 +41,9 @@ const entryUnitLabel = (entry: PantryEntryDTO, quantity: number) => {
 const pantryEntrySchema = z.object({
   quantity: z.string().refine((value) => {
     const quantity = parseLocaleFloat(value);
-    return Number.isFinite(quantity) && quantity >= 0;
-  }, 'Quantity cannot be negative'),
+    return Number.isFinite(quantity) && quantity > 0;
+  }, POSITIVE_QUANTITY_ERROR),
   lastAcquired: z.string().refine((value) => dateToISO(value.trim()) != null, 'Use YYYY-MM-DD'),
-  reminderFrequencyValue: z.string().refine((value) => {
-    const frequency = parseInt(value, 10);
-    return Number.isFinite(frequency) && frequency > 0;
-  }, 'Reminder frequency must be greater than 0'),
-  reminderFrequencyUnit: z.enum(['days', 'weeks', 'months']),
 });
 
 type PantryEntrySheetContentProps = {
@@ -60,12 +58,24 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
   const [error, setError] = useState<string | null>(null);
 
   const isTimed = entry.product.shape === 'timed';
+  const performRemove = () => {
+    setError(null);
+    deleteEntry.mutate(
+      { id: entry.id },
+      {
+        onSuccess: () => {
+          Keyboard.dismiss();
+          sheets.dismiss(sheetId);
+        },
+        onError: () => setError('Could not remove pantry stock'),
+      }
+    );
+  };
+
   const form = useAppForm({
     defaultValues: {
       quantity: entry.quantity_remaining.toString(),
       lastAcquired: initialDate(entry),
-      reminderFrequencyValue: entry.product.reminder_frequency_value?.toString() ?? '1',
-      reminderFrequencyUnit: entry.product.reminder_frequency_unit ?? 'months',
     },
     validators: {
       onSubmit: pantryEntrySchema,
@@ -77,14 +87,10 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
         const isoDate = dateToISO(value.lastAcquired.trim());
         if (!isoDate) return;
 
-        const parsedReminderFrequency = parseInt(value.reminderFrequencyValue, 10);
-
         editEntry.mutate(
           {
             id: entry.id,
             last_acquired: isoDate,
-            reminder_frequency_value: parsedReminderFrequency,
-            reminder_frequency_unit: value.reminderFrequencyUnit,
           },
           {
             onSuccess: () => {
@@ -112,17 +118,11 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
     },
   });
 
-  const handleRemove = () => {
-    deleteEntry.mutate(
-      { id: entry.id },
-      {
-        onSuccess: () => {
-          Keyboard.dismiss();
-          sheets.dismiss(sheetId);
-        },
-        onError: () => setError('Could not remove pantry stock'),
-      }
-    );
+  const handleEditProduct = async () => {
+    Keyboard.dismiss();
+    const product = entry.product;
+    await sheets.dismiss(sheetId);
+    sheets.present('product-edit-sheet', { data: { product } });
   };
 
   return (
@@ -133,7 +133,7 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
           <Button
             text="Remove"
             variant="red-outlined"
-            onPress={handleRemove}
+            onPress={performRemove}
             leftIcon={{ Icon: Trash2 }}
             isLoading={deleteEntry.isPending}
             style={{ flex: 1 }}
@@ -149,16 +149,25 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
       )}
     >
       <View style={styles.header}>
-        <Typography variant="heading-sm" weight="bold">
-          {entry.product.name}
-        </Typography>
-        <form.Subscribe selector={(state) => state.values.quantity}>
-          {(quantity) => (
-            <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
-              {isTimed ? 'Reminder item' : `Tracked as ${entryUnitLabel(entry, parseLocaleFloat(quantity))}`}
-            </Typography>
-          )}
-        </form.Subscribe>
+        <View style={styles.headerText}>
+          <Typography variant="heading-sm" weight="bold">
+            {entry.product.name}
+          </Typography>
+          <form.Subscribe selector={(state) => state.values.quantity}>
+            {(quantity) => (
+              <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
+                {isTimed ? 'Reminder item' : `Tracked as ${entryUnitLabel(entry, parseLocaleFloat(quantity))}`}
+              </Typography>
+            )}
+          </form.Subscribe>
+        </View>
+        <Button
+          text="Edit item"
+          variant="outlined"
+          size="small"
+          leftIcon={{ Icon: Pen }}
+          onPress={handleEditProduct}
+        />
       </View>
 
       <form.AppForm>
@@ -166,50 +175,61 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
           <View style={styles.field}>
             <form.AppField name="lastAcquired">
               {(field) => (
-                <field.TextField
+                <DateSelectInput
                   label="Last acquired"
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="numbers-and-punctuation"
+                  value={field.state.value}
+                  onPress={async () => {
+                    const date = await sheets.present('select-date-sheet', {
+                      data: { mode: 'select', initialDate: field.state.value },
+                    });
+                    if (date) field.handleChange(date);
+                  }}
                 />
-              )}
-            </form.AppField>
-            <form.AppField name="reminderFrequencyValue">
-              {(frequencyField) => (
-                <form.AppField name="reminderFrequencyUnit">
-                  {(unitField) => (
-                    <ReminderFrequencyFields
-                      value={frequencyField.state.value}
-                      unit={unitField.state.value as ReminderFrequencyUnit}
-                      onValueChange={frequencyField.handleChange}
-                      onUnitChange={unitField.handleChange}
-                    />
-                  )}
-                </form.AppField>
               )}
             </form.AppField>
           </View>
         ) : (
           <View style={styles.field}>
             <form.AppField name="quantity">
-              {(field) => (
-                <View>
-                  <Typography variant="body-sm" weight="bold" style={{ marginBottom: 8 }}>
-                    Quantity remaining
-                  </Typography>
-                  <View style={styles.quantityRow}>
-                    <field.NumberField
-                      containerStyle={styles.quantityInput}
-                      placeholder="0"
-                      style={styles.quantityInputControl}
-                    />
-                    <View style={styles.unitPill}>
-                      <Typography variant="body-base" weight="bold" color={colors.brown[900]} numberOfLines={1}>
-                        {entryUnitLabel(entry, parseLocaleFloat(field.state.value))}
-                      </Typography>
+              {(field) => {
+                const quantity = parseLocaleFloat(field.state.value);
+                const quantityError =
+                  field.state.value.trim() !== '' && (!Number.isFinite(quantity) || quantity <= 0)
+                    ? POSITIVE_QUANTITY_ERROR
+                    : null;
+
+                return (
+                  <View style={styles.quantityField}>
+                    <Typography variant="body-sm" weight="bold" style={{ marginBottom: 8 }}>
+                      Quantity remaining
+                    </Typography>
+                    <View style={styles.quantityRow}>
+                      <InlineQuantityInput
+                        accessibilityLabel="Quantity remaining"
+                        onBlur={field.handleBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.handleChange(value);
+                        }}
+                        unit={entryUnitLabel(entry, parseLocaleFloat(field.state.value))}
+                        value={field.state.value}
+                      />
                     </View>
+                    {quantityError ? (
+                      <View
+                        accessible
+                        accessibilityLabel={quantityError}
+                        accessibilityLiveRegion="assertive"
+                        accessibilityRole="alert"
+                      >
+                        <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
+                          {quantityError}
+                        </Typography>
+                      </View>
+                    ) : null}
                   </View>
-                </View>
-              )}
+                );
+              }}
             </form.AppField>
           </View>
         )}
@@ -217,10 +237,17 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
 
       <form.Subscribe selector={(state) => state.errors.map(errorMessage).filter((message) => message != null)}>
         {(errors) =>
-          errors[0] ? (
-            <Typography variant="body-sm" weight="bold" color={colors.red[500]} style={{ marginTop: 12 }}>
-              {errors[0]}
-            </Typography>
+          errors[0] && (isTimed || errors[0] !== POSITIVE_QUANTITY_ERROR) ? (
+            <View
+              accessible
+              accessibilityLabel={errors[0]}
+              accessibilityLiveRegion="assertive"
+              accessibilityRole="alert"
+            >
+              <Typography variant="body-sm" weight="bold" color={colors.red[500]} style={{ marginTop: 12 }}>
+                {errors[0]}
+              </Typography>
+            </View>
           ) : null
         }
       </form.Subscribe>
@@ -248,36 +275,23 @@ export const PantryEntrySheet = (props: SheetProps<'pantry-entry-sheet'>) => {
 
 const styles = StyleSheet.create({
   header: {
-    gap: 2,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 20,
+  },
+  headerText: {
+    flex: 1,
+    gap: 2,
   },
   field: {
     gap: 8,
   },
   quantityRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
+    width: '100%',
   },
-  quantityInput: {
-    flex: 1,
-    minWidth: 0,
-  },
-  quantityInputControl: {
-    fontSize: 22,
-    textAlign: 'center',
-  },
-  unitPill: {
-    minWidth: 104,
-    height: 48,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: colors.brown[900],
-    backgroundColor: colors.cream[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
+  quantityField: {
+    gap: 6,
   },
   footer: {
     flexDirection: 'row',

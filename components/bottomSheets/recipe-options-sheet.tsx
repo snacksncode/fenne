@@ -45,6 +45,7 @@ const RecipeOptionsSheetContent = ({ sheetId, recipe }: RecipeOptionsSheetConten
         <SheetAction
           text="Remove"
           icon={Trash2}
+          tone="danger"
           onPress={() => {
             deleteRecipe.mutate({ id: recipe.id });
             sheets.dismiss(sheetId);

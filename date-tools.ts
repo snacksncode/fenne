@@ -21,6 +21,10 @@ export const formatDateToISO = (date: Date) => {
   return formatISO(date, { representation: 'date' });
 };
 
+export const formatFriendlyDate = (dateString: string) => {
+  return format(parseISO(dateString), 'EEEE, MMMM do, yyyy');
+};
+
 export const getISOWeekString = (dateString: string) => {
   return format(parseISO(dateString), YEAR_WEEK);
 };
@@ -36,4 +40,3 @@ export const getISOWeeksForMonth = (dateString: string) => {
   const end = endOfISOWeek(endOfMonth(date));
   return eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((w) => format(w, YEAR_WEEK));
 };
-

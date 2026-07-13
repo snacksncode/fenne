@@ -1,27 +1,25 @@
 import { TrueSheet, TrueSheetProps } from '@lodev09/react-native-true-sheet';
 import { ReactNode } from 'react';
 import { StyleSheet, StyleProp, View, ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sheets, useSheetInternal } from '@/lib/sheet-context';
-import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 
 type SheetDetents = NonNullable<TrueSheetProps['detents']>;
 type BaseSheetSizing = { type?: 'auto' } | { type: 'scrollable'; detents: SheetDetents };
-type ExplicitFooter = { node: ReactNode; height: number };
 const FOOTER_TOP_PADDING = 12;
+const FOOTER_CONTENT_HEIGHT = 48;
 
 type BaseSheetProps = Partial<Omit<TrueSheetProps, 'name' | 'children' | 'footer' | 'detents'>> & {
   sizing?: BaseSheetSizing;
-  footer?: ExplicitFooter;
+  footer?: ReactNode;
   children: ReactNode;
   id: keyof Sheets & string;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
 export const sheetFooter = {
-  buttonRow: (node: ReactNode): ExplicitFooter => ({ node, height: 48 }),
+  buttonRow: (node: ReactNode) => node,
 };
 
 export const BaseSheet = ({
@@ -39,8 +37,8 @@ export const BaseSheet = ({
   const { handleDidDismiss } = useSheetInternal();
   const insets = useSafeAreaInsets();
   const isScrollable = sizing.type === 'scrollable';
-  const { progress } = useReanimatedKeyboardAnimation();
-  const footerKeyboardStyle = useAnimatedStyle(() => ({ transform: [{ translateY: progress.value * 24 }] }));
+  const contentBottomPadding =
+    footer != null ? FOOTER_CONTENT_HEIGHT + FOOTER_TOP_PADDING + insets.bottom : insets.bottom;
 
   return (
     <TrueSheet
@@ -62,20 +60,19 @@ export const BaseSheet = ({
       grabber
       grabberOptions={{ width: 64, height: 4, topMargin: 16, color: colors.brown[800], adaptive: false }}
       {...props}
+      footerOptions={{ keyboardOffset: -16, ...props.footerOptions }}
       footer={
-        <Animated.View
-          pointerEvents="auto"
-          style={
-            footer == null ? styles.emptyFooter : [styles.footer, { paddingBottom: insets.bottom }, footerKeyboardStyle]
-          }
+        <View
+          pointerEvents={footer == null ? 'none' : 'auto'}
+          style={footer == null ? styles.emptyFooter : [styles.footer, { paddingBottom: insets.bottom }]}
         >
-          {footer?.node}
-        </Animated.View>
+          {footer}
+        </View>
       }
     >
       <View style={[styles.content, containerStyle]}>
         {children}
-        <View style={{ height: footer != null ? footer.height + FOOTER_TOP_PADDING + insets.bottom : insets.bottom }} />
+        <View style={{ height: contentBottomPadding }} />
       </View>
     </TrueSheet>
   );

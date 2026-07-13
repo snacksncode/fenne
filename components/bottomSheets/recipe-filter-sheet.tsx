@@ -1,4 +1,5 @@
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
+import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
@@ -28,41 +29,62 @@ export const RecipeFilterSheet = (props: SheetProps<'recipe-filter-sheet'>) => {
 
   return (
     <BaseSheet id={props.sheetId}>
-        <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
+      <View
+        style={{
+          minHeight: 44,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 12,
+        }}
+      >
+        <Typography variant="heading-sm" weight="bold">
           Filter by meal type
         </Typography>
-        <View style={{ gap: 4, paddingBottom: 8 }}>
-          {options.map((option) => {
-            const isSelected = current === option.value;
-            return (
-              <PressableWithHaptics
-                key={option.value}
-                scaleTo={0.97}
-                onPress={() => handleSelect(option.value)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  borderRadius: 8,
-                  backgroundColor: isSelected ? colors.brown[900] : 'transparent',
-                }}
+        {current !== 'all' ? (
+          <Button
+            accessibilityLabel="Reset recipe filters"
+            hitSlop={4}
+            onPress={() => handleSelect('all')}
+            size="small"
+            variant="outlined"
+            text="Reset"
+            style={{ minHeight: 36, paddingHorizontal: 12 }}
+          />
+        ) : null}
+      </View>
+      <View style={{ gap: 4, paddingBottom: 8 }}>
+        {options.map((option) => {
+          const isSelected = current === option.value;
+          return (
+            <PressableWithHaptics
+              key={option.value}
+              scaleTo={0.97}
+              onPress={() => handleSelect(option.value)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                backgroundColor: isSelected ? colors.brown[900] : 'transparent',
+              }}
+            >
+              <option.icon size={20} color={isSelected ? colors.cream[100] : colors.brown[900]} />
+              <Typography
+                variant="body-base"
+                weight="bold"
+                color={isSelected ? colors.cream[100] : colors.brown[900]}
+                style={{ flex: 1 }}
               >
-                <option.icon size={20} color={isSelected ? colors.cream[100] : colors.brown[900]} />
-                <Typography
-                  variant="body-base"
-                  weight="bold"
-                  color={isSelected ? colors.cream[100] : colors.brown[900]}
-                  style={{ flex: 1 }}
-                >
-                  {option.label}
-                </Typography>
-                {isSelected && <Check size={20} color={colors.cream[100]} strokeWidth={2.5} />}
-              </PressableWithHaptics>
-            );
-          })}
-        </View>
+                {option.label}
+              </Typography>
+              {isSelected && <Check size={20} color={colors.cream[100]} strokeWidth={2.5} />}
+            </PressableWithHaptics>
+          );
+        })}
+      </View>
     </BaseSheet>
   );
 };

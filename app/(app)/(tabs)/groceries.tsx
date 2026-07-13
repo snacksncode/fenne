@@ -9,9 +9,9 @@ import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-hand
 import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { Button } from '@/components/button';
 import { Checkbox, useCheckbox } from '@/components/checkbox';
+import { EmptyState } from '@/components/empty-state';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Typography } from '@/components/Typography';
-import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { CirclePlus, CookingPot, ListPlus, Pen, Plus, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -52,18 +52,11 @@ type ListItem = ({ type: 'aisle' } & AisleDTO) | { type: 'separator' } | ({ type
 
 const EmptyList = () => {
   return (
-    <Animated.View style={styles.container} entering={FadeIn}>
-      <View style={styles.basket}>
-        <ShoppingBasket size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
-      </View>
-      <Typography variant="heading-md" weight="black" style={{ marginTop: 10 }}>
-        Your grocery list is empty
-      </Typography>
-      <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginTop: 4 }}>
-        Start planning your meals to fill it up,{'\n'}
-        or add items directly.
-      </Typography>
-    </Animated.View>
+    <EmptyState
+      icon={ShoppingBasket}
+      title="Your grocery list is empty"
+      description={'Start planning your meals to fill it up,\nor add items directly.'}
+    />
   );
 };
 
@@ -162,7 +155,7 @@ const AisleSkeleton = () => {
 const GroceriesSkeleton = () => {
   const insets = useSafeAreaInsets();
   return (
-    <FlashList
+    <FlatList
       data={[1, 2, 3]}
       renderItem={() => <AisleSkeleton />}
       style={{ backgroundColor: '#FEF7EA', flex: 1 }}
@@ -476,6 +469,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
               exiting={SlideOutRight.springify()}
             >
               <Button
+                accessibilityLabel="Add grocery item"
                 variant="outlined"
                 onPress={() => sheets.present('grocery-item-sheet')}
                 leftIcon={{ Icon: CirclePlus }}
@@ -536,7 +530,12 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                 entering={SlideInRight.springify()}
                 exiting={SlideOutRight.springify()}
               >
-                <Button variant="primary" onPress={() => setIsExpanded(true)} leftIcon={{ Icon: Plus }} />
+                <Button
+                  accessibilityLabel="Open grocery actions"
+                  variant="primary"
+                  onPress={() => setIsExpanded(true)}
+                  leftIcon={{ Icon: Plus }}
+                />
               </Animated.View>
             </GestureDetector>
           )}
@@ -551,25 +550,13 @@ const Groceries = () => {
   const tabFocusStyle = useTabFocusAnimation();
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: '#FEF7EA' }, tabFocusStyle]}>
-      <RouteTitle text="Groceries" />
+      <RouteTitle icon={ShoppingBasket} text="Groceries" />
       <PageContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  basket: {
-    backgroundColor: '#493D34',
-    paddingHorizontal: 36,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-
   leftActionContainer: {
     flexDirection: 'row',
     gap: 8,

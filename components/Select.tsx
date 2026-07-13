@@ -23,6 +23,7 @@ type Props<TValue extends string> = {
 
 type OptionsProps<TValue extends string> = {
   options: Option<TValue>[];
+  value: TValue;
 } & ({ variant: 'mask' } | { variant: 'back'; onValueChange: (value: TValue) => void });
 
 const Options = <TValue extends string>(props: OptionsProps<TValue>) => {
@@ -34,9 +35,17 @@ const Options = <TValue extends string>(props: OptionsProps<TValue>) => {
   };
 
   return (
-    <View style={styles.rowInner}>
-      {props.options.map((option, index) => (
-        <Pressable onPress={() => handlePress(option)} key={index} style={styles.item}>
+    <View style={styles.rowInner} accessibilityRole={isMask ? undefined : 'radiogroup'}>
+      {props.options.map((option) => (
+        <Pressable
+          accessible={!isMask}
+          accessibilityLabel={isMask ? undefined : option.text}
+          accessibilityRole={isMask ? undefined : 'radio'}
+          accessibilityState={isMask ? undefined : { selected: option.value === props.value }}
+          onPress={() => handlePress(option)}
+          key={option.value}
+          style={styles.item}
+        >
           <option.icon color={isMask ? colors.cream[100] : colors.brown[900]} size={16} />
           <Typography variant="body-xs" weight="bold" color={isMask ? colors.cream[100] : colors.brown[900]}>
             {option.text}
@@ -67,15 +76,21 @@ export function SegmentedSelect<TValue extends string>({ options, value, onValue
       <View style={styles.borderOverlay} />
       <View style={styles.row} onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}>
         <View style={StyleSheet.absoluteFill}>
-          <Options variant="back" options={options} onValueChange={onValueChange} />
+          <Options variant="back" options={options} value={value} onValueChange={onValueChange} />
         </View>
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
           <MaskedView
             style={{ flex: 1 }}
             maskElement={<Animated.View style={[styles.pillMask, { width: tabWidth }, animatedStyle]} />}
           >
             <View style={styles.pillBg} />
-            <Options variant="mask" options={options} />
+            <Options variant="mask" options={options} value={value} />
           </MaskedView>
         </View>
       </View>

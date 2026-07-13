@@ -43,7 +43,13 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
       <View pointerEvents="none" style={styles.borderOverlay} />
 
       {/* Base row defines geometry and is measured */}
-      <View style={styles.row} onLayout={onRowLayout}>
+      <View
+        style={styles.row}
+        onLayout={onRowLayout}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
         {/* 1) Dark layer: always visible everywhere */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <View style={styles.rowInner}>
@@ -106,8 +112,8 @@ export function TopTabBar({ state, descriptors, navigation, position }: Props) {
               <TouchableOpacity
                 key={route.key}
                 accessibilityRole={Platform.OS === 'web' ? 'link' : 'button'}
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={options.tabBarAccessibilityLabel}
+                accessibilityState={{ selected: isFocused }}
+                accessibilityLabel={options.tabBarAccessibilityLabel ?? labels[index]?.label}
                 testID={options.tabBarButtonTestID}
                 onPress={onPress}
                 onLongPress={onLongPress}

@@ -86,21 +86,19 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   return (
     <BaseSheet
       id={props.sheetId}
-      footer={{
-        node: (
-          <View style={{ gap: 12 }}>
-            <Button
-              variant="primary"
-              onPress={handleGenerate}
-              text="Generate"
-              leftIcon={{ Icon: WandSparkles }}
-              isLoading={previewQuery.isFetching}
-            />
-            <Button onPress={() => sheets.dismiss(props.sheetId)} variant="outlined" text="Cancel" />
-          </View>
-        ),
-        height: 108,
-      }}
+      containerStyle={{ paddingBottom: 60 }}
+      footer={
+        <View style={{ gap: 12 }}>
+          <Button
+            variant="primary"
+            onPress={handleGenerate}
+            text="Generate"
+            leftIcon={{ Icon: WandSparkles }}
+            isLoading={previewQuery.isFetching}
+          />
+          <Button onPress={() => sheets.dismiss(props.sheetId)} variant="outlined" text="Cancel" />
+        </View>
+      }
     >
       <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 4 }}>
         Which days?

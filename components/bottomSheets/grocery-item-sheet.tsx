@@ -181,6 +181,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
           <View style={styles.header}>
             {phase === 'details' && !isEditing && (
               <Button
+                accessibilityLabel="Go back"
                 size="small"
                 variant="outlined"
                 leftIcon={{ Icon: ArrowLeft }}
@@ -272,6 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 12,
   },
   selectedItem: {
     alignItems: 'center',

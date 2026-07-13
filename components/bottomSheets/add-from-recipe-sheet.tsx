@@ -11,7 +11,7 @@ import { useMount } from '@/hooks/use-mount';
 import { Recipe } from '@/components/recipe';
 import { colors } from '@/constants/colors';
 import { isEmpty, isEmptyish } from 'remeda';
-import { useAddGroceryItem } from '@/api/groceries';
+import { useAddRecipeToGroceries } from '@/api/groceries';
 import { Button } from '@/components/button';
 import { useRouter } from 'expo-router';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
@@ -25,7 +25,7 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
   const sheets = useSheets();
   const recipes = useRecipes();
   const queryClient = useQueryClient();
-  const addGroceryItem = useAddGroceryItem();
+  const addRecipeToGroceries = useAddRecipeToGroceries();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -35,16 +35,11 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
   useMount(() => void queryClient.prefetchQuery({ queryKey: queryKeys.recipes.all() }));
 
   const handleRecipeSelect = (recipe: RecipeDTO) => {
-    recipe.ingredients.forEach((ingredient) => {
-      if (!ingredient.product_id) return;
-      addGroceryItem.mutate({
-        type: 'product',
-        product_id: ingredient.product_id,
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-      });
+    if (addRecipeToGroceries.isPending) return;
+
+    addRecipeToGroceries.mutate({ recipe_id: recipe.id }, {
+      onSuccess: () => sheets.dismiss(props.sheetId),
     });
-    sheets.dismiss(props.sheetId);
   };
 
   const handleGoToRecipes = async () => {
@@ -74,6 +69,7 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
         </View>
         <ScrollView
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           style={{ maxHeight: 0.5 * windowHeight }}
           contentContainerStyle={{ paddingBottom: hasRecipes ? 96 : 0 }}
@@ -116,20 +112,22 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
           </View>
       </ScrollView>
       {hasRecipes && (
-          <Animated.View style={[styles.toolbar, { bottom: insets.bottom, left: 12, right: 12 }]}>
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search recipes..."
-              style={styles.searchInput}
-            />
-            <Button
-              onPress={openFilterSheet}
-              variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
-              leftIcon={{ Icon: SlidersHorizontal }}
-              style={{ paddingHorizontal: 0, width: 48 }}
-            />
-          </Animated.View>
+        <Animated.View style={[styles.toolbar, { bottom: insets.bottom, left: 12, right: 12 }]}>
+          <TextInput
+            variant="search"
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search recipes..."
+            style={styles.searchInput}
+          />
+          <Button
+            accessibilityLabel="Filter recipes"
+            onPress={openFilterSheet}
+            variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
+            leftIcon={{ Icon: SlidersHorizontal }}
+            style={{ paddingHorizontal: 0, width: 48 }}
+          />
+        </Animated.View>
       )}
     </BaseSheet>
   );
@@ -146,8 +144,5 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 3,
   },
 });

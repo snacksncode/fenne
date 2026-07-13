@@ -1,13 +1,19 @@
 import { colors } from '@/constants/colors';
-import { ComponentProps } from 'react';
+import { ComponentProps, forwardRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
 
-export const TextInput = ({ style, ...props }: ComponentProps<typeof _TextInput>) => {
+type TextInputProps = ComponentProps<typeof _TextInput> & {
+  variant?: 'default' | 'search';
+};
+
+export const TextInput = ({ style, variant = 'default', ...props }: TextInputProps) => {
   return (
     <_TextInput
-      style={[styles.input, style]}
+      style={[styles.input, variant === 'search' && styles.searchInput, style]}
       placeholderTextColor={colors.brown[800] + 'C0'} // 75% opacity in hex
+      cursorColor={colors.orange[600]}
+      selectionColor={colors.orange[100]}
       autoCorrect={false}
       {...props}
     />
@@ -31,8 +37,9 @@ const cleanNumberText = (value: string) => {
   return `${before}${separator}${after}`;
 };
 
-export const NumberInput = ({ onChangeText, style, ...props }: NumberInputProps) => (
+export const NumberInput = forwardRef<_TextInput, NumberInputProps>(({ onChangeText, style, ...props }, ref) => (
   <_TextInput
+    ref={ref}
     keyboardType="decimal-pad"
     onChangeText={(value) => onChangeText(cleanNumberText(value))}
     placeholderTextColor={colors.brown[800] + 'C0'}
@@ -40,7 +47,9 @@ export const NumberInput = ({ onChangeText, style, ...props }: NumberInputProps)
     style={[styles.input, style]}
     {...props}
   />
-);
+));
+
+NumberInput.displayName = 'NumberInput';
 
 const styles = StyleSheet.create({
   input: {
@@ -53,6 +62,11 @@ const styles = StyleSheet.create({
     borderColor: colors.brown[900],
     color: colors.brown[900],
     fontFamily: 'Satoshi-Medium',
-    height: 48,
+    minHeight: 48,
+  },
+  searchInput: {
+    borderRadius: 999,
+    borderWidth: 2,
+    borderBottomWidth: 3,
   },
 });

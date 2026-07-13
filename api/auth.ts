@@ -12,11 +12,8 @@ export type UserDTO = {
   name: string;
 };
 
-export type UnitPreference = 'metric' | 'imperial';
-
 export type FamilyDTO = {
   id: string;
-  unit_preference: UnitPreference;
   timezone: string | null;
   members: UserDTO[];
 };
@@ -105,7 +102,6 @@ export const useUpdateFamilyPreferences = () => {
       const { previousData } = await update({
         queryKey: currentUserOptions.queryKey,
         updateFn: (state) => {
-          if (state && newPrefs.unit_preference) state.family.unit_preference = newPrefs.unit_preference;
           if (state && 'timezone' in newPrefs) state.family.timezone = newPrefs.timezone ?? null;
         },
       });

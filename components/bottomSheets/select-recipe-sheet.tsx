@@ -46,25 +46,29 @@ export const SelectRecipeSheet = (props: SheetProps<'select-recipe-sheet'>) => {
       footer={sheetFooter.buttonRow(
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <TextInput
+            variant="search"
             value={search}
             onChangeText={setSearch}
             placeholder="Search recipes..."
             style={{
               flex: 1,
-              borderRadius: 999,
-              borderWidth: 2,
-              borderBottomWidth: 3,
               color: colors.brown[900],
             }}
           />
           <Button
+            accessibilityLabel="Filter recipes"
             onPress={openFilterSheet}
             variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
             leftIcon={{ Icon: Funnel }}
             style={{ paddingHorizontal: 0, width: 48 }}
           />
           {isKeyboardOpen ? (
-            <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
+            <Button
+              accessibilityLabel="Close keyboard"
+              onPress={() => Keyboard.dismiss()}
+              variant="secondary"
+              leftIcon={{ Icon: Check }}
+            />
           ) : null}
         </View>
       )}

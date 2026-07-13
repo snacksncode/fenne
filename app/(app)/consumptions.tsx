@@ -158,7 +158,7 @@ const Consumptions = () => {
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerRow}>
-          <Pressable hitSlop={20} onPress={() => router.back()}>
+          <Pressable accessibilityLabel="Go back" accessibilityRole="button" hitSlop={20} onPress={() => router.back()}>
             <ChevronLeft color={colors.brown[900]} size={28} strokeWidth={2.25} />
           </Pressable>
           <View style={{ flex: 1 }}>

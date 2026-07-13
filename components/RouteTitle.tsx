@@ -1,7 +1,7 @@
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { useRouter } from 'expo-router';
-import { Cog, ListTodo } from 'lucide-react-native';
+import { Cog, ListTodo, LucideIcon } from 'lucide-react-native';
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,12 +11,13 @@ import { colors } from '@/constants/colors';
 import { Button } from '@/components/button';
 
 type Props = {
+  icon: LucideIcon;
   text: string;
   footerSlot?: ReactNode;
   rightSlot?: ReactNode;
 };
 
-export const RouteTitle = ({ text, footerSlot, rightSlot }: Props) => {
+export const RouteTitle = ({ icon: Icon, text, footerSlot, rightSlot }: Props) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const sheets = useSheets();
@@ -46,12 +47,22 @@ export const RouteTitle = ({ text, footerSlot, rightSlot }: Props) => {
       }}
     >
       <View style={styles.container}>
-        <Typography variant="heading-lg" weight="black">
-          {text}
-        </Typography>
+        <View style={styles.title}>
+          <Icon color={colors.brown[900]} size={32} strokeWidth={2.25} />
+          <Typography variant="heading-lg" weight="black">
+            {text}
+          </Typography>
+        </View>
         {rightSlot}
         {!rightSlot && !isGuest && (
-          <PressableWithHaptics hitSlop={20} scaleTo={0.9} onPress={onPress} style={styles.button}>
+          <PressableWithHaptics
+            accessibilityLabel="Open settings"
+            accessibilityRole="button"
+            hitSlop={20}
+            scaleTo={0.9}
+            onPress={onPress}
+            style={styles.button}
+          >
             <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>
               Settings
             </Typography>
@@ -79,5 +90,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  title: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
   },
 });

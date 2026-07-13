@@ -75,6 +75,9 @@ const ProductRow = ({ productRow, isChecked, onToggle, description }: ProductRow
   return (
     <Animated.View style={opacityStyle}>
       <Pressable
+        accessibilityLabel={`${productRow.product.name}, ${isChecked ? 'included' : 'excluded'}`}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isChecked }}
         onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.9)))}
         onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
         onPress={() => onToggle(productRow.product_id)}
@@ -234,6 +237,8 @@ const Content = ({ preview, startDate, endDate }: ContentProps) => {
       {/* Header */}
       <View style={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: 8 }}>
         <Pressable
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={{ marginLeft: -8, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}
         >

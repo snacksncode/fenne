@@ -1,8 +1,9 @@
 import { usePantry } from '@/api/pantry';
-import { PantryEntryDTO } from '@/api/types';
-import { AisleIcon } from '@/components/aisle-header';
+import { AisleCategory, PantryEntryDTO } from '@/api/types';
+import { AisleHeader } from '@/components/aisle-header';
 import { PantryFilter } from '@/components/bottomSheets/pantry-filter-sheet';
 import { Button } from '@/components/button';
+import { EmptyState } from '@/components/empty-state';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { RouteTitle } from '@/components/RouteTitle';
@@ -13,32 +14,43 @@ import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useSheets } from '@/lib/sheet-context';
 import { prettyUnit } from '@/utils/unit-formatters';
 import { FlashList } from '@shopify/flash-list';
-import { addDays, addMonths, addWeeks, parseISO } from 'date-fns';
-import { Archive, Boxes, Check, Funnel, History, Plus } from 'lucide-react-native';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  differenceInCalendarDays,
+  parseISO,
+  startOfDay,
+  startOfToday,
+} from 'date-fns';
+import { Archive, Boxes, Check, Funnel, History, Plus, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Keyboard, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { FadeIn, useAnimatedStyle } from 'react-native-reanimated';
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, Keyboard, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
-const aisleLabels: Record<PantryEntryDTO['product']['aisle'], string> = {
-  produce: 'Produce',
-  bakery: 'Bakery',
-  dairy_eggs: 'Dairy & Eggs',
-  meat: 'Meat',
-  seafood: 'Seafood',
-  pantry: 'Pantry',
-  frozen_foods: 'Frozen Foods',
-  beverages: 'Beverages',
-  snacks: 'Snacks',
-  condiments_sauces: 'Condiments & Sauces',
-  spices_baking: 'Spices & Baking',
-  household: 'Household',
-  personal_care: 'Personal Care',
-  pet_supplies: 'Pet Supplies',
-  other: 'Other',
-};
+type PantryAisle = { aisle: AisleCategory; entries: PantryEntryDTO[] };
+
+const aisleOrder: AisleCategory[] = [
+  'produce',
+  'bakery',
+  'dairy_eggs',
+  'meat',
+  'seafood',
+  'pantry',
+  'frozen_foods',
+  'beverages',
+  'snacks',
+  'condiments_sauces',
+  'spices_baking',
+  'household',
+  'personal_care',
+  'pet_supplies',
+  'other',
+];
 
 const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: PantryFilter, search: string) => {
   return useMemo(() => {
@@ -62,6 +74,23 @@ const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: Pantr
   }, [entries, filter, search]);
 };
 
+const usePantryAisles = (entries: PantryEntryDTO[]) => {
+  return useMemo(() => {
+    const grouped = new Map<AisleCategory, PantryEntryDTO[]>();
+
+    entries.forEach((entry) => {
+      const aisleEntries = grouped.get(entry.product.aisle) ?? [];
+      aisleEntries.push(entry);
+      grouped.set(entry.product.aisle, aisleEntries);
+    });
+
+    return aisleOrder.flatMap((aisle) => {
+      const aisleEntries = grouped.get(aisle);
+      return aisleEntries ? [{ aisle, entries: aisleEntries }] : [];
+    });
+  }, [entries]);
+};
+
 const frequencyTarget = (entry: PantryEntryDTO) => {
   const value = entry.product.reminder_frequency_value;
   const unit = entry.product.reminder_frequency_unit;
@@ -76,33 +105,75 @@ const frequencyTarget = (entry: PantryEntryDTO) => {
 const timedStatus = (entry: PantryEntryDTO) => {
   const acquiredAt = entry.last_acquired ? parseISO(entry.last_acquired) : null;
   const target = frequencyTarget(entry);
-  if (!acquiredAt || !target) return { label: '?', color: colors.brown[700], hint: 'Reminder date missing' };
+  if (!acquiredAt || !target) return { label: '?', hint: 'Reminder date missing', remainingRatio: 0 };
 
-  const now = new Date();
-  const total = Math.max(1, target.getTime() - acquiredAt.getTime());
-  const elapsed = now.getTime() - acquiredAt.getTime();
+  const today = startOfToday();
+  const acquiredDay = startOfDay(acquiredAt);
+  const targetDay = startOfDay(target);
+  const total = Math.max(1, targetDay.getTime() - acquiredDay.getTime());
+  const calendarDaysSinceAcquired = differenceInCalendarDays(today, acquiredDay);
+  const elapsedDays = Math.max(0, calendarDaysSinceAcquired);
+  const elapsed = Math.max(0, today.getTime() - acquiredDay.getTime());
   const ratio = elapsed / total;
-  const remainingDays = Math.ceil((target.getTime() - now.getTime()) / 86_400_000);
+  const remainingDays = differenceInCalendarDays(targetDay, today);
 
   const label =
     remainingDays <= 0 ? 'Now' : remainingDays < 14 ? `${remainingDays}d` : `${Math.ceil(remainingDays / 7)}w`;
-  const color = ratio >= 1 ? colors.red[500] : ratio >= 0.75 ? colors.orange[600] : colors.green[500];
-  const hint = remainingDays <= 0 ? 'Running low' : `Bought ${Math.max(0, Math.ceil(elapsed / 86_400_000))}d ago`;
+  const boughtLabel =
+    calendarDaysSinceAcquired < 0
+      ? `Acquired in ${Math.abs(calendarDaysSinceAcquired)}d`
+      : elapsedDays === 0
+        ? 'Bought today'
+        : elapsedDays === 1
+          ? 'Bought yesterday'
+          : `Bought ${elapsedDays}d ago`;
+  const hint = remainingDays <= 0 ? `${boughtLabel} · due now` : `${boughtLabel} · ${label} left`;
 
-  return { label, color, hint };
+  const remainingRatio = Math.max(0, Math.min(1, 1 - ratio));
+
+  return { label, hint, remainingRatio };
+};
+
+const RING_SIZE = 24;
+const RING_STROKE = 3;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+const ReminderIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
+  const status = timedStatus(entry);
+
+  return (
+    <View style={styles.reminderIndicator} accessibilityLabel={`Reminder ${status.label}`}>
+      <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={RING_RADIUS}
+          fill="none"
+          stroke={colors.orange[100]}
+          strokeWidth={RING_STROKE}
+        />
+        <Circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={RING_RADIUS}
+          fill="none"
+          stroke={colors.orange[500]}
+          strokeWidth={RING_STROKE}
+          strokeLinecap="round"
+          strokeDasharray={RING_CIRCUMFERENCE}
+          strokeDashoffset={RING_CIRCUMFERENCE * (1 - status.remainingRatio)}
+          rotation={-90}
+          origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+        />
+      </Svg>
+    </View>
+  );
 };
 
 const QuantityIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
   if (entry.product.shape === 'timed') {
-    const status = timedStatus(entry);
-
-    return (
-      <View style={[styles.timedIndicator, { borderColor: status.color }]}>
-        <Typography variant="body-xs" weight="black" color={status.color} numberOfLines={1}>
-          {status.label}
-        </Typography>
-      </View>
-    );
+    return <ReminderIndicator entry={entry} />;
   }
 
   const label =
@@ -112,68 +183,107 @@ const QuantityIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
 
   return (
     <View style={styles.quantityPill}>
-      <Typography variant="body-sm" weight="bold" color={colors.brown[900]} numberOfLines={1}>
+      <Typography variant="body-sm" weight="bold" color={colors.cream[100]} numberOfLines={1}>
         {label}
       </Typography>
     </View>
   );
 };
 
-const PantryRow = ({ entry }: { entry: PantryEntryDTO }) => {
+const PantryRow = ({ entry, index }: { entry: PantryEntryDTO; index: number }) => {
   const sheets = useSheets();
   const status = entry.product.shape === 'timed' ? timedStatus(entry) : null;
-  const secondary = status ? `${aisleLabels[entry.product.aisle]} · ${status.hint}` : aisleLabels[entry.product.aisle];
 
   return (
     <PressableWithHaptics
-      style={styles.row}
+      style={[styles.row, index > 0 && styles.rowDivider]}
       scaleTo={0.98}
       onPress={() => sheets.present('pantry-entry-sheet', { data: { entry } })}
     >
-      <AisleIcon type={entry.product.aisle} />
       <View style={styles.rowText}>
-        <Typography variant="body-lg" weight="bold" numberOfLines={1}>
+        <Typography variant="body-base" weight="bold" numberOfLines={1}>
           {entry.product.name}
         </Typography>
-        <Typography variant="body-sm" weight="regular" color={colors.brown[700]} numberOfLines={1}>
-          {secondary}
-        </Typography>
+        {status ? (
+          <Typography variant="body-xs" weight="regular" color={colors.brown[700]} numberOfLines={1}>
+            {status.hint}
+          </Typography>
+        ) : null}
       </View>
       <QuantityIndicator entry={entry} />
     </PressableWithHaptics>
   );
 };
 
-const EmptyPantry = ({ filter }: { filter: PantryFilter }) => (
-  <Animated.View entering={FadeIn} style={styles.emptyContainer}>
-    <View style={styles.emptyIcon}>
-      <Archive size={48} color={colors.cream[100]} strokeWidth={3} absoluteStrokeWidth />
-    </View>
-    <Typography variant="heading-md" weight="black" style={{ marginTop: 10, textAlign: 'center' }}>
-      {filter === 'all' ? 'Nothing tracked yet' : 'Nothing here yet'}
-    </Typography>
-    <Typography variant="body-sm" weight="medium" color={colors.brown[700]} style={styles.emptyText}>
-      {filter === 'all'
-        ? 'Tap + to add stock manually, or check out product-backed grocery items.'
-        : 'Switch filters or tap + to add tracked stock.'}
-    </Typography>
-  </Animated.View>
-);
+const PantryAisleGroup = ({
+  aisle,
+  enterAnimationsEnabled,
+}: {
+  aisle: PantryAisle;
+  enterAnimationsEnabled: boolean;
+}) => {
+  return (
+    <Animated.View
+      style={styles.aisle}
+      layout={LinearTransition.springify()}
+      exiting={FadeOut}
+      {...(enterAnimationsEnabled && { entering: FadeIn })}
+    >
+      <AisleHeader type={aisle.aisle} />
+      <Animated.View style={styles.aisleRows} layout={LinearTransition.springify()}>
+        {aisle.entries.map((entry, index) => (
+          <Animated.View
+            key={entry.id}
+            layout={LinearTransition.springify()}
+            exiting={FadeOut}
+            {...(enterAnimationsEnabled && { entering: FadeIn })}
+          >
+            <PantryRow entry={entry} index={index} />
+          </Animated.View>
+        ))}
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+const EmptyPantry = ({ filter, search }: { filter: PantryFilter; search: string }) => {
+  const isFiltering = search.trim().length > 0 || filter !== 'all';
+
+  return (
+    <EmptyState
+      icon={Archive}
+      title={isFiltering ? 'No pantry items found' : 'Nothing tracked yet'}
+      description={
+        isFiltering
+          ? 'Try a different search or adjust your filters.'
+          : 'Tap + to add stock manually, or check out product-backed grocery items.'
+      }
+    />
+  );
+};
 
 const PantrySkeleton = () => {
   const insets = useSafeAreaInsets();
 
   return (
-    <FlashList
-      data={[1, 2, 3, 4, 5]}
+    <FlatList
+      data={[1, 2, 3]}
       renderItem={() => (
-        <View style={styles.skeletonRow}>
-          <View style={styles.skeletonIcon} />
-          <View style={{ flex: 1, gap: 8 }}>
-            <View style={[styles.skeletonLine, { width: '60%' }]} />
-            <View style={[styles.skeletonLine, { width: '35%', height: 12 }]} />
+        <View style={styles.skeletonAisle}>
+          <View style={styles.skeletonHeader}>
+            <View style={styles.skeletonIcon} />
+            <View style={[styles.skeletonLine, { width: '35%' }]} />
           </View>
-          <View style={[styles.skeletonLine, { width: 52, height: 32 }]} />
+          <View style={styles.skeletonRows}>
+            <View style={styles.skeletonRow}>
+              <View style={[styles.skeletonLine, { width: '55%' }]} />
+              <View style={[styles.skeletonLine, { width: 52, height: 24 }]} />
+            </View>
+            <View style={[styles.skeletonRow, styles.rowDivider]}>
+              <View style={[styles.skeletonLine, { width: '45%' }]} />
+              <View style={[styles.skeletonLine, { width: 52, height: 24 }]} />
+            </View>
+          </View>
         </View>
       )}
       style={styles.list}
@@ -196,10 +306,21 @@ const Pantry = () => {
   const insets = useSafeAreaInsets();
   const pantry = usePantry();
   const entries = useFilteredEntries(pantry.data, filter, search);
+  const aisles = usePantryAisles(entries);
+  const [enterAnimationsEnabled, setEnterAnimationsEnabled] = useState(false);
   const { isKeyboardOpen } = useKeyboardOpen();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom + 88, -keyboardHeight.value + 12) }));
   const tabFocusStyle = useTabFocusAnimation();
+
+  useEffect(() => {
+    if (!pantry.data) return;
+    const id = setTimeout(() => setEnterAnimationsEnabled(true), 500);
+    return () => {
+      setEnterAnimationsEnabled(false);
+      clearTimeout(id);
+    };
+  }, [pantry.data]);
 
   const openFilterSheet = async () => {
     const nextFilter = await sheets.present('pantry-filter-sheet', { data: { current: filter } });
@@ -211,13 +332,26 @@ const Pantry = () => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.screen}>
           <RouteTitle
+            icon={Archive}
             text="Pantry"
             rightSlot={
               <View style={styles.headerActions}>
-                <PressableWithHaptics hitSlop={20} scaleTo={0.9} onPress={() => router.push('/consumptions')}>
+                <PressableWithHaptics
+                  accessibilityLabel="Open consumption history"
+                  accessibilityRole="button"
+                  hitSlop={20}
+                  scaleTo={0.9}
+                  onPress={() => router.push('/consumptions')}
+                >
                   <History color={colors.brown[900]} strokeWidth={2.25} size={28} />
                 </PressableWithHaptics>
-                <PressableWithHaptics hitSlop={20} scaleTo={0.9} onPress={() => router.push('/items')}>
+                <PressableWithHaptics
+                  accessibilityLabel="Open products"
+                  accessibilityRole="button"
+                  hitSlop={20}
+                  scaleTo={0.9}
+                  onPress={() => router.push('/items')}
+                >
                   <Boxes color={colors.brown[900]} strokeWidth={2.25} size={28} />
                 </PressableWithHaptics>
               </View>
@@ -227,40 +361,64 @@ const Pantry = () => {
             <PantrySkeleton />
           ) : (
             <FlashList
-              data={entries}
-              renderItem={({ item }) => <PantryRow entry={item} />}
-              keyExtractor={(item) => item.id}
-              ListEmptyComponent={<EmptyPantry filter={filter} />}
+              data={aisles}
+              renderItem={({ item }) => (
+                <PantryAisleGroup aisle={item} enterAnimationsEnabled={enterAnimationsEnabled} />
+              )}
+              keyExtractor={(item) => item.aisle}
+              ListEmptyComponent={<EmptyPantry filter={filter} search={search} />}
               style={styles.list}
-              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+              ItemSeparatorComponent={() => <View style={{ height: 24 }} />}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              maintainVisibleContentPosition={{ disabled: true }}
               contentContainerStyle={{
                 ...(entries.length === 0 && { flexGrow: 1 }),
                 paddingHorizontal: 20,
                 paddingTop: insets.top + 76,
-                paddingBottom: insets.bottom + 152,
+                paddingBottom: insets.bottom + (entries.length === 0 ? 72 : 152),
               }}
             />
           )}
           {pantry.data != null ? (
             <Animated.View style={[styles.toolbar, toolbarStyle]}>
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search pantry..."
-                style={styles.searchInput}
-              />
+              <View style={styles.searchContainer}>
+                <TextInput
+                  variant="search"
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search pantry..."
+                  style={styles.searchInput}
+                />
+                {search.length > 0 ? (
+                  <PressableWithHaptics
+                    accessibilityLabel="Clear pantry search"
+                    accessibilityRole="button"
+                    onPress={() => setSearch('')}
+                    scaleTo={0.85}
+                    style={styles.clearSearch}
+                  >
+                    <X color={colors.brown[900]} size={20} strokeWidth={2.5} />
+                  </PressableWithHaptics>
+                ) : null}
+              </View>
               <Button
+                accessibilityLabel="Filter pantry"
                 onPress={openFilterSheet}
                 variant={filter !== 'all' ? 'primary' : 'outlined'}
                 leftIcon={{ Icon: Funnel }}
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
               {isKeyboardOpen ? (
-                <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
+                <Button
+                  accessibilityLabel="Close keyboard"
+                  onPress={() => Keyboard.dismiss()}
+                  variant="secondary"
+                  leftIcon={{ Icon: Check }}
+                />
               ) : (
                 <Button
+                  accessibilityLabel="Add pantry stock"
                   onPress={() => sheets.present('pantry-add-sheet')}
                   variant="primary"
                   leftIcon={{ Icon: Plus }}
@@ -297,74 +455,88 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchInput: {
-    flex: 1,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 3,
     color: colors.brown[900],
+    paddingRight: 44,
+    width: '100%',
   },
-  row: {
-    minHeight: 76,
-    flexDirection: 'row',
+  searchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  clearSearch: {
     alignItems: 'center',
+    height: 40,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 6,
+    width: 40,
+  },
+  aisle: {
     gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  },
+  aisleRows: {
+    overflow: 'hidden',
     borderWidth: 1,
     borderBottomWidth: 2,
     borderColor: colors.brown[900],
     borderRadius: 8,
     backgroundColor: '#FEF2DD',
   },
-  rowText: {
-    flex: 1,
-    gap: 2,
-  },
-  quantityPill: {
-    minWidth: 48,
-    height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cream[100],
-    borderWidth: 1,
-    borderColor: colors.brown[900],
-  },
-  timedIndicator: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cream[100],
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyIcon: {
-    backgroundColor: colors.brown[900],
-    paddingHorizontal: 36,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  skeletonRow: {
-    minHeight: 76,
+  row: {
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  rowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.brown[500],
+  },
+  rowText: {
+    flex: 1,
+    gap: 1,
+  },
+  quantityPill: {
+    minWidth: 40,
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.orange[500],
+    borderWidth: 2,
+    borderBottomWidth: 3,
+    borderColor: colors.orange[600],
+  },
+  reminderIndicator: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skeletonAisle: {
+    gap: 12,
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  skeletonRows: {
+    overflow: 'hidden',
     borderRadius: 8,
     backgroundColor: '#FEF2DD',
+  },
+  skeletonRow: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   skeletonIcon: {
     width: 32,

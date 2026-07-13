@@ -1,5 +1,6 @@
 import { Recipe } from '@/components/recipe';
 import { RouteTitle } from '@/components/RouteTitle';
+import { EmptyState } from '@/components/empty-state';
 import { useRecipes } from '@/api/recipes';
 import { RecipeDTO } from '@/api/types';
 import { useRouter } from 'expo-router';
@@ -9,7 +10,6 @@ import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
 import { isEmpty, isEmptyish } from 'remeda';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
-import { Typography } from '@/components/Typography';
 import { useSheets } from '@/lib/sheet-context';
 import { BookMarked, Check, Funnel, Plus } from 'lucide-react-native';
 import { useState } from 'react';
@@ -21,28 +21,26 @@ import { TextInput } from '@/components/input';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 
-const EmptyList = () => {
+const EmptyList = ({ isFiltering = false }: { isFiltering?: boolean }) => {
   const router = useRouter();
   return (
-    <Animated.View style={styles.emptyContainer} entering={FadeIn}>
-      <View style={styles.iconContainer}>
-        <BookMarked size={48} color="#FEF7EA" strokeWidth={3} absoluteStrokeWidth />
-      </View>
-      <Typography variant="heading-md" weight="black" style={{ marginTop: 10 }}>
-        No recipes yet
-      </Typography>
-      <Typography variant="body-sm" weight="medium" style={{ textAlign: 'center', marginTop: 4 }}>
-        Create your first recipe to get started
-      </Typography>
-      <View style={{ marginTop: 24, gap: 12 }}>
-        <Button
-          text="Add Recipe"
-          variant="primary"
-          leftIcon={{ Icon: Plus }}
-          onPress={() => router.push('/new-recipe')}
-        />
-      </View>
-    </Animated.View>
+    <EmptyState
+      icon={BookMarked}
+      title={isFiltering ? 'No recipes found' : 'No recipes yet'}
+      description={
+        isFiltering ? 'Try a different search or adjust your filters.' : 'Create your first recipe to get started'
+      }
+      action={
+        isFiltering ? null : (
+          <Button
+            text="Add Recipe"
+            variant="primary"
+            leftIcon={{ Icon: Plus }}
+            onPress={() => router.push('/new-recipe')}
+          />
+        )
+      }
+    />
   );
 };
 
@@ -104,6 +102,7 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
   if (isEmpty(recipes.data)) return <EmptyList />;
 
   const filteredRecipes = sortRecipes(filterRecipes(recipes.data, { mealFilter, search }));
+  const isFiltering = search.trim().length > 0 || mealFilter !== 'all';
 
   return (
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
@@ -111,14 +110,16 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
         data={filteredRecipes}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item: recipe }) => <RecipeItem recipe={recipe} />}
+        ListEmptyComponent={<EmptyList isFiltering={isFiltering} />}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) => item.id.toString()}
         keyboardDismissMode="on-drag"
         ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
         contentContainerStyle={{
+          ...(filteredRecipes.length === 0 && { flexGrow: 1 }),
           paddingHorizontal: 20,
           paddingTop: insets.top + 76,
-          paddingBottom: insets.bottom + 152,
+          paddingBottom: insets.bottom + (filteredRecipes.length === 0 ? 72 : 152),
         }}
       />
     </Animated.View>
@@ -144,10 +145,10 @@ const Recipes = () => {
   };
 
   return (
-    <Animated.View style={tabFocusStyle}>
+    <Animated.View style={[{ flex: 1 }, tabFocusStyle]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1, backgroundColor: colors.cream[100] }}>
-          <RouteTitle text="Recipes" />
+          <RouteTitle icon={BookMarked} text="Recipes" />
           <PageContent mealFilter={mealFilter} search={search} />
           {!isEmptyish(recipes.data) ? (
             <Animated.View
@@ -164,21 +165,33 @@ const Recipes = () => {
               ]}
             >
               <TextInput
+                variant="search"
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Search recipes..."
                 style={styles.searchInput}
               />
               <Button
+                accessibilityLabel="Filter recipes"
                 onPress={openFilterSheet}
                 variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
                 leftIcon={{ Icon: Funnel }}
                 style={{ paddingHorizontal: 0, width: 48 }}
               />
               {isKeyboardOpen ? (
-                <Button onPress={() => Keyboard.dismiss()} variant="secondary" leftIcon={{ Icon: Check }} />
+                <Button
+                  accessibilityLabel="Close keyboard"
+                  onPress={() => Keyboard.dismiss()}
+                  variant="secondary"
+                  leftIcon={{ Icon: Check }}
+                />
               ) : (
-                <Button onPress={() => router.push('/new-recipe')} variant="primary" leftIcon={{ Icon: Plus }} />
+                <Button
+                  accessibilityLabel="Add recipe"
+                  onPress={() => router.push('/new-recipe')}
+                  variant="primary"
+                  leftIcon={{ Icon: Plus }}
+                />
               )}
             </Animated.View>
           ) : null}
@@ -189,22 +202,8 @@ const Recipes = () => {
 };
 
 const styles = StyleSheet.create({
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  iconContainer: {
-    backgroundColor: '#493D34',
-    paddingHorizontal: 36,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
   searchInput: {
     flex: 1,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 3,
     color: colors.brown[900],
   },
 });

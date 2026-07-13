@@ -60,6 +60,7 @@ export const IngredientDetailsStep = ({
                 onPress={selectedProduct.type === 'draft' ? onEditDraftProduct : onEditExistingProduct}
               />
               <Button
+                accessibilityLabel="Clear selected product"
                 size="small"
                 variant="outlined"
                 leftIcon={{ Icon: X }}

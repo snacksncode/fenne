@@ -1,5 +1,6 @@
 import { useAddRecipe, useEditRecipe } from '@/api/recipes';
 import { missingRecipeConversionsFromError } from '@/api/errors';
+import Sortable, { useCustomHandleContext, useIsInPortalOutlet, useItemContext } from 'react-native-sortables';
 import {
   RecipeDTO,
   RecipeFormData,
@@ -13,12 +14,12 @@ import { Button } from '@/components/button';
 import { useAppForm } from '@/components/form/app-form';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from 'expo-router/react-navigation';
-import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, Trash2, Save } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, GripVertical, Trash2, Save } from 'lucide-react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Typography } from '@/components/Typography';
-import { TextInput as TextInputType } from 'react-native-gesture-handler';
+import { GestureDetector, TextInput as TextInputType } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
 import { EnrichedTextInputInstance } from 'react-native-enriched-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +30,9 @@ import Animated, {
   FadeIn,
   interpolate,
   LinearTransition,
+  runOnUI,
   useAnimatedStyle,
+  useAnimatedRef,
   useSharedValue,
   withSpring,
   SharedValue,
@@ -49,6 +52,40 @@ const SCREEN_TRANSITION_DURATION_MS = 600;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+const IngredientDragHandle = ({ children }: { children: React.ReactNode }) => {
+  const isTeleported = useIsInPortalOutlet();
+  const customHandleContext = useCustomHandleContext();
+  const { gesture, isActive, itemKey } = useItemContext();
+  const handleRef = useAnimatedRef<View>();
+
+  if (!customHandleContext) {
+    throw new Error('IngredientDragHandle must be rendered inside a sortable with customHandle enabled.');
+  }
+
+  const { registerHandle, updateActiveHandleMeasurements } = customHandleContext;
+
+  useEffect(() => registerHandle(itemKey, handleRef, false), [handleRef, itemKey, registerHandle]);
+
+  const updateMeasurements = useCallback(() => {
+    'worklet';
+    if (isActive.value) updateActiveHandleMeasurements(itemKey);
+  }, [isActive, itemKey, updateActiveHandleMeasurements]);
+
+  const handleLayout = useCallback(() => {
+    runOnUI(updateMeasurements)();
+  }, [updateMeasurements]);
+
+  if (isTeleported) return <View>{children}</View>;
+
+  return (
+    <GestureDetector gesture={gesture.enabled(true)} userSelect="none">
+      <View collapsable={false} ref={handleRef} onLayout={handleLayout}>
+        {children}
+      </View>
+    </GestureDetector>
+  );
+};
+
 const RightActions = (props: { progress: SharedValue<number>; onDelete: () => void }) => {
   const [width, setWidth] = useState(0);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -60,7 +97,7 @@ const RightActions = (props: { progress: SharedValue<number>; onDelete: () => vo
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={[styles.deleteActionContainer, animatedStyle]}
     >
-      <Button size="small" variant="secondary" onPress={props.onDelete} text="Delete" leftIcon={{ Icon: Trash2 }} />
+      <Button size="small" variant="red-outlined" onPress={props.onDelete} text="Delete" leftIcon={{ Icon: Trash2 }} />
     </Animated.View>
   );
 };
@@ -72,7 +109,7 @@ const IngredientItem = ({
   style,
 }: {
   ingredient: IngredientFormData;
-  style: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
   onEdit: () => void;
   onDelete: () => void;
 }) => {
@@ -89,15 +126,7 @@ const IngredientItem = ({
   };
 
   return (
-    <AnimatedPressable
-      onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.95)))}
-      onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
-      onPress={handleEdit}
-      layout={LinearTransition.springify()}
-      exiting={FadeOut}
-      entering={FadeIn}
-      style={style}
-    >
+    <Animated.View layout={LinearTransition.springify()} exiting={FadeOut} entering={FadeIn} style={style}>
       <ReanimatedSwipeable
         ref={swipeRef}
         friction={1.5}
@@ -107,29 +136,40 @@ const IngredientItem = ({
           flexDirection: 'row',
           gap: 12,
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingVertical: 8,
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <Animated.View style={scaleStyle}>
+        <AnimatedPressable
+          onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.95)))}
+          onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
+          onPress={handleEdit}
+          style={[styles.ingredientContent, scaleStyle]}
+        >
           <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
             {displayName}
           </Typography>
-          {ingredient.selectedProduct.type === 'existing' && ingredient.selectedProduct.product.name !== displayName && (
-            <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
-              Item: {ingredient.selectedProduct.product.name}
-            </Typography>
-          )}
+          {ingredient.selectedProduct.type === 'existing' &&
+            ingredient.selectedProduct.product.name !== displayName && (
+              <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
+                Item: {ingredient.selectedProduct.product.name}
+              </Typography>
+            )}
           {ingredient.quantity && (
             <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
               {ingredient.quantity}{' '}
               {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseLocaleFloat(ingredient.quantity) })}
             </Typography>
           )}
-        </Animated.View>
+        </AnimatedPressable>
+        <IngredientDragHandle>
+          <View style={styles.dragHandle}>
+            <GripVertical size={24} color={colors.brown[700]} />
+          </View>
+        </IngredientDragHandle>
       </ReanimatedSwipeable>
-    </AnimatedPressable>
+    </Animated.View>
   );
 };
 
@@ -163,12 +203,26 @@ const IngredientsList = ({
   handleAddIngredient,
   onIngredientEdit,
   onIngredientDelete,
+  onIngredientsReorder,
 }: {
   ingredients: IngredientFormData[];
   handleAddIngredient: () => void;
   onIngredientEdit: (ingredient: IngredientFormData) => void;
   onIngredientDelete: (ingredient: IngredientFormData) => void;
+  onIngredientsReorder: (ingredients: IngredientFormData[]) => void;
 }) => {
+  const renderIngredient = useCallback(
+    ({ item: ingredient }: { item: IngredientFormData }) => (
+      <IngredientItem
+        style={styles.ingredientItem}
+        ingredient={ingredient}
+        onEdit={() => onIngredientEdit(ingredient)}
+        onDelete={() => onIngredientDelete(ingredient)}
+      />
+    ),
+    [onIngredientDelete, onIngredientEdit]
+  );
+
   if (isEmpty(ingredients)) {
     return (
       <PressableWithHaptics onPress={handleAddIngredient}>
@@ -187,22 +241,23 @@ const IngredientsList = ({
             borderBottomWidth: 2,
             borderColor: colors.brown[900],
             borderRadius: 8,
+            paddingVertical: 4,
             overflow: 'hidden',
           }}
           layout={LinearTransition.springify()}
           exiting={FadeOut}
           entering={FadeIn}
         >
-          {ingredients.map((ingredient, index) => (
-            <React.Fragment key={ingredient.id}>
-              <IngredientItem
-                style={index > 0 ? { borderColor: colors.brown[900], borderTopWidth: 1 } : undefined}
-                ingredient={ingredient}
-                onEdit={() => onIngredientEdit(ingredient)}
-                onDelete={() => onIngredientDelete(ingredient)}
-              />
-            </React.Fragment>
-          ))}
+          <Sortable.Grid
+            columns={1}
+            data={ingredients}
+            keyExtractor={(ingredient) => ingredient.id}
+            renderItem={renderIngredient}
+            customHandle
+            dragActivationDelay={100}
+            activeItemScale={1.02}
+            onDragEnd={({ data }) => onIngredientsReorder(data)}
+          />
         </Animated.View>
       ) : null}
     </View>
@@ -227,7 +282,9 @@ const validIngredient = (ingredient: IngredientFormData) => {
 const recipeSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1, 'Name is required'),
-  ingredients: z.custom<IngredientFormData[]>().refine((ingredients) => ingredients.length > 0, 'Add at least one ingredient')
+  ingredients: z
+    .custom<IngredientFormData[]>()
+    .refine((ingredients) => ingredients.length > 0, 'Add at least one ingredient')
     .refine((ingredients) => ingredients.every(validIngredient), 'Every ingredient needs an item and quantity'),
   liked: z.boolean(),
   meal_types: z.custom<MealType[]>().refine((mealTypes) => mealTypes.length > 0, 'Pick at least one meal type'),
@@ -238,7 +295,13 @@ const recipeSchema = z.object({
   }, 'Cooking time is required'),
 });
 
-export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { recipe?: RecipeDTO; mode?: 'create' | 'edit' }) {
+export function RecipeForm({
+  recipe,
+  mode = recipe ? 'edit' : 'create',
+}: {
+  recipe?: RecipeDTO;
+  mode?: 'create' | 'edit';
+}) {
   const navigation = useNavigation();
   const sheets = useSheets();
   const nameInputRef = useRef<TextInputType>(null);
@@ -356,7 +419,9 @@ export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { reci
     const existingIngredient = ingredients.find((item) => item.id === ingredient.id);
     form.setFieldValue(
       'ingredients',
-      existingIngredient ? ingredients.map((item) => (item.id !== ingredient.id ? item : ingredient)) : [...ingredients, ingredient]
+      existingIngredient
+        ? ingredients.map((item) => (item.id !== ingredient.id ? item : ingredient))
+        : [...ingredients, ingredient]
     );
   };
 
@@ -470,6 +535,7 @@ export function RecipeForm({ recipe, mode = recipe ? 'edit' : 'create' }: { reci
                   handleAddIngredient={handleAddIngredient}
                   onIngredientEdit={handleEditIngredient}
                   onIngredientDelete={handleDeleteIngredient}
+                  onIngredientsReorder={(orderedIngredients) => form.setFieldValue('ingredients', orderedIngredients)}
                 />
                 <Button
                   text="Add ingredient"
@@ -527,5 +593,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     padding: 8,
+  },
+  dragHandle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: -12,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+  },
+  ingredientContent: {
+    flex: 1,
+  },
+  ingredientItem: {
+    width: '100%',
   },
 });
