@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEY } from '@/contexts/session';
 import { authSignal } from '@/api/auth-event';
 
-export const getBaseUrl = () => `127.0.0.1:3069`;
+export const getBaseUrl = () => 'https://api.fenneplanner.com';
 export class APIError extends Error {
   data: unknown;
   constructor(data: unknown) {
@@ -33,7 +33,7 @@ const requestEnvelope = async <T>({ path, ...requestDetails }: RequestProps): Pr
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
-  const url = `http://${getBaseUrl()}/v2${path}`;
+  const url = `${getBaseUrl()}/v2${path}`;
   const options: RequestInit = {
     method: requestDetails.method,
     headers,

@@ -42,7 +42,8 @@ export const useInvalidationChannel = () => {
   useEffect(() => {
     if (!token) return setConnectionStatus('disconnected');
 
-    const cable = createConsumer(`ws://${getBaseUrl()}/v2/cable?token=${token}`);
+    const websocketBaseUrl = getBaseUrl().replace(/^http/, 'ws');
+    const cable = createConsumer(`${websocketBaseUrl}/v2/cable?token=${token}`);
     setConnectionStatus('connecting');
 
     cable.subscriptions.create(
