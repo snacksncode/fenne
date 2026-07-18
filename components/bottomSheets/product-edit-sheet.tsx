@@ -1,4 +1,5 @@
 import { missingProductConversionsFromError, productImpactFromError } from '@/api/errors';
+import { ProductFormField, productValidationErrorsFromError } from '@/api/product-validation-errors';
 import { useEditProduct } from '@/api/products';
 import { AisleCategory, ProductDTO, ProductDraft } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
@@ -80,6 +81,17 @@ const productEditSchema = z
     reminder_frequency_unit: z.enum(['days', 'weeks', 'months']),
   })
   .superRefine((value, context) => {
+    if (value.mode !== 'kitchen_basic' && value.pack_count.trim() !== '') {
+      const packCount = value.pack_count.trim();
+      if (!/^\d+$/.test(packCount) || Number(packCount) < 2) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pack_count'],
+          message: 'Pack count must be at least 2',
+        });
+      }
+    }
+
     if (value.mode === 'measured') {
       const quantity = parseLocaleFloat(value.quantity);
       if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -147,6 +159,15 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   const [error, setError] = useState<string | null>(null);
   const [missingConversions, setMissingConversions] = useState<Unit[]>([]);
   const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
+  const productFormFields: ProductFormField[] = [
+    'name',
+    'aisle',
+    'pack_count',
+    'quantity',
+    'unit',
+    'reminder_frequency_value',
+    'reminder_frequency_unit',
+  ];
   const form = useAppForm({
     defaultValues: formFromProduct(product),
     validators: {
@@ -154,6 +175,12 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     },
     onSubmit: ({ value }) => {
       setError(null);
+      productFormFields.forEach((field) => {
+        form.setFieldMeta(field, (meta) => ({
+          ...meta,
+          errorMap: { ...meta.errorMap, onServer: undefined },
+        }));
+      });
       const requiredConversions =
         value.mode === 'measured'
           ? missingConversions.filter((unit) => unitsRequireProductConversion(unit, value.unit))
@@ -194,6 +221,19 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               );
               setError(null);
               requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+              return;
+            }
+
+            const validationErrors = productValidationErrorsFromError(mutationError);
+            if (validationErrors) {
+              Object.entries(validationErrors.fields).forEach(([field, message]) => {
+                form.setFieldMeta(field as ProductFormField, (meta) => ({
+                  ...meta,
+                  isTouched: true,
+                  errorMap: { ...meta.errorMap, onServer: message },
+                }));
+              });
+              setError(validationErrors.form ?? null);
               return;
             }
 
