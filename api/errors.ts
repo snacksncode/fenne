@@ -79,25 +79,6 @@ export const productDeleteBlockersFromError = (error: unknown): ProductDeleteBlo
   if (!data.recipes.every(isRecipe)) return null;
 
   const base = 'base' in data && Array.isArray(data.base) ? data.base.filter((value): value is string => typeof value === 'string') : [];
-  const groceryItems =
-    'grocery_items' in data && Array.isArray(data.grocery_items)
-      ? data.grocery_items.filter(
-          (value): value is { id: string; name: string } =>
-            value != null &&
-            typeof value === 'object' &&
-            'id' in value &&
-            typeof value.id === 'string' &&
-            'name' in value &&
-            typeof value.name === 'string'
-        )
-      : [];
-  const pantryEntries =
-    'pantry_entries' in data && Array.isArray(data.pantry_entries)
-      ? data.pantry_entries.filter(
-          (value): value is { id: string } =>
-            value != null && typeof value === 'object' && 'id' in value && typeof value.id === 'string'
-        )
-      : [];
 
-  return { base, recipes: data.recipes, grocery_items: groceryItems, pantry_entries: pantryEntries };
+  return { base, recipes: data.recipes };
 };

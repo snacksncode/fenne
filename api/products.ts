@@ -51,6 +51,7 @@ export const useDeleteProduct = () => {
       queryClient.invalidateQueries(productsOptions);
       queryClient.invalidateQueries(pantryOptions);
       queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.suggestions.all() });
     },
   });

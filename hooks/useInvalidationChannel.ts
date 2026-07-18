@@ -72,8 +72,8 @@ export const useInvalidationChannel = () => {
           }
 
           if (data.resource === 'grocery_items') {
-            if (queryClient.isFetching(groceriesOptions)) return;
-            queryClient.invalidateQueries(groceriesOptions);
+            if (!queryClient.isFetching(groceriesOptions)) queryClient.invalidateQueries(groceriesOptions);
+            queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
           }
 
           if (data.resource === 'products') {

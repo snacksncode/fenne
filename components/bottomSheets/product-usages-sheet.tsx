@@ -1,5 +1,4 @@
 import { useProductUsages } from '@/api/products';
-import { ProductDeleteBlockersDTO } from '@/api/types';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Recipe } from '@/components/recipe';
 import { Typography } from '@/components/Typography';
@@ -8,19 +7,6 @@ import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { BookOpen, CircleCheck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
-
-const BlockerSummary = ({ blockers }: { blockers: ProductDeleteBlockersDTO }) => {
-  const hasPantryBlocker = blockers.pantry_entries.length > 0;
-  const hasGroceryBlocker = blockers.grocery_items.length > 0;
-  if (!hasPantryBlocker && !hasGroceryBlocker) return null;
-
-  const locations = [hasPantryBlocker ? 'pantry' : null, hasGroceryBlocker ? 'grocery list' : null].filter(Boolean);
-  return (
-    <Typography variant="body-sm" weight="medium" color={colors.red[600]}>
-      It’s also in your {locations.join(' and ')}. Remove it there first.
-    </Typography>
-  );
-};
 
 export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) => {
   const { product, blockers } = props.data;
@@ -50,9 +36,8 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
       {blockers ? (
         <View style={{ gap: 6, marginBottom: 16 }}>
           <Typography variant="body-sm" weight="medium" color={colors.red[600]}>
-            This item can’t be removed yet. Remove it from the places below first.
+            This item can’t be removed yet. Remove it from these recipes first.
           </Typography>
-          <BlockerSummary blockers={blockers} />
         </View>
       ) : null}
 

@@ -69,8 +69,6 @@ export type ProductUsagesDTO = {
 
 export type ProductDeleteBlockersDTO = ProductUsagesDTO & {
   base: string[];
-  grocery_items: { id: string; name: string }[];
-  pantry_entries: { id: string }[];
 };
 
 // Pantry
