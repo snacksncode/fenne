@@ -7,11 +7,10 @@ import { useAppForm } from '@/components/form/app-form';
 import { InlineQuantityInput } from '@/components/inline-quantity-input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { formatDateToISO } from '@/date-tools';
+import { formatDateToISO, parseISO } from '@/date-tools';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { parseLocaleFloat } from '@/utils';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { format, parseISO } from 'date-fns';
 import { Pen, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
@@ -21,30 +20,34 @@ const POSITIVE_QUANTITY_ERROR = 'Quantity must be positive';
 
 const initialDate = (entry: PantryEntryDTO) => {
   if (!entry.last_acquired) return formatDateToISO(new Date());
-  return format(parseISO(entry.last_acquired), 'yyyy-MM-dd');
+  return formatDateToISO(parseISO(entry.last_acquired));
 };
 
-const dateToISO = (date: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+const pantryEntrySchema = (isTimed: boolean) =>
+  z
+    .object({
+      quantity: z.string(),
+      lastAcquired: z.string(),
+    })
+    .superRefine((value, context) => {
+      if (isTimed) {
+        if (Number.isNaN(parseISO(value.lastAcquired.trim()).getTime())) {
+          context.addIssue({ code: 'custom', path: ['lastAcquired'], message: 'Use YYYY-MM-DD' });
+        }
 
-  const parsed = new Date(`${date}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime())) return null;
+        return;
+      }
 
-  return `${date}T00:00:00.000Z`;
-};
+      const quantity = parseLocaleFloat(value.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        context.addIssue({ code: 'custom', path: ['quantity'], message: POSITIVE_QUANTITY_ERROR });
+      }
+    });
 
 const entryUnitLabel = (entry: PantryEntryDTO, quantity: number) => {
   if (entry.product.shape === 'counted') return quantity === 1 ? 'item' : 'items';
   return prettyUnit({ quantity, unit: entry.product.unit });
 };
-
-const pantryEntrySchema = z.object({
-  quantity: z.string().refine((value) => {
-    const quantity = parseLocaleFloat(value);
-    return Number.isFinite(quantity) && quantity > 0;
-  }, POSITIVE_QUANTITY_ERROR),
-  lastAcquired: z.string().refine((value) => dateToISO(value.trim()) != null, 'Use YYYY-MM-DD'),
-});
 
 type PantryEntrySheetContentProps = {
   sheetId: SheetProps<'pantry-entry-sheet'>['sheetId'];
@@ -78,19 +81,16 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
       lastAcquired: initialDate(entry),
     },
     validators: {
-      onSubmit: pantryEntrySchema,
+      onSubmit: pantryEntrySchema(isTimed),
     },
     onSubmit: ({ value }) => {
       setError(null);
 
       if (isTimed) {
-        const isoDate = dateToISO(value.lastAcquired.trim());
-        if (!isoDate) return;
-
         editEntry.mutate(
           {
             id: entry.id,
-            last_acquired: isoDate,
+            last_acquired: formatDateToISO(parseISO(value.lastAcquired.trim())),
           },
           {
             onSuccess: () => {
