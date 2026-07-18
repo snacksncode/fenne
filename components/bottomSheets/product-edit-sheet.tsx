@@ -8,6 +8,7 @@ import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
 import { Checkbox, useCheckbox } from '@/components/checkbox';
 import { useAppForm } from '@/components/form/app-form';
+import { TextInputRef } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ProductConversionFields } from '@/components/product-conversion-fields';
 import { Typography } from '@/components/Typography';
@@ -18,7 +19,6 @@ import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
-import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { z } from 'zod';
 
 type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
@@ -166,7 +166,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   const sheets = useSheets();
   const editProduct = useEditProduct();
   const scrollRef = useRef<ScrollView>(null);
-  const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputType | null>>>({});
+  const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputRef | null>>>({});
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missingConversions, setMissingConversions] = useState<Unit[]>([]);

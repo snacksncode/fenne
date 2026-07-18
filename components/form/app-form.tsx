@@ -2,8 +2,7 @@ import { NumberInput, TextInput } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form';
-import { ComponentProps, forwardRef, ReactNode } from 'react';
-import { TextInput as TextInputType } from 'react-native-gesture-handler';
+import { ComponentProps, ReactNode } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts();
@@ -56,7 +55,7 @@ type TextFieldProps = Omit<ComponentProps<typeof TextInput>, 'value' | 'onChange
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const TextField = forwardRef<TextInputType, TextFieldProps>(({ label, containerStyle, accessibilityLabel, ...props }, ref) => {
+const TextField = ({ label, containerStyle, accessibilityLabel, ref, ...props }: TextFieldProps) => {
   const field = useFieldContext<string | null | undefined>();
 
   return (
@@ -71,16 +70,14 @@ const TextField = forwardRef<TextInputType, TextFieldProps>(({ label, containerS
       />
     </FieldFrame>
   );
-});
-
-TextField.displayName = 'TextField';
+};
 
 type NumberFieldProps = Omit<ComponentProps<typeof NumberInput>, 'value' | 'onChangeText' | 'onBlur'> & {
   label?: string;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const NumberField = forwardRef<TextInputType, NumberFieldProps>(({ label, containerStyle, accessibilityLabel, ...props }, ref) => {
+const NumberField = ({ label, containerStyle, accessibilityLabel, ref, ...props }: NumberFieldProps) => {
   const field = useFieldContext<string>();
 
   return (
@@ -95,9 +92,7 @@ const NumberField = forwardRef<TextInputType, NumberFieldProps>(({ label, contai
       />
     </FieldFrame>
   );
-});
-
-NumberField.displayName = 'NumberField';
+};
 
 export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {

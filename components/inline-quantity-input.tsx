@@ -1,7 +1,7 @@
-import { NumberInput } from '@/components/input';
+import { NumberInput, TextInputRef } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { ComponentRef, useRef } from 'react';
+import { useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 type InlineQuantityInputProps = {
@@ -19,7 +19,7 @@ export const InlineQuantityInput = ({
   unit,
   value,
 }: InlineQuantityInputProps) => {
-  const inputRef = useRef<ComponentRef<typeof NumberInput>>(null);
+  const inputRef = useRef<TextInputRef>(null);
 
   return (
     <Pressable accessible={false} accessibilityRole="none" onPress={() => inputRef.current?.focus()} style={styles.container}>

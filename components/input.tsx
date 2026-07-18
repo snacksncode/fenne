@@ -1,16 +1,19 @@
 import { colors } from '@/constants/colors';
-import { ComponentProps, forwardRef } from 'react';
-import { StyleSheet } from 'react-native';
+import { ComponentProps, Ref } from 'react';
+import { StyleSheet, TextInput as RNTextInput } from 'react-native';
 import { TextInput as _TextInput } from 'react-native-gesture-handler';
 
-type TextInputProps = ComponentProps<typeof _TextInput> & {
+export type TextInputRef = RNTextInput;
+
+type TextInputProps = Omit<ComponentProps<typeof _TextInput>, 'ref'> & {
+  ref?: Ref<TextInputRef>;
   variant?: 'default' | 'search';
 };
 
-export const TextInput = forwardRef<_TextInput, TextInputProps>(({ style, variant = 'default', ...props }, ref) => {
+export const TextInput = ({ style, variant = 'default', ref, ...props }: TextInputProps) => {
   return (
     <_TextInput
-      ref={ref}
+      ref={ref as ComponentProps<typeof _TextInput>['ref']}
       style={[styles.input, variant === 'search' && styles.searchInput, style]}
       placeholderTextColor={colors.brown[800] + 'C0'} // 75% opacity in hex
       cursorColor={colors.orange[600]}
@@ -19,12 +22,11 @@ export const TextInput = forwardRef<_TextInput, TextInputProps>(({ style, varian
       {...props}
     />
   );
-});
+};
 
-TextInput.displayName = 'TextInput';
-
-type NumberInputProps = Omit<ComponentProps<typeof _TextInput>, 'onChangeText' | 'keyboardType'> & {
+type NumberInputProps = Omit<ComponentProps<typeof _TextInput>, 'onChangeText' | 'keyboardType' | 'ref'> & {
   onChangeText: (value: string) => void;
+  ref?: Ref<TextInputRef>;
 };
 
 const cleanNumberText = (value: string) => {
@@ -40,9 +42,9 @@ const cleanNumberText = (value: string) => {
   return `${before}${separator}${after}`;
 };
 
-export const NumberInput = forwardRef<_TextInput, NumberInputProps>(({ onChangeText, style, ...props }, ref) => (
+export const NumberInput = ({ onChangeText, style, ref, ...props }: NumberInputProps) => (
   <_TextInput
-    ref={ref}
+    ref={ref as ComponentProps<typeof _TextInput>['ref']}
     keyboardType="decimal-pad"
     onChangeText={(value) => onChangeText(cleanNumberText(value))}
     placeholderTextColor={colors.brown[800] + 'C0'}
@@ -50,9 +52,7 @@ export const NumberInput = forwardRef<_TextInput, NumberInputProps>(({ onChangeT
     style={[styles.input, style]}
     {...props}
   />
-));
-
-NumberInput.displayName = 'NumberInput';
+);
 
 const styles = StyleSheet.create({
   input: {

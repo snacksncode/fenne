@@ -12,6 +12,7 @@ import {
 } from '@/api/types';
 import { Button } from '@/components/button';
 import { useAppForm } from '@/components/form/app-form';
+import { TextInputRef } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from 'expo-router/react-navigation';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, GripVertical, Trash2, Save } from 'lucide-react-native';
@@ -19,7 +20,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Typography } from '@/components/Typography';
-import { GestureDetector, TextInput as TextInputType } from 'react-native-gesture-handler';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
 import { EnrichedTextInputInstance } from 'react-native-enriched-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -304,7 +305,7 @@ export function RecipeForm({
 }) {
   const navigation = useNavigation();
   const sheets = useSheets();
-  const nameInputRef = useRef<TextInputType>(null);
+  const nameInputRef = useRef<TextInputRef>(null);
   const notesEditorRef = useRef<EnrichedTextInputInstance>(null);
   const insets = useSafeAreaInsets();
   const editRecipe = useEditRecipe();
