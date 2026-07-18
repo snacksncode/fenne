@@ -7,7 +7,7 @@ import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { BookOpen, CircleCheck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 const BlockerSummary = ({ blockers }: { blockers: ProductDeleteBlockersDTO }) => {
   const hasPantryBlocker = blockers.pantry_entries.length > 0;
@@ -27,7 +27,6 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
   const usages = useProductUsages(product.id, blockers == null);
   const sheets = useSheets();
   const router = useRouter();
-  const { height } = useWindowDimensions();
   const recipes = blockers?.recipes ?? usages.data?.recipes ?? [];
   const isLoading = !blockers && usages.isLoading;
 
@@ -37,7 +36,11 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
   };
 
   return (
-    <BaseSheet id={props.sheetId} sizing={{ type: 'scrollable', detents: ['auto', 0.8] }}>
+    <BaseSheet
+      id={props.sheetId}
+      sizing={{ type: 'scrollable', detents: [0.33, 1] }}
+      initialDetentIndex={0}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <BookOpen color={colors.brown[900]} size={22} strokeWidth={2.5} />
         <Typography variant="heading-sm" weight="bold">
@@ -56,7 +59,7 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
-        style={{ maxHeight: height * 0.62 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ gap: 10, paddingBottom: 12 }}
       >
         {isLoading ? (
