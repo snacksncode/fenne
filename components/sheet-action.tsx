@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   dangerIcon: {
-    backgroundColor: colors.red[100],
+    backgroundColor: colors.red[50],
   },
 });
