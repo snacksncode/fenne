@@ -38,7 +38,7 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
   return (
     <BaseSheet
       id={props.sheetId}
-      sizing={{ type: 'scrollable', detents: [0.33, 1] }}
+      sizing={{ type: 'scrollable', detents: [0.5, 1] }}
       initialDetentIndex={0}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
