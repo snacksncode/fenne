@@ -3,7 +3,7 @@ import { ProductFormField, productValidationErrorsFromError } from '@/api/produc
 import { useEditProduct } from '@/api/products';
 import { AisleCategory, ProductDTO, ProductDraft } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet, sheetFooter, SHEET_FOOTER_HEIGHT } from '@/components/bottomSheets/base-sheet';
 import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
 import { Checkbox, useCheckbox } from '@/components/checkbox';
@@ -17,9 +17,10 @@ import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView, KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
@@ -165,11 +166,13 @@ type ProductEditSheetContentProps = {
 
 const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentProps) => {
   const sheets = useSheets();
+  const insets = useSafeAreaInsets();
   const editProduct = useEditProduct();
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputRef | null>>>({});
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [validationLayoutVersion, setValidationLayoutVersion] = useState(0);
   const [missingConversions, setMissingConversions] = useState<Unit[]>([]);
   const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
   const focusField = (field: ProductFormField | undefined) => {
@@ -177,11 +180,13 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     const input = fieldRefs.current[field];
     if (!input) return;
 
-    requestAnimationFrame(() => {
-      input.focus();
-      requestAnimationFrame(() => scrollRef.current?.assureFocusedInputVisible());
-    });
+    requestAnimationFrame(() => input.focus());
   };
+
+  useEffect(() => {
+    if (validationLayoutVersion === 0) return;
+    requestAnimationFrame(() => scrollRef.current?.assureFocusedInputVisible());
+  }, [validationLayoutVersion]);
 
   const form = useAppForm({
     defaultValues: formFromProduct(product),
@@ -193,6 +198,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         (field) => (formApi.getFieldMeta(field)?.errors.length ?? 0) > 0
       );
       focusField(firstInvalidField);
+      setValidationLayoutVersion((version) => version + 1);
     },
     onSubmit: ({ value }) => {
       setError(null);
@@ -259,6 +265,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               });
               setError(validationErrors.form ?? null);
               focusField(productFormFields.find((field) => validationErrors.fields[field] != null));
+              setValidationLayoutVersion((version) => version + 1);
               return;
             }
 
@@ -287,7 +294,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={24}
+        bottomOffset={SHEET_FOOTER_HEIGHT + insets.bottom + 24}
         extraKeyboardSpace={72}
       >
         <form.AppForm>

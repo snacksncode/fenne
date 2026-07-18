@@ -9,6 +9,7 @@ type SheetDetents = NonNullable<TrueSheetProps['detents']>;
 type BaseSheetSizing = { type?: 'auto' } | { type: 'scrollable'; detents: SheetDetents };
 const FOOTER_TOP_PADDING = 12;
 const FOOTER_CONTENT_HEIGHT = 48;
+export const SHEET_FOOTER_HEIGHT = FOOTER_TOP_PADDING + FOOTER_CONTENT_HEIGHT;
 
 type BaseSheetProps = Partial<Omit<TrueSheetProps, 'name' | 'children' | 'footer' | 'detents'>> & {
   sizing?: BaseSheetSizing;
