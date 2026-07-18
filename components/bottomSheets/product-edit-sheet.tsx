@@ -18,7 +18,8 @@ import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/pr
 import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView, KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { z } from 'zod';
 
 type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
@@ -165,7 +166,7 @@ type ProductEditSheetContentProps = {
 const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentProps) => {
   const sheets = useSheets();
   const editProduct = useEditProduct();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputRef | null>>>({});
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +179,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
 
     requestAnimationFrame(() => {
       input.focus();
-      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(input, 24, true);
+      requestAnimationFrame(() => scrollRef.current?.assureFocusedInputVisible());
     });
   };
 
@@ -188,7 +189,9 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
       onSubmit: productEditSchema,
     },
     onSubmitInvalid: ({ formApi }) => {
-      const firstInvalidField = productFormFields.find((field) => (formApi.getFieldMeta(field)?.errors.length ?? 0) > 0);
+      const firstInvalidField = productFormFields.find(
+        (field) => (formApi.getFieldMeta(field)?.errors.length ?? 0) > 0
+      );
       focusField(firstInvalidField);
     },
     onSubmit: ({ value }) => {
@@ -234,7 +237,10 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               setMissingConversions(nextMissingConversions);
               setConversionValues((current) =>
                 Object.fromEntries(
-                  nextMissingConversions.map((unit) => [unit, current[unit] ?? product.conversions[unit]?.toString() ?? ''])
+                  nextMissingConversions.map((unit) => [
+                    unit,
+                    current[unit] ?? product.conversions[unit]?.toString() ?? '',
+                  ])
                 )
               );
               setError(null);
@@ -277,10 +283,12 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         />
       )}
     >
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
+        extraKeyboardSpace={72}
       >
         <form.AppForm>
           <View style={{ gap: 16, paddingBottom: 72 }}>
@@ -335,9 +343,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                           checked={values.mode === 'measured'}
                           label="Track how much is left"
                           disabled={values.mode === 'timed' || values.mode === 'kitchen_basic'}
-                          onPress={() =>
-                            modeField.handleChange(values.mode === 'measured' ? 'counted' : 'measured')
-                          }
+                          onPress={() => modeField.handleChange(values.mode === 'measured' ? 'counted' : 'measured')}
                         />
                         {values.mode === 'measured' && (
                           <View style={styles.twoColumn}>
@@ -504,7 +510,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
             ) : null}
           </View>
         </form.AppForm>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </BaseSheet>
   );
 };
