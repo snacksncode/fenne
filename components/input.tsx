@@ -7,9 +7,10 @@ type TextInputProps = ComponentProps<typeof _TextInput> & {
   variant?: 'default' | 'search';
 };
 
-export const TextInput = ({ style, variant = 'default', ...props }: TextInputProps) => {
+export const TextInput = forwardRef<_TextInput, TextInputProps>(({ style, variant = 'default', ...props }, ref) => {
   return (
     <_TextInput
+      ref={ref}
       style={[styles.input, variant === 'search' && styles.searchInput, style]}
       placeholderTextColor={colors.brown[800] + 'C0'} // 75% opacity in hex
       cursorColor={colors.orange[600]}
@@ -18,7 +19,9 @@ export const TextInput = ({ style, variant = 'default', ...props }: TextInputPro
       {...props}
     />
   );
-};
+});
+
+TextInput.displayName = 'TextInput';
 
 type NumberInputProps = Omit<ComponentProps<typeof _TextInput>, 'onChangeText' | 'keyboardType'> & {
   onChangeText: (value: string) => void;

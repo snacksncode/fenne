@@ -18,9 +18,20 @@ import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { z } from 'zod';
 
 type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
+
+const productFormFields: ProductFormField[] = [
+  'name',
+  'aisle',
+  'pack_count',
+  'quantity',
+  'unit',
+  'reminder_frequency_value',
+  'reminder_frequency_unit',
+];
 
 type ProductForm = {
   name: string;
@@ -155,23 +166,30 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   const sheets = useSheets();
   const editProduct = useEditProduct();
   const scrollRef = useRef<ScrollView>(null);
+  const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputType | null>>>({});
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missingConversions, setMissingConversions] = useState<Unit[]>([]);
   const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
-  const productFormFields: ProductFormField[] = [
-    'name',
-    'aisle',
-    'pack_count',
-    'quantity',
-    'unit',
-    'reminder_frequency_value',
-    'reminder_frequency_unit',
-  ];
+  const focusField = (field: ProductFormField | undefined) => {
+    if (!field) return;
+    const input = fieldRefs.current[field];
+    if (!input) return;
+
+    requestAnimationFrame(() => {
+      input.focus();
+      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(input, 24, true);
+    });
+  };
+
   const form = useAppForm({
     defaultValues: formFromProduct(product),
     validators: {
       onSubmit: productEditSchema,
+    },
+    onSubmitInvalid: ({ formApi }) => {
+      const firstInvalidField = productFormFields.find((field) => (formApi.getFieldMeta(field)?.errors.length ?? 0) > 0);
+      focusField(firstInvalidField);
     },
     onSubmit: ({ value }) => {
       setError(null);
@@ -234,6 +252,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                 }));
               });
               setError(validationErrors.form ?? null);
+              focusField(productFormFields.find((field) => validationErrors.fields[field] != null));
               return;
             }
 
@@ -274,7 +293,16 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               </Typography>
             </View>
 
-            <form.AppField name="name">{(field) => <field.TextField label="Name" />}</form.AppField>
+            <form.AppField name="name">
+              {(field) => (
+                <field.TextField
+                  ref={(input) => {
+                    fieldRefs.current.name = input;
+                  }}
+                  label="Name"
+                />
+              )}
+            </form.AppField>
 
             <form.Subscribe selector={(state) => state.values}>
               {(values) => (
@@ -315,7 +343,15 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                           <View style={styles.twoColumn}>
                             <View style={{ flex: 1 }}>
                               <form.AppField name="quantity">
-                                {(field) => <field.NumberField label="Amount" placeholder="e.g. 500" />}
+                                {(field) => (
+                                  <field.NumberField
+                                    ref={(input) => {
+                                      fieldRefs.current.quantity = input;
+                                    }}
+                                    label="Amount"
+                                    placeholder="e.g. 500"
+                                  />
+                                )}
                               </form.AppField>
                             </View>
                             <form.AppField name="unit">
@@ -362,7 +398,15 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                             </Typography>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                               <form.AppField name="reminder_frequency_value">
-                                {(field) => <field.NumberField placeholder="1" style={{ flex: 1 }} />}
+                                {(field) => (
+                                  <field.NumberField
+                                    ref={(input) => {
+                                      fieldRefs.current.reminder_frequency_value = input;
+                                    }}
+                                    placeholder="1"
+                                    style={{ flex: 1 }}
+                                  />
+                                )}
                               </form.AppField>
                               <form.AppField name="reminder_frequency_unit">
                                 {(field) => (
@@ -400,7 +444,15 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
 
                   {values.mode !== 'kitchen_basic' && (
                     <form.AppField name="pack_count">
-                      {(field) => <field.NumberField label="Sold in packs of" placeholder="e.g. 12" />}
+                      {(field) => (
+                        <field.NumberField
+                          ref={(input) => {
+                            fieldRefs.current.pack_count = input;
+                          }}
+                          label="Sold in packs of"
+                          placeholder="e.g. 12"
+                        />
+                      )}
                     </form.AppField>
                   )}
                 </>

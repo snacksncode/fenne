@@ -2,7 +2,8 @@ import { NumberInput, TextInput } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form';
-import { ComponentProps, ReactNode } from 'react';
+import { ComponentProps, forwardRef, ReactNode } from 'react';
+import { TextInput as TextInputType } from 'react-native-gesture-handler';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts();
@@ -55,12 +56,13 @@ type TextFieldProps = Omit<ComponentProps<typeof TextInput>, 'value' | 'onChange
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const TextField = ({ label, containerStyle, accessibilityLabel, ...props }: TextFieldProps) => {
+const TextField = forwardRef<TextInputType, TextFieldProps>(({ label, containerStyle, accessibilityLabel, ...props }, ref) => {
   const field = useFieldContext<string | null | undefined>();
 
   return (
     <FieldFrame label={label} style={containerStyle}>
       <TextInput
+        ref={ref}
         value={field.state.value ?? ''}
         onChangeText={field.handleChange}
         onBlur={field.handleBlur}
@@ -69,19 +71,22 @@ const TextField = ({ label, containerStyle, accessibilityLabel, ...props }: Text
       />
     </FieldFrame>
   );
-};
+});
+
+TextField.displayName = 'TextField';
 
 type NumberFieldProps = Omit<ComponentProps<typeof NumberInput>, 'value' | 'onChangeText' | 'onBlur'> & {
   label?: string;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-const NumberField = ({ label, containerStyle, accessibilityLabel, ...props }: NumberFieldProps) => {
+const NumberField = forwardRef<TextInputType, NumberFieldProps>(({ label, containerStyle, accessibilityLabel, ...props }, ref) => {
   const field = useFieldContext<string>();
 
   return (
     <FieldFrame label={label} style={containerStyle}>
       <NumberInput
+        ref={ref}
         value={field.state.value}
         onChangeText={field.handleChange}
         onBlur={field.handleBlur}
@@ -90,7 +95,9 @@ const NumberField = ({ label, containerStyle, accessibilityLabel, ...props }: Nu
       />
     </FieldFrame>
   );
-};
+});
+
+NumberField.displayName = 'NumberField';
 
 export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
