@@ -105,7 +105,9 @@ const frequencyTarget = (entry: PantryEntryDTO) => {
 const timedStatus = (entry: PantryEntryDTO) => {
   const acquiredAt = entry.last_acquired ? parseISO(entry.last_acquired) : null;
   const target = frequencyTarget(entry);
-  if (!acquiredAt || !target) return { label: '?', hint: 'Reminder date missing', remainingRatio: 0 };
+  if (!acquiredAt || !target) {
+    return { label: '?', hint: 'Reminder date missing', remainingRatio: 0, isRunningLow: false };
+  }
 
   const today = startOfToday();
   const acquiredDay = startOfDay(acquiredAt);
@@ -130,8 +132,9 @@ const timedStatus = (entry: PantryEntryDTO) => {
   const hint = remainingDays <= 0 ? `${boughtLabel} · due now` : `${boughtLabel} · ${label} left`;
 
   const remainingRatio = Math.max(0, Math.min(1, 1 - ratio));
+  const isRunningLow = ratio >= 0.75;
 
-  return { label, hint, remainingRatio };
+  return { label, hint, remainingRatio, isRunningLow };
 };
 
 const RING_SIZE = 24;
@@ -141,6 +144,8 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const ReminderIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
   const status = timedStatus(entry);
+  const trackColor = status.isRunningLow ? colors.red[50] : colors.orange[100];
+  const progressColor = status.isRunningLow ? colors.red[500] : colors.orange[500];
 
   return (
     <View style={styles.reminderIndicator} accessibilityLabel={`Reminder ${status.label}`}>
@@ -150,7 +155,7 @@ const ReminderIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
           cy={RING_SIZE / 2}
           r={RING_RADIUS}
           fill="none"
-          stroke={colors.orange[100]}
+          stroke={trackColor}
           strokeWidth={RING_STROKE}
         />
         <Circle
@@ -158,7 +163,7 @@ const ReminderIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
           cy={RING_SIZE / 2}
           r={RING_RADIUS}
           fill="none"
-          stroke={colors.orange[500]}
+          stroke={progressColor}
           strokeWidth={RING_STROKE}
           strokeLinecap="round"
           strokeDasharray={RING_CIRCUMFERENCE}
