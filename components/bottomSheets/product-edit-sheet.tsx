@@ -17,7 +17,7 @@ import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView, KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -172,7 +172,6 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   const fieldRefs = useRef<Partial<Record<ProductFormField, TextInputRef | null>>>({});
   const [impact, setImpact] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [validationLayoutVersion, setValidationLayoutVersion] = useState(0);
   const [missingConversions, setMissingConversions] = useState<Unit[]>([]);
   const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
   const focusField = (field: ProductFormField | undefined) => {
@@ -180,13 +179,11 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     const input = fieldRefs.current[field];
     if (!input) return;
 
-    requestAnimationFrame(() => input.focus());
+    requestAnimationFrame(() => {
+      input.focus();
+      requestAnimationFrame(() => scrollRef.current?.assureFocusedInputVisible());
+    });
   };
-
-  useEffect(() => {
-    if (validationLayoutVersion === 0) return;
-    requestAnimationFrame(() => scrollRef.current?.assureFocusedInputVisible());
-  }, [validationLayoutVersion]);
 
   const form = useAppForm({
     defaultValues: formFromProduct(product),
@@ -198,7 +195,6 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         (field) => (formApi.getFieldMeta(field)?.errors.length ?? 0) > 0
       );
       focusField(firstInvalidField);
-      setValidationLayoutVersion((version) => version + 1);
     },
     onSubmit: ({ value }) => {
       setError(null);
@@ -265,7 +261,6 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               });
               setError(validationErrors.form ?? null);
               focusField(productFormFields.find((field) => validationErrors.fields[field] != null));
-              setValidationLayoutVersion((version) => version + 1);
               return;
             }
 
