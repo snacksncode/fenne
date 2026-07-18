@@ -1,5 +1,5 @@
 import { Typography } from '@/components/Typography';
-import { atom, useAtom, useAtomValue } from 'jotai';
+import { atom, useAtom } from 'jotai';
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,15 +18,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOut,
-  FadeOutDown,
-  LayoutAnimationConfig,
-  LayoutAnimationsValues,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { difference, first, isEmpty, isTruthy } from 'remeda';
 import { Tag } from '@/components/svgs/tag';
@@ -47,29 +39,6 @@ import { useOnAppActive } from '@/hooks/use-on-app-active';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
-
-const LayoutTransition = (values: LayoutAnimationsValues) => {
-  'worklet';
-
-  const deltaX = Math.abs(values.targetOriginX - values.currentOriginX);
-  const deltaY = Math.abs(values.targetOriginY - values.currentOriginY);
-  const shouldAnimate = deltaX < 200 && deltaY < 200;
-
-  return {
-    initialValues: {
-      originX: values.currentOriginX,
-      originY: values.currentOriginY,
-      width: values.currentWidth,
-      height: values.currentHeight,
-    },
-    animations: {
-      originX: shouldAnimate ? withSpring(values.targetOriginX) : values.targetOriginX,
-      originY: shouldAnimate ? withSpring(values.targetOriginY) : values.targetOriginY,
-      width: withSpring(values.targetWidth),
-      height: withSpring(values.targetHeight),
-    },
-  };
-};
 
 const DayCardSkeleton = () => {
   return (
@@ -206,7 +175,6 @@ export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDa
 
 const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
   const sheets = useSheets();
-  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const entries = [
     data.breakfast ? { ...data.breakfast, mealType: 'breakfast' as const } : null,
     data.lunch ? { ...data.lunch, mealType: 'lunch' as const } : null,
@@ -220,10 +188,7 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
   };
 
   return (
-    <Animated.View
-      exiting={FadeOut}
-      entering={FadeIn}
-      layout={hasLoaded ? LayoutTransition : undefined}
+    <View
       style={{
         backgroundColor: '#FEF2DD',
         paddingHorizontal: 16,
@@ -234,104 +199,84 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
         borderBottomWidth: 2,
       }}
     >
-      <LayoutAnimationConfig skipEntering>
-        {entries.map((entry, index) => {
-          return (
-            <Animated.View
-              key={entry.id + entry.mealType}
-              entering={FadeIn}
-              exiting={FadeOut}
-              layout={LayoutTransition}
-            >
-              <View>
-                <Entry entry={entry} dateString={data.date} />
-                {index !== entries.length - 1 ? (
-                  <View
-                    style={{
-                      height: 1,
-                      backgroundColor: '#EEDBB9',
-                      marginVertical: 8,
-                    }}
-                  />
-                ) : null}
-              </View>
-            </Animated.View>
-          );
-        })}
-        <LayoutAnimationConfig skipExiting>
-          {entries.length !== 3 ? (
-            <Animated.View
-              entering={FadeInDown.springify()}
-              exiting={FadeOutDown.springify()}
-              layout={LayoutTransition}
+      {entries.map((entry, index) => (
+        <View key={entry.id + entry.mealType}>
+          <Entry entry={entry} dateString={data.date} />
+          {index !== entries.length - 1 ? (
+            <View
               style={{
-                marginHorizontal: -16,
-                marginBottom: -12,
-                marginTop: 16,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 8,
-                backgroundColor: '#FEEED2',
-                height: 40,
+                height: 1,
+                backgroundColor: '#EEDBB9',
+                marginVertical: 8,
               }}
-            >
-              <View
-                style={{
-                  position: 'relative',
-                  top: 0,
-                  borderTopWidth: 1,
-                  borderStyle: 'dashed',
-                  borderColor: '#EEDBB9',
-                }}
-              />
-              <PressableWithHaptics
-                style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}
-                onPress={onPress}
-              >
-                <Animated.View style={[{ flexDirection: 'row', gap: 4 }]}>
-                  <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
-                  <Typography variant="body-sm" weight="bold">
-                    Another Meal?
-                  </Typography>
-                </Animated.View>
-              </PressableWithHaptics>
-            </Animated.View>
+            />
           ) : null}
-        </LayoutAnimationConfig>
-      </LayoutAnimationConfig>
-    </Animated.View>
+        </View>
+      ))}
+      {entries.length !== 3 ? (
+        <View
+          style={{
+            marginHorizontal: -16,
+            marginBottom: -12,
+            marginTop: 16,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
+            backgroundColor: '#FEEED2',
+            height: 40,
+          }}
+        >
+          <View
+            style={{
+              position: 'relative',
+              top: 0,
+              borderTopWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: '#EEDBB9',
+            }}
+          />
+          <PressableWithHaptics
+            style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}
+            onPress={onPress}
+          >
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
+              <Typography variant="body-sm" weight="bold">
+                Another Meal?
+              </Typography>
+            </View>
+          </PressableWithHaptics>
+        </View>
+      ) : null}
+    </View>
   );
 };
 
 const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
-  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
-
   return (
-    <Animated.View layout={hasLoaded ? LayoutTransition : undefined} exiting={FadeOut} entering={FadeIn}>
-      <PressableWithHaptics onPress={onPress}>
-        <View
-          style={{
-            backgroundColor: '#FEF4E2',
-            padding: 16,
-            paddingBottom: 20,
-            borderRadius: 8,
-            borderColor: '#D1C5B3',
-            borderStyle: 'dashed',
-            borderWidth: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 116,
-          }}
-        >
-          <Soup size={24} color="#4A3E36" />
-          <Typography variant="body-base" weight="black" style={{ marginTop: 8 }}>
-            No meals planned
-          </Typography>
-          <Typography variant="body-sm" weight="bold">
-            Tap to add a meal
-          </Typography>
-        </View>
-      </PressableWithHaptics>
-    </Animated.View>
+    <PressableWithHaptics onPress={onPress}>
+      <View
+        style={{
+          backgroundColor: '#FEF4E2',
+          padding: 16,
+          paddingBottom: 20,
+          borderRadius: 8,
+          borderColor: '#D1C5B3',
+          borderStyle: 'dashed',
+          borderWidth: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 116,
+        }}
+      >
+        <Soup size={24} color="#4A3E36" />
+        <Typography variant="body-base" weight="black" style={{ marginTop: 8 }}>
+          No meals planned
+        </Typography>
+        <Typography variant="body-sm" weight="bold">
+          Tap to add a meal
+        </Typography>
+      </View>
+    </PressableWithHaptics>
   );
 };
 
@@ -350,15 +295,11 @@ const Day = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | 
 };
 
 const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | undefined }) => {
-  const hasLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const date = parseISO(dateString);
 
   return (
     <View style={{ gap: 12 }}>
-      <Animated.View
-        style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
-        layout={hasLoaded ? LayoutTransition : undefined}
-      >
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <Typography variant="heading-sm" weight="bold">
           {format(date, 'EEEE')}
         </Typography>
@@ -401,7 +342,7 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
         <Typography variant="body-sm" weight="bold" color={colors.brown[700]} style={{ flex: 1, textAlign: 'right' }}>
           {format(date, 'd MMM')}
         </Typography>
-      </Animated.View>
+      </View>
       <Day data={data} dateString={dateString} />
     </View>
   );
