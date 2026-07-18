@@ -1,5 +1,5 @@
 import { APIError } from '@/api/client';
-import { MissingRecipeConversionDTO } from '@/api/types';
+import { MissingRecipeConversionDTO, ProductDeleteBlockersDTO, RecipeDTO } from '@/api/types';
 import { isUnit, Unit } from '@/components/bottomSheets/select-unit-sheet';
 
 const apiErrorData = (error: unknown) => (error instanceof APIError ? error.data : null);
@@ -52,4 +52,52 @@ export const missingRecipeConversionsFromError = (error: unknown): MissingRecipe
   );
 
   return valid.length === conversions.length ? valid : null;
+};
+
+const isRecipe = (value: unknown): value is RecipeDTO =>
+  value != null &&
+  typeof value === 'object' &&
+  'id' in value &&
+  typeof value.id === 'string' &&
+  'name' in value &&
+  typeof value.name === 'string' &&
+  'meal_types' in value &&
+  Array.isArray(value.meal_types) &&
+  value.meal_types.every((mealType) => mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner') &&
+  'ingredients' in value &&
+  Array.isArray(value.ingredients) &&
+  'time_in_minutes' in value &&
+  typeof value.time_in_minutes === 'number' &&
+  'liked' in value &&
+  typeof value.liked === 'boolean' &&
+  'notes' in value &&
+  typeof value.notes === 'string';
+
+export const productDeleteBlockersFromError = (error: unknown): ProductDeleteBlockersDTO | null => {
+  const data = apiErrorData(error);
+  if (!data || typeof data !== 'object' || !('recipes' in data) || !Array.isArray(data.recipes)) return null;
+  if (!data.recipes.every(isRecipe)) return null;
+
+  const base = 'base' in data && Array.isArray(data.base) ? data.base.filter((value): value is string => typeof value === 'string') : [];
+  const groceryItems =
+    'grocery_items' in data && Array.isArray(data.grocery_items)
+      ? data.grocery_items.filter(
+          (value): value is { id: string; name: string } =>
+            value != null &&
+            typeof value === 'object' &&
+            'id' in value &&
+            typeof value.id === 'string' &&
+            'name' in value &&
+            typeof value.name === 'string'
+        )
+      : [];
+  const pantryEntries =
+    'pantry_entries' in data && Array.isArray(data.pantry_entries)
+      ? data.pantry_entries.filter(
+          (value): value is { id: string } =>
+            value != null && typeof value === 'object' && 'id' in value && typeof value.id === 'string'
+        )
+      : [];
+
+  return { base, recipes: data.recipes, grocery_items: groceryItems, pantry_entries: pantryEntries };
 };

@@ -66,6 +66,7 @@ const ProductRow = ({ product }: { product: ProductDTO }) => {
       style={styles.row}
       scaleTo={0.98}
       onPress={() => sheets.present('product-edit-sheet', { data: { product } })}
+      onLongPress={() => sheets.present('product-options-sheet', { data: { product } })}
     >
       <AisleIcon type={product.aisle} />
       <View style={{ flex: 1 }}>

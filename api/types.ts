@@ -63,6 +63,16 @@ export type ProductSearchResult = {
   add_available: boolean;
 };
 
+export type ProductUsagesDTO = {
+  recipes: RecipeDTO[];
+};
+
+export type ProductDeleteBlockersDTO = ProductUsagesDTO & {
+  base: string[];
+  grocery_items: { id: string; name: string }[];
+  pantry_entries: { id: string }[];
+};
+
 // Pantry
 
 export type PantryEntryDTO = {

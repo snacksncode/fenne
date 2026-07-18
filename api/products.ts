@@ -33,6 +33,29 @@ export const useEditProduct = () => {
   });
 };
 
+export const useProductUsages = (id: string, enabled = true) => {
+  return useQuery({
+    queryKey: [...queryKeys.products.all(), id, 'usages'],
+    queryFn: () => api.products.usages(id),
+    enabled,
+  });
+};
+
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['deleteProduct'],
+    mutationFn: api.products.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(productsOptions);
+      queryClient.invalidateQueries(pantryOptions);
+      queryClient.invalidateQueries(groceriesOptions);
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.suggestions.all() });
+    },
+  });
+};
+
 export const productSuggestionsOptions = (query: string, context: ProductSearchContext) =>
   queryOptions<ProductSearchResult>({
     queryKey: queryKeys.products.suggestions.search(context, query),

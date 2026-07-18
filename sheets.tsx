@@ -10,6 +10,7 @@ import {
   ProductDTO,
   RecipeDTO,
   ConsumptionLogDTO,
+  ProductDeleteBlockersDTO,
 } from '@/api/types';
 import { TabParamList } from '@/app/(app)/(tabs)';
 
@@ -39,6 +40,8 @@ import { ProductEditSheet } from '@/components/bottomSheets/product-edit-sheet';
 import { PantryAddSheet } from '@/components/bottomSheets/pantry-add-sheet';
 import { ConsumptionLogSheet } from '@/components/bottomSheets/consumption-log-sheet';
 import { PantryFilter, PantryFilterSheet } from '@/components/bottomSheets/pantry-filter-sheet';
+import { ProductOptionsSheet } from '@/components/bottomSheets/product-options-sheet';
+import { ProductUsagesSheet } from '@/components/bottomSheets/product-usages-sheet';
 
 declare module '@/lib/sheet-context' {
   interface Sheets {
@@ -126,6 +129,12 @@ declare module '@/lib/sheet-context' {
       data: { product: ProductDTO };
       result: ProductDTO;
     };
+    'product-options-sheet': {
+      data: { product: ProductDTO };
+    };
+    'product-usages-sheet': {
+      data: { product: ProductDTO; blockers?: ProductDeleteBlockersDTO };
+    };
   }
 }
 
@@ -157,6 +166,8 @@ export const Sheets = () => (
       'pantry-filter-sheet': PantryFilterSheet,
       'consumption-log-sheet': ConsumptionLogSheet,
       'product-edit-sheet': ProductEditSheet,
+      'product-options-sheet': ProductOptionsSheet,
+      'product-usages-sheet': ProductUsagesSheet,
     }}
   />
 );

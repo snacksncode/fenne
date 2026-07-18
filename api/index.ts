@@ -14,6 +14,7 @@ import {
   ScheduleDayInput,
   ProductDTO,
   ProductDraft,
+  ProductUsagesDTO,
   PantryEntryDTO,
   ConsumptionLogDTO,
 } from '@/api/types';
@@ -143,6 +144,12 @@ export const api = {
     edit: (data: Pick<ProductDTO, 'id'> & Partial<ProductDraft> & { impact_acknowledged?: boolean }) => {
       const { id, ...productData } = data;
       return client.patch<ProductDTO>(`/products/${id}`, productData);
+    },
+    usages: (id: string) => {
+      return client.get<ProductUsagesDTO>(`/products/${id}/usages`);
+    },
+    delete: (data: { id: string }) => {
+      return client.delete(`/products/${data.id}`);
     },
     suggestions: (query: string, context: 'recipe' | 'shopping' | 'pantry' = 'recipe') => {
       const params = new URLSearchParams({ q: query, context });
