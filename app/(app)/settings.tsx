@@ -7,6 +7,7 @@ import {
   useRemoveSentInvite,
 } from '@/api/invitations';
 import { useSheets } from '@/lib/sheet-context';
+import { formatReleaseDetails } from '@/lib/release-details';
 import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
@@ -14,7 +15,9 @@ import { colors } from '@/constants/colors';
 import { useLogout } from '@/hooks/use-logout';
 import { getDeviceTimezone, getTimezoneDisplayName } from '@/utils/timezone';
 
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import * as Updates from 'expo-updates';
 import {
   ChevronLeft,
   Globe2,
@@ -30,6 +33,13 @@ import { FunctionComponent } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isEmptyish, sort } from 'remeda';
+
+const appVersion = Constants.expoConfig?.version ?? Updates.runtimeVersion ?? 'unknown';
+const releaseDetails = formatReleaseDetails({
+  version: appVersion,
+  channel: Updates.channel,
+  updateId: Updates.updateId,
+});
 
 const Action = (props: {
   text: string;
@@ -353,6 +363,15 @@ const Settings = () => {
             <Action icon={Trash2} text="Delete account" onPress={() => sheets.present('delete-account-sheet')} />
           </View>
         </View>
+
+        <Typography
+          variant="body-xs"
+          weight="medium"
+          color={colors.brown[700]}
+          style={styles.releaseDetails}
+        >
+          {releaseDetails}
+        </Typography>
       </ScrollView>
     </View>
   );
@@ -376,6 +395,10 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     width: 42,
+  },
+  releaseDetails: {
+    marginTop: 32,
+    textAlign: 'center',
   },
 });
 
