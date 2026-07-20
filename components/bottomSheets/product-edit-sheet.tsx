@@ -199,6 +199,8 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     onSubmit: ({ value }) => {
       setError(null);
       productFormFields.forEach((field) => {
+        if (!form.getFieldMeta(field)) return;
+
         form.setFieldMeta(field, (meta) => ({
           ...meta,
           errorMap: { ...meta.errorMap, onServer: undefined },

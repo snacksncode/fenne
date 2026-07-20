@@ -1,5 +1,9 @@
 # Frontend Agent Guide
 
+## Commits
+
+- Use Conventional Commits format for commit messages, such as `fix: ...`, `feat: ...`, or `chore: ...`.
+
 ## Date Handling
 
 - Reuse the date parsing, formatting, and conversion helpers in `date-tools.ts`.
