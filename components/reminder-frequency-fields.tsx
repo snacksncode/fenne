@@ -1,21 +1,19 @@
 import { Button } from '@/components/button';
-import { NumberInput } from '@/components/input';
 import { Typography } from '@/components/Typography';
+import { ReactNode } from 'react';
 import { View } from 'react-native';
 
 export type ReminderFrequencyUnit = 'days' | 'weeks' | 'months';
 
 type ReminderFrequencyFieldsProps = {
-  value: string;
+  input: ReactNode;
   unit: ReminderFrequencyUnit;
-  onValueChange: (value: string) => void;
   onUnitChange: (unit: ReminderFrequencyUnit) => void;
 };
 
 export const ReminderFrequencyFields = ({
-  value,
+  input,
   unit,
-  onValueChange,
   onUnitChange,
 }: ReminderFrequencyFieldsProps) => {
   return (
@@ -23,8 +21,8 @@ export const ReminderFrequencyFields = ({
       <Typography variant="body-sm" weight="bold">
         Reminder frequency
       </Typography>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <NumberInput value={value} onChangeText={onValueChange} placeholder="1" style={{ flex: 1 }} />
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+        {input}
         {(['days', 'weeks', 'months'] as const).map((option) => (
           <Button
             key={option}

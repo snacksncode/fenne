@@ -87,7 +87,9 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     onSubmit: ({ value }) => {
       const selected: SelectedProduct = { type: 'draft', product: productDraftFromForm(value) };
       setSelectedProduct(selected);
-      setIngredientFormValues(ingredientFromProduct(selected, ingredientForm.state.values));
+      setIngredientFormValues(
+        ingredientFromProduct(selected, initialIngredient ? ingredientForm.state.values : undefined)
+      );
       setPhase('ingredient');
     },
   });
@@ -118,9 +120,7 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
   const setProductFormValues = (form: ProductDraftForm) => {
     productForm.setFieldValue('name', form.name);
     productForm.setFieldValue('aisle', form.aisle);
-    productForm.setFieldValue('pack_count', form.pack_count);
     productForm.setFieldValue('mode', form.mode);
-    productForm.setFieldValue('quantity', form.quantity);
     productForm.setFieldValue('unit', form.unit);
     productForm.setFieldValue('reminder_frequency_value', form.reminder_frequency_value);
     productForm.setFieldValue('reminder_frequency_unit', form.reminder_frequency_unit);
@@ -140,7 +140,9 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     setSelectedProduct(selected);
     setConversionValues({});
     setConversionError(null);
-    setIngredientFormValues(ingredientFromProduct(selected, ingredientForm.state.values));
+    setIngredientFormValues(
+      ingredientFromProduct(selected, initialIngredient ? ingredientForm.state.values : undefined)
+    );
     setPhase('ingredient');
     Keyboard.dismiss();
   };
@@ -199,7 +201,7 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
         unit: productForm.state.values.unit,
       },
     });
-    if (unit != null && unit !== 'count') productForm.setFieldValue('unit', unit);
+    if (unit != null) productForm.setFieldValue('unit', unit);
   };
 
   const selectIngredientUnit = async () => {

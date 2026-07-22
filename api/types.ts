@@ -26,9 +26,7 @@ export type ProductDTO = {
   id: string;
   name: string;
   aisle: AisleCategory;
-  quantity: number | null;
   unit: Unit;
-  pack_count: number | null;
   reminder_frequency_value: number | null;
   reminder_frequency_unit: 'days' | 'weeks' | 'months' | null;
   is_kitchen_basic: boolean;
@@ -50,8 +48,6 @@ export type ProductDraft = {
   name: string;
   aisle: AisleCategory;
   unit: Unit;
-  quantity?: number | null;
-  pack_count?: number | null;
   reminder_frequency_value?: number | null;
   reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
   is_kitchen_basic?: boolean;
@@ -209,13 +205,17 @@ export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO 
           id: '',
           name: form.selectedProduct.product.name,
           aisle: form.selectedProduct.product.aisle,
-          quantity: form.selectedProduct.product.quantity ?? null,
           unit: form.selectedProduct.product.unit,
-          pack_count: form.selectedProduct.product.pack_count ?? null,
           reminder_frequency_value: form.selectedProduct.product.reminder_frequency_value ?? null,
           reminder_frequency_unit: form.selectedProduct.product.reminder_frequency_unit ?? null,
           is_kitchen_basic: form.selectedProduct.product.is_kitchen_basic ?? false,
-          shape: 'counted',
+          shape: form.selectedProduct.product.is_kitchen_basic
+            ? 'kitchen_basic'
+            : form.selectedProduct.product.reminder_frequency_value
+              ? 'timed'
+              : form.selectedProduct.product.unit === 'count'
+                ? 'counted'
+                : 'measured',
           conversions: form.selectedProduct.product.conversions ?? {},
         } as ProductDTO),
   name: form.name,

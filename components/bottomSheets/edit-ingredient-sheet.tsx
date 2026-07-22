@@ -15,7 +15,13 @@ export const EditIngredientSheet = (props: SheetProps<'edit-ingredient-sheet'>) 
   return (
     <BaseSheet
       id={props.sheetId}
-      sizing={editor.phase === 'search' ? { type: 'auto' } : { type: 'scrollable', detents: [0.6, 1] }}
+      sizing={
+        editor.phase === 'search'
+          ? { type: 'auto' }
+          : editor.phase === 'product'
+            ? { type: 'scrollable', detents: [1] }
+            : { type: 'scrollable', detents: [0.6, 1] }
+      }
       footer={
         editor.action
           ? sheetFooter.buttonRow(

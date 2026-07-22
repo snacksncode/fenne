@@ -22,7 +22,6 @@ const UNIT_DIMENSIONS: Record<Unit, string> = {
 const isMeasuredProduct = (product: ConvertibleProduct) =>
   !product.is_kitchen_basic &&
   product.reminder_frequency_value == null &&
-  product.quantity != null &&
   product.unit !== 'count';
 
 export type ProductConversionRequirement = {
@@ -31,7 +30,7 @@ export type ProductConversionRequirement = {
 };
 
 export const unitsRequireProductConversion = (ingredientUnit: Unit, productUnit: Unit) =>
-  ingredientUnit !== 'count' && UNIT_DIMENSIONS[ingredientUnit] !== UNIT_DIMENSIONS[productUnit];
+  UNIT_DIMENSIONS[ingredientUnit] !== UNIT_DIMENSIONS[productUnit];
 
 export const productConversionRequirement = (
   product: ConvertibleProduct,

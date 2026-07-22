@@ -4,6 +4,11 @@
 
 - Use Conventional Commits format for commit messages, such as `fix: ...`, `feat: ...`, or `chore: ...`.
 
+## App Testing
+
+- Use the top-level Argent tools for iOS Simulator interaction, visual verification, and React Native debugging. Do not use generic computer-use or direct Simulator UI automation when Argent is available.
+- Follow Argent's discovery-first workflow: inspect the current screen with `describe`, `debugger-component-tree`, or `screenshot` before tapping, and stop Argent simulator servers when the session ends.
+
 ## Date Handling
 
 - Reuse the date parsing, formatting, and conversion helpers in `date-tools.ts`.

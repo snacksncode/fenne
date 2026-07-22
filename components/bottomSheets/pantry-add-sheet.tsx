@@ -127,10 +127,7 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
     const product = choice.product;
     setSelectedProduct(product);
     form.setFieldValue('productShape', pantryShape(product));
-    form.setFieldValue(
-      'quantity',
-      product.shape === 'timed' ? '0' : product.shape === 'measured' ? (product.quantity?.toString() ?? '1') : '1'
-    );
+    form.setFieldValue('quantity', product.shape === 'timed' ? '0' : '1');
     form.setFieldValue('lastAcquired', formatDateToISO(new Date()));
     setError(null);
     setPhase('details');

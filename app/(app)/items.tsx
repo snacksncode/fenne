@@ -46,14 +46,8 @@ const reminderSummary = (product: ProductDTO) => {
 const trackingSummary = (product: ProductDTO) => {
   if (product.is_kitchen_basic || product.shape === 'kitchen_basic') return 'kitchen basic';
   if (product.shape === 'timed') return reminderSummary(product);
-  if (product.shape === 'measured' && product.quantity != null) {
-    return `${product.quantity} ${prettyUnit({ quantity: product.quantity, unit: product.unit })}`;
-  }
-  if (product.shape === 'counted' && product.pack_count != null) {
-    return `${product.pack_count} ${prettyUnit({ quantity: product.pack_count, unit: 'count' })} pack`;
-  }
-
-  return null;
+  if (product.shape === 'measured') return `tracked in ${prettyUnit({ quantity: 2, unit: product.unit })}`;
+  return 'tracked by piece';
 };
 
 const ProductRow = ({ product }: { product: ProductDTO }) => {

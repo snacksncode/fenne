@@ -1,162 +1,46 @@
 import { missingProductConversionsFromError, productImpactFromError } from '@/api/errors';
 import { ProductFormField, productValidationErrorsFromError } from '@/api/product-validation-errors';
 import { useEditProduct } from '@/api/products';
-import { AisleCategory, ProductDTO, ProductDraft } from '@/api/types';
+import { ProductDTO } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
 import { BaseSheet, sheetFooter, SHEET_FOOTER_HEIGHT } from '@/components/bottomSheets/base-sheet';
-import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
-import { Checkbox, useCheckbox } from '@/components/checkbox';
 import { useAppForm } from '@/components/form/app-form';
 import { TextInputRef } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import {
+  productDraftFromForm,
+  productDraftSchema,
+  productFormFromDraft,
+} from '@/components/bottomSheets/editIngredient/ingredient-editor-model';
+import {
+  ProductBehaviorSelector,
+  TrackingUnitSelect,
+} from '@/components/product-behavior-selector';
+import { ReminderFrequencyFields } from '@/components/reminder-frequency-fields';
 import { ProductConversionFields } from '@/components/product-conversion-fields';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
-import { parseLocaleFloat } from '@/utils';
 import { ArrowRight } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView, KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { z } from 'zod';
-
-type ProductMode = 'counted' | 'measured' | 'timed' | 'kitchen_basic';
 
 const productFormFields: ProductFormField[] = [
   'name',
   'aisle',
-  'pack_count',
-  'quantity',
   'unit',
   'reminder_frequency_value',
   'reminder_frequency_unit',
 ];
 
-type ProductForm = {
-  name: string;
-  aisle: AisleCategory;
-  pack_count: string;
-  mode: ProductMode;
-  quantity: string;
-  unit: Unit;
-  reminder_frequency_value: string;
-  reminder_frequency_unit: 'days' | 'weeks' | 'months';
-};
-
-const productMode = (product: ProductDTO): ProductMode => {
-  if (product.is_kitchen_basic || product.shape === 'kitchen_basic') return 'kitchen_basic';
-  if (product.shape === 'timed') return 'timed';
-  if (product.shape === 'measured') return 'measured';
-  return 'counted';
-};
-
-const formFromProduct = (product: ProductDTO): ProductForm => ({
-  name: product.name,
-  aisle: product.aisle,
-  pack_count: product.pack_count?.toString() ?? '',
-  mode: productMode(product),
-  quantity: product.quantity?.toString() ?? '',
-  unit: product.unit === 'count' ? 'g' : product.unit,
-  reminder_frequency_value: product.reminder_frequency_value?.toString() ?? '1',
-  reminder_frequency_unit: product.reminder_frequency_unit ?? 'months',
-});
-
-const draftFromForm = (form: ProductForm): ProductDraft => {
-  const isKitchenBasic = form.mode === 'kitchen_basic';
-  const isMeasured = form.mode === 'measured';
-  const isTimed = form.mode === 'timed';
-
-  return {
-    name: form.name.trim(),
-    aisle: isKitchenBasic ? 'other' : form.aisle,
-    unit: isMeasured ? form.unit : 'count',
-    quantity: isMeasured ? parseLocaleFloat(form.quantity) : null,
-    pack_count: isKitchenBasic || form.pack_count.trim() === '' ? null : parseInt(form.pack_count, 10),
-    reminder_frequency_value: isTimed ? parseInt(form.reminder_frequency_value, 10) : null,
-    reminder_frequency_unit: isTimed ? form.reminder_frequency_unit : null,
-    is_kitchen_basic: isKitchenBasic,
-    conversions: {},
-  };
-};
-
-const productEditSchema = z
-  .object({
-    name: z.string().trim().min(1, 'Name is required'),
-    aisle: z.custom<AisleCategory>(),
-    pack_count: z.string(),
-    mode: z.enum(['counted', 'measured', 'timed', 'kitchen_basic']),
-    quantity: z.string(),
-    unit: z.custom<Unit>(),
-    reminder_frequency_value: z.string(),
-    reminder_frequency_unit: z.enum(['days', 'weeks', 'months']),
-  })
-  .superRefine((value, context) => {
-    if (value.mode !== 'kitchen_basic' && value.pack_count.trim() !== '') {
-      const packCount = value.pack_count.trim();
-      if (!/^\d+$/.test(packCount) || Number(packCount) < 2) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pack_count'],
-          message: 'Pack count must be at least 2',
-        });
-      }
-    }
-
-    if (value.mode === 'measured') {
-      const quantity = parseLocaleFloat(value.quantity);
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        context.addIssue({
-          code: 'custom',
-          path: ['quantity'],
-          message: 'Amount must be greater than 0',
-        });
-      }
-    }
-
-    if (value.mode === 'timed') {
-      const frequency = value.reminder_frequency_value.trim();
-      if (!/^\d+$/.test(frequency) || Number(frequency) <= 0) {
-        context.addIssue({
-          code: 'custom',
-          path: ['reminder_frequency_value'],
-          message: 'Reminder frequency must be greater than 0',
-        });
-      }
-    }
-  });
-
 const impactLabels: Record<string, string> = {
   pantry: 'current pantry entries',
   shopping_list: 'active grocery rows',
-};
-
-const CheckRow = ({
-  checked,
-  label,
-  onPress,
-  disabled = false,
-}: {
-  checked: boolean;
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) => {
-  const { progress } = useCheckbox(checked);
-
-  return (
-    <PressableWithHaptics
-      onPress={disabled ? undefined : onPress}
-      style={[styles.checkRow, disabled && { opacity: 0.45 }]}
-    >
-      <Checkbox progress={progress} />
-      <Typography variant="body-sm" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
-        {label}
-      </Typography>
-    </PressableWithHaptics>
-  );
 };
 
 type ProductEditSheetContentProps = {
@@ -186,9 +70,9 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   };
 
   const form = useAppForm({
-    defaultValues: formFromProduct(product),
+    defaultValues: productFormFromDraft(product),
     validators: {
-      onSubmit: productEditSchema,
+      onSubmit: productDraftSchema,
     },
     onSubmitInvalid: ({ formApi }) => {
       const firstInvalidField = productFormFields.find(
@@ -207,7 +91,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
         }));
       });
       const requiredConversions =
-        value.mode === 'measured'
+        value.mode === 'tracked'
           ? missingConversions.filter((unit) => unitsRequireProductConversion(unit, value.unit))
           : [];
       const conversions = conversionValuesPayload(conversionValues);
@@ -219,7 +103,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
       editProduct.mutate(
         {
           id: product.id,
-          ...draftFromForm(value),
+          ...productDraftFromForm(value),
           ...(requiredConversions.length > 0 && { conversions }),
           impact_acknowledged: impact != null,
         },
@@ -276,7 +160,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
   return (
     <BaseSheet
       id={sheetId}
-      sizing={{ type: 'scrollable', detents: [0.6, 1] }}
+      sizing={{ type: 'scrollable', detents: [1] }}
       footer={sheetFooter.buttonRow(
         <Button
           text={impact ? 'Save anyway' : 'Save item'}
@@ -341,127 +225,50 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                   )}
 
                   <form.AppField name="mode">
-                    {(modeField) => (
-                      <View style={{ gap: 8 }}>
-                        <CheckRow
-                          checked={values.mode === 'measured'}
-                          label="Track how much is left"
-                          disabled={values.mode === 'timed' || values.mode === 'kitchen_basic'}
-                          onPress={() => modeField.handleChange(values.mode === 'measured' ? 'counted' : 'measured')}
-                        />
-                        {values.mode === 'measured' && (
-                          <View style={styles.twoColumn}>
-                            <View style={{ flex: 1 }}>
-                              <form.AppField name="quantity">
-                                {(field) => (
-                                  <field.NumberField
-                                    ref={(input) => {
-                                      fieldRefs.current.quantity = input;
-                                    }}
-                                    label="Amount"
-                                    placeholder="e.g. 500"
-                                  />
-                                )}
-                              </form.AppField>
-                            </View>
-                            <form.AppField name="unit">
-                              {(field) => (
-                                <View style={{ flex: 1 }}>
-                                  <Typography variant="body-sm" weight="bold" style={styles.label}>
-                                    Unit
-                                  </Typography>
-                                  <PressableWithHaptics
-                                    onPress={async () => {
-                                      Keyboard.dismiss();
-                                      const unit = await sheets.present('select-unit-sheet', {
-                                        data: { unit: field.state.value },
-                                      });
-                                      if (unit != null && unit !== 'count' && unit !== field.state.value) {
-                                        field.handleChange(unit);
-                                        setConversionValues({});
-                                        setError(null);
-                                      }
-                                    }}
-                                  >
-                                    <View style={styles.unitButton}>
-                                      <Typography variant="body-sm" weight="medium">
-                                        {UNITS.find((unit) => unit.value === field.state.value)?.label({ count: 1 })}
-                                      </Typography>
-                                    </View>
-                                  </PressableWithHaptics>
-                                </View>
-                              )}
-                            </form.AppField>
-                          </View>
-                        )}
-
-                        <CheckRow
-                          checked={values.mode === 'timed'}
-                          label="Remind me when it's probably running low"
-                          disabled={values.mode === 'measured' || values.mode === 'kitchen_basic'}
-                          onPress={() => modeField.handleChange(values.mode === 'timed' ? 'counted' : 'timed')}
-                        />
-                        {values.mode === 'timed' && (
-                          <View style={{ gap: 8 }}>
-                            <Typography variant="body-sm" weight="bold">
-                              Frequency
-                            </Typography>
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                              <form.AppField name="reminder_frequency_value">
-                                {(field) => (
-                                  <field.NumberField
-                                    ref={(input) => {
-                                      fieldRefs.current.reminder_frequency_value = input;
-                                    }}
-                                    placeholder="1"
-                                    style={{ flex: 1 }}
-                                  />
-                                )}
-                              </form.AppField>
-                              <form.AppField name="reminder_frequency_unit">
-                                {(field) => (
-                                  <>
-                                    {(['days', 'weeks', 'months'] as const).map((unit) => (
-                                      <Button
-                                        key={unit}
-                                        text={unit}
-                                        size="small"
-                                        variant={field.state.value === unit ? 'primary' : 'outlined'}
-                                        onPress={() => {
-                                          Keyboard.dismiss();
-                                          field.handleChange(unit);
-                                        }}
-                                      />
-                                    ))}
-                                  </>
-                                )}
-                              </form.AppField>
-                            </View>
-                          </View>
-                        )}
-
-                        <CheckRow
-                          checked={values.mode === 'kitchen_basic'}
-                          label="Kitchen basic"
-                          disabled={values.mode === 'measured' || values.mode === 'timed'}
-                          onPress={() =>
-                            modeField.handleChange(values.mode === 'kitchen_basic' ? 'counted' : 'kitchen_basic')
-                          }
-                        />
-                      </View>
-                    )}
+                    {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
                   </form.AppField>
 
-                  {values.mode !== 'kitchen_basic' && (
-                    <form.AppField name="pack_count">
+                  {values.mode === 'tracked' && (
+                    <form.AppField name="unit">
                       {(field) => (
-                        <field.NumberField
-                          ref={(input) => {
-                            fieldRefs.current.pack_count = input;
+                        <TrackingUnitSelect
+                          unit={field.state.value}
+                          onPress={async () => {
+                              Keyboard.dismiss();
+                              const unit = await sheets.present('select-unit-sheet', {
+                                data: { unit: field.state.value },
+                              });
+                              if (unit != null && unit !== field.state.value) {
+                                field.handleChange(unit);
+                                setConversionValues({});
+                                setError(null);
+                              }
                           }}
-                          label="Sold in packs of"
-                          placeholder="e.g. 12"
                         />
+                      )}
+                    </form.AppField>
+                  )}
+
+                  {values.mode === 'timed' && (
+                    <form.AppField name="reminder_frequency_value">
+                      {(frequencyField) => (
+                        <form.AppField name="reminder_frequency_unit">
+                          {(unitField) => (
+                            <ReminderFrequencyFields
+                              input={
+                                <frequencyField.NumberField
+                                  ref={(input) => {
+                                    fieldRefs.current.reminder_frequency_value = input;
+                                  }}
+                                  placeholder="1"
+                                  style={{ flex: 1 }}
+                                />
+                              }
+                              unit={unitField.state.value}
+                              onUnitChange={unitField.handleChange}
+                            />
+                          )}
+                        </form.AppField>
                       )}
                     </form.AppField>
                   )}
@@ -473,7 +280,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               <form.Subscribe selector={(state) => state.values}>
                 {(values) => {
                   const requiredConversions =
-                    values.mode === 'measured'
+                    values.mode === 'tracked'
                       ? missingConversions.filter((unit) => unitsRequireProductConversion(unit, values.unit))
                       : [];
 
@@ -506,7 +313,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
             ) : null}
 
             {error &&
-            (form.state.values.mode !== 'measured' ||
+            (form.state.values.mode !== 'tracked' ||
               !missingConversions.some((unit) => unitsRequireProductConversion(unit, form.state.values.unit))) ? (
               <Typography variant="body-sm" weight="bold" color={colors.red[500]}>
                 {error}
@@ -526,30 +333,6 @@ export const ProductEditSheet = (props: SheetProps<'product-edit-sheet'>) => {
 const styles = StyleSheet.create({
   label: {
     marginBottom: 4,
-  },
-  twoColumn: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  checkRow: {
-    alignItems: 'center',
-    borderColor: colors.brown[900],
-    borderRadius: 8,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  unitButton: {
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: colors.brown[900],
-    height: 48,
-    justifyContent: 'center',
   },
   warning: {
     gap: 4,

@@ -3,8 +3,6 @@ import { APIError } from '@/api/client';
 export type ProductFormField =
   | 'name'
   | 'aisle'
-  | 'pack_count'
-  | 'quantity'
   | 'unit'
   | 'reminder_frequency_value'
   | 'reminder_frequency_unit';
@@ -17,8 +15,6 @@ type ProductValidationErrors = {
 const productFormFields: ProductFormField[] = [
   'name',
   'aisle',
-  'pack_count',
-  'quantity',
   'unit',
   'reminder_frequency_value',
   'reminder_frequency_unit',
