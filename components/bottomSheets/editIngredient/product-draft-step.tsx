@@ -22,6 +22,10 @@ export const ProductDraftStep = ({ form, onSelectAisle, onSelectUnit }: ProductD
         <View style={{ gap: 16 }}>
           <form.AppField name="name">{(field) => <field.TextField label="Name" />}</form.AppField>
 
+          <form.AppField name="mode">
+            {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
+          </form.AppField>
+
           {values.mode !== 'kitchen_basic' && (
             <form.AppField name="aisle">
               {(field) => (
@@ -30,16 +34,12 @@ export const ProductDraftStep = ({ form, onSelectAisle, onSelectUnit }: ProductD
                     Category
                   </Typography>
                   <PressableWithHaptics onPress={onSelectAisle}>
-                    <AisleHeader type={field.state.value} />
+                    <AisleHeader type={field.state.value} showEditIndicator />
                   </PressableWithHaptics>
                 </View>
               )}
             </form.AppField>
           )}
-
-          <form.AppField name="mode">
-            {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
-          </form.AppField>
 
           {values.mode === 'tracked' && (
             <form.AppField name="unit">
@@ -53,12 +53,9 @@ export const ProductDraftStep = ({ form, onSelectAisle, onSelectUnit }: ProductD
                 <form.AppField name="reminder_frequency_unit">
                   {(unitField) => (
                     <ReminderFrequencyFields
-                      input={
-                        <View style={{ flex: 1 }}>
-                          <frequencyField.NumberField placeholder="1" />
-                        </View>
-                      }
+                      value={frequencyField.state.value}
                       unit={unitField.state.value}
+                      onValueChange={frequencyField.handleChange}
                       onUnitChange={unitField.handleChange}
                     />
                   )}

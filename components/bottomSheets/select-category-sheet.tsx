@@ -1,28 +1,10 @@
 import { AisleCategory } from '@/api/types';
-import { AisleHeader } from '@/components/aisle-header';
+import { AISLE_CATEGORIES, AisleHeader } from '@/components/aisle-header';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { View } from 'react-native';
-
-const aisles: AisleCategory[] = [
-  'produce',
-  'bakery',
-  'dairy_eggs',
-  'meat',
-  'seafood',
-  'pantry',
-  'frozen_foods',
-  'beverages',
-  'snacks',
-  'condiments_sauces',
-  'spices_baking',
-  'household',
-  'personal_care',
-  'pet_supplies',
-  'other',
-];
 
 export const SelectCategorySheet = (props: SheetProps<'select-category-sheet'>) => {
   const sheets = useSheets();
@@ -40,7 +22,7 @@ export const SelectCategorySheet = (props: SheetProps<'select-category-sheet'>) 
         Select a category
       </Typography>
       <View style={{ paddingBottom: 20 }}>
-        {aisles.map((aisle) => (
+        {AISLE_CATEGORIES.map((aisle) => (
           <PressableWithHaptics style={{ paddingVertical: 6 }} onPress={() => handleSelect(aisle)} key={aisle}>
             <AisleHeader type={aisle} />
           </PressableWithHaptics>

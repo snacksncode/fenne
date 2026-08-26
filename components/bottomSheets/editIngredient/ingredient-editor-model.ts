@@ -25,15 +25,6 @@ export type ProductDraftForm = {
   reminder_frequency_unit: 'days' | 'weeks' | 'months';
 };
 
-export const productSummary = (selected: SelectedProduct) => {
-  const product = selected.product;
-  if (product.is_kitchen_basic) return 'Kitchen basic';
-  if (product.reminder_frequency_value && product.reminder_frequency_unit) {
-    return `Remind every ${product.reminder_frequency_value} ${product.reminder_frequency_unit}`;
-  }
-  return product.unit === 'count' ? 'Tracked by piece' : `Tracked in ${product.unit}`;
-};
-
 export const ingredientFromProduct = (
   selected: SelectedProduct,
   previous?: IngredientDetailsFormData

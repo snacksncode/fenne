@@ -1,8 +1,9 @@
 import { usePantry } from '@/api/pantry';
 import { AisleCategory, PantryEntryDTO } from '@/api/types';
-import { AisleHeader } from '@/components/aisle-header';
+import { AISLE_CATEGORIES, AisleHeader } from '@/components/aisle-header';
 import { PantryFilter } from '@/components/bottomSheets/pantry-filter-sheet';
 import { Button } from '@/components/button';
+import { DashedDivider } from '@/components/dashed-divider';
 import { EmptyState } from '@/components/empty-state';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -33,24 +34,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 type PantryAisle = { aisle: AisleCategory; entries: PantryEntryDTO[] };
-
-const aisleOrder: AisleCategory[] = [
-  'produce',
-  'bakery',
-  'dairy_eggs',
-  'meat',
-  'seafood',
-  'pantry',
-  'frozen_foods',
-  'beverages',
-  'snacks',
-  'condiments_sauces',
-  'spices_baking',
-  'household',
-  'personal_care',
-  'pet_supplies',
-  'other',
-];
 
 const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: PantryFilter, search: string) => {
   return useMemo(() => {
@@ -84,7 +67,7 @@ const usePantryAisles = (entries: PantryEntryDTO[]) => {
       grouped.set(entry.product.aisle, aisleEntries);
     });
 
-    return aisleOrder.flatMap((aisle) => {
+    return AISLE_CATEGORIES.flatMap((aisle) => {
       const aisleEntries = grouped.get(aisle);
       return aisleEntries ? [{ aisle, entries: aisleEntries }] : [];
     });
@@ -195,13 +178,13 @@ const QuantityIndicator = ({ entry }: { entry: PantryEntryDTO }) => {
   );
 };
 
-const PantryRow = ({ entry, index }: { entry: PantryEntryDTO; index: number }) => {
+const PantryRow = ({ entry }: { entry: PantryEntryDTO }) => {
   const sheets = useSheets();
   const status = entry.product.shape === 'timed' ? timedStatus(entry) : null;
 
   return (
     <PressableWithHaptics
-      style={[styles.row, index > 0 && styles.rowDivider]}
+      style={styles.row}
       scaleTo={0.98}
       onPress={() => sheets.present('pantry-entry-sheet', { data: { entry } })}
     >
@@ -243,7 +226,8 @@ const PantryAisleGroup = ({
             exiting={FadeOut}
             {...(enterAnimationsEnabled && { entering: FadeIn })}
           >
-            <PantryRow entry={entry} index={index} />
+            {index > 0 ? <DashedDivider /> : null}
+            <PantryRow entry={entry} />
           </Animated.View>
         ))}
       </Animated.View>
@@ -284,7 +268,8 @@ const PantrySkeleton = () => {
               <View style={[styles.skeletonLine, { width: '55%' }]} />
               <View style={[styles.skeletonLine, { width: 52, height: 24 }]} />
             </View>
-            <View style={[styles.skeletonRow, styles.rowDivider]}>
+            <DashedDivider />
+            <View style={styles.skeletonRow}>
               <View style={[styles.skeletonLine, { width: '45%' }]} />
               <View style={[styles.skeletonLine, { width: 52, height: 24 }]} />
             </View>
@@ -351,7 +336,7 @@ const Pantry = () => {
                   <History color={colors.brown[900]} strokeWidth={2.25} size={28} />
                 </PressableWithHaptics>
                 <PressableWithHaptics
-                  accessibilityLabel="Open products"
+                  accessibilityLabel="Open shopping items"
                   accessibilityRole="button"
                   hitSlop={20}
                   scaleTo={0.9}
@@ -494,10 +479,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
-  },
-  rowDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.brown[500],
   },
   rowText: {
     flex: 1,

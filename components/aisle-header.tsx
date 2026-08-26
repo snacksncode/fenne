@@ -9,20 +9,43 @@ import {
   Ghost,
   Ham,
   Icon,
+  Pen,
   Shrimp,
   Snowflake,
   Wheat,
 } from 'lucide-react-native';
 
 import { bottleSpray, bottleToothbrushComb, pepperChilli } from '@lucide/lab';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Typography } from '@/components/Typography';
 import { AisleCategory } from '@/api/types';
 import { colors } from '@/constants/colors';
 
+export const AISLE_LABELS: Record<AisleCategory, string> = {
+  produce: 'Produce',
+  bakery: 'Bakery',
+  dairy_eggs: 'Dairy & Eggs',
+  meat: 'Meat',
+  seafood: 'Seafood',
+  pantry: 'Pantry',
+  frozen_foods: 'Frozen Foods',
+  beverages: 'Beverages',
+  snacks: 'Snacks',
+  condiments_sauces: 'Condiments & Sauces',
+  spices_baking: 'Spices & Baking',
+  household: 'Household',
+  personal_care: 'Personal Care',
+  pet_supplies: 'Pet Supplies',
+  other: 'Other',
+};
+
+export const AISLE_CATEGORIES = Object.keys(AISLE_LABELS) as AisleCategory[];
+
+const AISLE_ICON_COLOR = '#CD7E34';
+
 export const AisleIcon = ({ type }: { type: AisleCategory }) => {
   const renderIcon = () => {
-    const iconProps = { color: '#CD7E34', size: 24 };
+    const iconProps = { color: AISLE_ICON_COLOR, size: 24 };
     if (type === 'produce') return <Apple {...iconProps} />;
     if (type === 'bakery') return <Croissant {...iconProps} />;
     if (type === 'dairy_eggs') return <Egg {...iconProps} />;
@@ -40,34 +63,49 @@ export const AisleIcon = ({ type }: { type: AisleCategory }) => {
     if (type === 'other') return <Ghost {...iconProps} />;
   };
 
-  return <View style={{ padding: 4, backgroundColor: colors.orange[100], borderRadius: 8 }}>{renderIcon()}</View>;
+  return <View style={{ padding: 4, backgroundColor: `${AISLE_ICON_COLOR}1A`, borderRadius: 8 }}>{renderIcon()}</View>;
 };
 
-export const AisleHeader = ({ type }: { type: AisleCategory }) => {
-  const getText = () => {
-    if (type === 'produce') return 'Produce';
-    if (type === 'bakery') return 'Bakery';
-    if (type === 'dairy_eggs') return 'Dairy & Eggs';
-    if (type === 'meat') return 'Meat';
-    if (type === 'seafood') return 'Seafood';
-    if (type === 'pantry') return 'Pantry';
-    if (type === 'frozen_foods') return 'Frozen Foods';
-    if (type === 'beverages') return 'Beverages';
-    if (type === 'snacks') return 'Snacks';
-    if (type === 'condiments_sauces') return 'Condiments & Sauces';
-    if (type === 'spices_baking') return 'Spices & Baking';
-    if (type === 'household') return 'Household';
-    if (type === 'personal_care') return 'Personal Care';
-    if (type === 'pet_supplies') return 'Pet Supplies';
-    if (type === 'other') return 'Other';
-  };
-
+export const AisleHeader = ({ type, showEditIndicator = false }: { type: AisleCategory; showEditIndicator?: boolean }) => {
   return (
-    <View style={{ gap: 8, flexDirection: 'row', alignItems: 'center' }}>
+    <View style={[styles.header, showEditIndicator && styles.editableHeader]}>
       <AisleIcon type={type} />
-      <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
-        {getText()}
+      <Typography
+        variant="heading-sm"
+        weight="bold"
+        color={colors.brown[800]}
+        style={showEditIndicator ? styles.editableLabel : undefined}
+      >
+        {AISLE_LABELS[type]}
       </Typography>
+      {showEditIndicator ? (
+        <View pointerEvents="none" style={styles.editIndicator}>
+          <Pen color={colors.brown[900]} size={18} strokeWidth={2.4} />
+        </View>
+      ) : null}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editableHeader: {
+    width: '100%',
+  },
+  editableLabel: {
+    flex: 1,
+  },
+  editIndicator: {
+    alignItems: 'center',
+    borderColor: colors.brown[900],
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+});

@@ -12,7 +12,7 @@ export const IngredientProductSearchStep = ({ query, onQueryChange, onSelect }: 
     query={query}
     onQueryChange={onQueryChange}
     onSelect={onSelect}
-    placeholder="Search items..."
+    placeholder="Search shopping items..."
     autoFocus
     listStyle={{ maxHeight: 240 }}
   />

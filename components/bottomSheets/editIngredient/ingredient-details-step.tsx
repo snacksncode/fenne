@@ -3,12 +3,12 @@ import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { ProductConversionFields } from '@/components/product-conversion-fields';
-import { colors } from '@/constants/colors';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { productConversionRequirement } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { X } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-import { productSummary, SelectedProduct } from './ingredient-editor-model';
+import { SelectedProduct } from './ingredient-editor-model';
 import { IngredientEditor } from './use-ingredient-editor';
 
 type IngredientDetailsStepProps = {
@@ -42,17 +42,12 @@ export const IngredientDetailsStep = ({
         return (
           <View style={{ gap: 16 }}>
             <View style={styles.productPin}>
-              <View style={{ flex: 1 }}>
-                <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
-                  Item
-                </Typography>
-                <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-                  {selectedProduct.product.name}
-                </Typography>
-                <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
-                  {productSummary(selectedProduct)}
-                </Typography>
-              </View>
+              <ShoppingItemIdentity
+                name={selectedProduct.product.name}
+                aisle={selectedProduct.product.aisle}
+                compact
+                style={{ flex: 1 }}
+              />
               <Button
                 text="Edit"
                 variant="outlined"
@@ -60,7 +55,7 @@ export const IngredientDetailsStep = ({
                 onPress={selectedProduct.type === 'draft' ? onEditDraftProduct : onEditExistingProduct}
               />
               <Button
-                accessibilityLabel="Clear selected product"
+                accessibilityLabel="Clear selected shopping item"
                 size="small"
                 variant="outlined"
                 leftIcon={{ Icon: X }}
@@ -115,14 +110,8 @@ export const IngredientDetailsStep = ({
 const styles = StyleSheet.create({
   productPin: {
     alignItems: 'center',
-    backgroundColor: '#FEF2DD',
-    borderColor: colors.brown[900],
-    borderRadius: 8,
-    borderWidth: 1,
-    borderBottomWidth: 2,
     flexDirection: 'row',
     gap: 8,
-    padding: 12,
   },
   unitButton: {
     borderRadius: 8,

@@ -2,6 +2,7 @@ import { productDeleteBlockersFromError } from '@/api/errors';
 import { useDeleteProduct } from '@/api/products';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { SheetAction } from '@/components/sheet-action';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
@@ -30,7 +31,7 @@ export const ProductOptionsSheet = (props: SheetProps<'product-options-sheet'>) 
         onError: async (mutationError) => {
           const blockers = productDeleteBlockersFromError(mutationError);
           if (!blockers) {
-            setError('This item could not be removed. Please try again.');
+            setError('This shopping item could not be removed. Please try again.');
             return;
           }
 
@@ -43,13 +44,8 @@ export const ProductOptionsSheet = (props: SheetProps<'product-options-sheet'>) 
 
   return (
     <BaseSheet id={props.sheetId} dismissible={!deleteProduct.isPending} draggable={!deleteProduct.isPending}>
-      <View style={{ marginBottom: 24, gap: 4 }}>
-        <Typography variant="heading-sm" weight="bold">
-          {product.name}
-        </Typography>
-        <Typography variant="body-sm" weight="regular" color={colors.brown[700]}>
-          Choose what you want to do with this item.
-        </Typography>
+      <View style={{ marginBottom: 24 }}>
+        <ShoppingItemIdentity name={product.name} aisle={product.aisle} />
       </View>
       <View style={{ gap: 12, marginBottom: 12 }}>
         <SheetAction

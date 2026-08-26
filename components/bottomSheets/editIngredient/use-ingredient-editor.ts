@@ -247,7 +247,8 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
           }
         : null;
 
-  const title = phase === 'product' ? 'Item Details' : initialIngredient ? 'Edit Ingredient' : 'Add Ingredient';
+  const title =
+    phase === 'product' ? 'Shopping item details' : initialIngredient ? 'Edit ingredient' : 'Add ingredient';
 
   return {
     action,

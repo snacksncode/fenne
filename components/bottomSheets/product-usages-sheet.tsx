@@ -1,10 +1,11 @@
 import { useProductUsages } from '@/api/products';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Recipe } from '@/components/recipe';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { BookOpen, CircleCheck } from 'lucide-react-native';
+import { CircleCheck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
@@ -27,16 +28,13 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
       sizing={{ type: 'scrollable', detents: [0.5, 1] }}
       initialDetentIndex={0}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <BookOpen color={colors.brown[900]} size={22} strokeWidth={2.5} />
-        <Typography variant="heading-sm" weight="bold">
-          Where {product.name} is used
-        </Typography>
+      <View style={{ marginBottom: 8 }}>
+        <ShoppingItemIdentity name={product.name} aisle={product.aisle} />
       </View>
       {blockers ? (
         <View style={{ gap: 6, marginBottom: 16 }}>
           <Typography variant="body-sm" weight="medium" color={colors.red[600]}>
-            This item can’t be removed yet. Remove it from these recipes first.
+            This shopping item can’t be removed yet. Remove it from these recipes first.
           </Typography>
         </View>
       ) : null}
@@ -53,7 +51,7 @@ export const ProductUsagesSheet = (props: SheetProps<'product-usages-sheet'>) =>
           </View>
         ) : usages.isError && !blockers ? (
           <Typography variant="body-sm" weight="medium" color={colors.red[600]}>
-            Couldn’t load this item’s recipes. Please try again.
+            Couldn’t load this shopping item’s recipes. Please try again.
           </Typography>
         ) : recipes.length > 0 ? (
           recipes.map((recipe) => <Recipe key={recipe.id} recipe={recipe} onPress={() => openRecipe(recipe.id)} />)

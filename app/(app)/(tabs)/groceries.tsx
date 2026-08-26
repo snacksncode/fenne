@@ -9,6 +9,7 @@ import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-hand
 import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { Button } from '@/components/button';
 import { Checkbox, useCheckbox } from '@/components/checkbox';
+import { DashedDivider } from '@/components/dashed-divider';
 import { EmptyState } from '@/components/empty-state';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Typography } from '@/components/Typography';
@@ -70,7 +71,7 @@ const usePulseAnimation = () => {
   return opacity;
 };
 
-const GroceryItemSkeleton = () => {
+const GroceryItemSkeleton = ({ showDivider = false }: { showDivider?: boolean }) => {
   const opacity = usePulseAnimation();
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -78,31 +79,29 @@ const GroceryItemSkeleton = () => {
   }));
 
   return (
-    <Animated.View
-      style={[
-        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
-        animatedStyle,
-      ]}
-    >
-      <View
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 5,
-          backgroundColor: '#E8DCC8',
-        }}
-      />
-      <View style={{ flex: 1, gap: 8 }}>
+    <>
+      {showDivider ? <DashedDivider /> : null}
+      <Animated.View style={[styles.groceryRow, animatedStyle]}>
         <View
           style={{
-            height: 16,
-            borderRadius: 4,
+            width: 24,
+            height: 24,
+            borderRadius: 5,
             backgroundColor: '#E8DCC8',
-            width: '70%',
           }}
         />
-      </View>
-    </Animated.View>
+        <View style={{ flex: 1, gap: 8 }}>
+          <View
+            style={{
+              height: 16,
+              borderRadius: 4,
+              backgroundColor: '#E8DCC8',
+              width: '70%',
+            }}
+          />
+        </View>
+      </Animated.View>
+    </>
   );
 };
 
@@ -141,11 +140,10 @@ const AisleSkeleton = () => {
           borderBottomWidth: 2,
           borderColor: '#4A3E36',
           borderRadius: 8,
-          paddingVertical: 4,
         }}
       >
-        {[1, 2, 3].map((i) => (
-          <GroceryItemSkeleton key={i} />
+        {[1, 2, 3].map((i, index) => (
+          <GroceryItemSkeleton key={i} showDivider={index > 0} />
         ))}
       </View>
     </Animated.View>
@@ -243,18 +241,17 @@ const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
         friction={1.5}
         rightThreshold={20}
         renderRightActions={(progress) => <RightActions progress={progress} onEdit={handleEdit} onRemove={onRemove} />}
-        childrenContainerStyle={{
-          flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          alignItems: 'flex-start',
-        }}
+        childrenContainerStyle={styles.groceryRow}
       >
         <Animated.View style={scaleStyle}>
           <Checkbox progress={progress} />
         </Animated.View>
-        <AnimatedTypography variant="body-base" weight="bold" style={[{ flex: 1 }, textStyles]}>
+        <AnimatedTypography
+          variant="body-base"
+          weight="bold"
+          numberOfLines={1}
+          style={[{ flex: 1 }, textStyles]}
+        >
           {item.name}
         </AnimatedTypography>
         {!(item.quantity === 1 && item.unit === 'count') && (
@@ -290,14 +287,14 @@ const CompletedSeparator = () => (
   >
     <View
       style={{
-        top: '50%',
-        left: 0,
-        right: 0,
-        position: 'absolute',
-        width: '100%',
         borderBottomWidth: 1,
-        borderStyle: 'dashed',
         borderColor: '#867a6e',
+        borderStyle: 'dashed',
+        left: 0,
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        width: '100%',
       }}
     />
     <Typography
@@ -334,18 +331,18 @@ const Aisle = ({
         borderBottomWidth: 2,
         borderColor: '#4A3E36',
         borderRadius: 8,
-        paddingVertical: 4,
         overflow: 'hidden',
       }}
       layout={LinearTransition.springify()}
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <Animated.View
           key={isBought ? `${item.id}-bought` : item.id}
           layout={LinearTransition.springify()}
           exiting={FadeOut}
           {...(enterAnimationsEnabled && { entering: FadeIn })}
         >
+          {index > 0 ? <DashedDivider /> : null}
           <GroceryItem key={item.id} item={item} />
         </Animated.View>
       ))}
@@ -557,6 +554,14 @@ const Groceries = () => {
 };
 
 const styles = StyleSheet.create({
+  groceryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 56,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   leftActionContainer: {
     flexDirection: 'row',
     gap: 8,

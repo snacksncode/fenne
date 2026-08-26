@@ -92,7 +92,7 @@ const ConsumptionLogSheetContent = ({ sheetId, log }: ConsumptionLogSheetContent
               <View key={`${deduction.product_id}-${deduction.product_unit}`} style={styles.deductionRow}>
                 <View style={{ flex: 1 }}>
                   <Typography variant="body-base" weight="bold" numberOfLines={1}>
-                    {deduction.product_name ?? 'Product'}
+                    {deduction.product_name ?? 'Shopping item'}
                   </Typography>
                   <Typography variant="body-xs" weight="regular" color={colors.brown[700]} style={{ marginTop: -4 }}>
                     Restored if you undo

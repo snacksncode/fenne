@@ -1,6 +1,6 @@
 import { useProducts } from '@/api/products';
 import { ProductDTO } from '@/api/types';
-import { AisleIcon } from '@/components/aisle-header';
+import { AISLE_LABELS, AisleIcon } from '@/components/aisle-header';
 import { EmptyState } from '@/components/empty-state';
 import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -17,24 +17,6 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const aisleLabels: Record<ProductDTO['aisle'], string> = {
-  produce: 'Produce',
-  bakery: 'Bakery',
-  dairy_eggs: 'Dairy & Eggs',
-  meat: 'Meat',
-  seafood: 'Seafood',
-  pantry: 'Pantry',
-  frozen_foods: 'Frozen Foods',
-  beverages: 'Beverages',
-  snacks: 'Snacks',
-  condiments_sauces: 'Condiments & Sauces',
-  spices_baking: 'Spices & Baking',
-  household: 'Household',
-  personal_care: 'Personal Care',
-  pet_supplies: 'Pet Supplies',
-  other: 'Other',
-};
-
 const reminderSummary = (product: ProductDTO) => {
   if (!product.reminder_frequency_value || !product.reminder_frequency_unit) return 'restock reminder';
   const unit = product.reminder_frequency_unit;
@@ -47,13 +29,13 @@ const trackingSummary = (product: ProductDTO) => {
   if (product.is_kitchen_basic || product.shape === 'kitchen_basic') return 'kitchen basic';
   if (product.shape === 'timed') return reminderSummary(product);
   if (product.shape === 'measured') return `tracked in ${prettyUnit({ quantity: 2, unit: product.unit })}`;
-  return 'tracked by piece';
+  return '';
 };
 
 const ProductRow = ({ product }: { product: ProductDTO }) => {
   const sheets = useSheets();
   const summary = trackingSummary(product);
-  const secondary = summary ? `${aisleLabels[product.aisle]} · ${summary}` : aisleLabels[product.aisle];
+  const secondary = summary ? `${AISLE_LABELS[product.aisle]} · ${summary}` : AISLE_LABELS[product.aisle];
 
   return (
     <PressableWithHaptics
@@ -78,9 +60,11 @@ const ProductRow = ({ product }: { product: ProductDTO }) => {
 const EmptyCatalog = ({ search }: { search: string }) => (
   <EmptyState
     icon={PackageSearch}
-    title={search.trim() ? 'No products found' : 'No products yet'}
+    title={search.trim() ? 'No shopping items found' : 'No shopping items yet'}
     description={
-      search.trim() ? 'Try a different search.' : 'Products appear here as recipes and tracked groceries create them.'
+      search.trim()
+        ? 'Try a different search.'
+        : 'Shopping items appear here when you add them through recipes, groceries, or your pantry.'
     }
   />
 );
@@ -109,7 +93,7 @@ const Items = () => {
               <ChevronLeft color={colors.brown[900]} size={28} strokeWidth={2.25} />
             </Pressable>
             <Typography variant="heading-lg" weight="black">
-              Items
+              Shopping items
             </Typography>
           </View>
         </View>
@@ -135,7 +119,7 @@ const Items = () => {
               variant="search"
               value={search}
               onChangeText={setSearch}
-              placeholder="Search items..."
+              placeholder="Search shopping items..."
               style={styles.searchInput}
             />
           </Animated.View>

@@ -8,7 +8,9 @@ import { Button } from '@/components/button';
 import { useAppForm } from '@/components/form/app-form';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ProductChoice, ProductSearchStep } from '@/components/product-search-step';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
+import { colors } from '@/constants/colors';
 import { nanoid } from 'nanoid/non-secure';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
@@ -146,7 +148,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
     setPhase('select');
   };
 
-  const title = isEditing ? 'Edit Item' : 'Add Item';
+  const title = isEditing ? 'Edit grocery entry' : 'Add grocery entry';
 
   return (
     <BaseSheet
@@ -157,7 +159,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
         phase === 'details'
           ? sheetFooter.buttonRow(
               <Button
-                text={initialGrocery ? 'Save changes' : 'Save item'}
+                text={initialGrocery ? 'Save changes' : 'Save grocery entry'}
                 variant="primary"
                 rightIcon={{ Icon: ArrowRight }}
                 onPress={handleSave}
@@ -215,15 +217,29 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
             {(grocery) => (
               <View style={{ gap: 16, marginTop: 8 }}>
                 <View style={styles.selectedItem}>
-                  <AisleIcon type={grocery.aisle} />
-                  <View style={{ flex: 1 }}>
-                    <Typography variant="body-base" weight="bold">
-                      {grocery.name}
-                    </Typography>
-                    <Typography variant="body-xs" weight="regular" color="#8A6D5D" style={{ marginTop: -4 }}>
-                      {grocery.product ? 'Existing item' : 'Custom item'}
-                    </Typography>
-                  </View>
+                  {grocery.product ? (
+                    <ShoppingItemIdentity
+                      name={grocery.name}
+                      aisle={grocery.aisle}
+                      description="Uses your saved shopping and pantry settings"
+                      compact
+                    />
+                  ) : (
+                    <>
+                      <AisleIcon type={grocery.aisle} />
+                      <View style={styles.selectedItemCopy}>
+                        <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
+                          Custom grocery entry
+                        </Typography>
+                        <Typography variant="body-base" weight="bold">
+                          {grocery.name}
+                        </Typography>
+                        <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
+                          Only appears on this grocery list
+                        </Typography>
+                      </View>
+                    </>
+                  )}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <View style={{ flex: 1 }}>
@@ -256,7 +272,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
                     Category
                   </Typography>
                   <PressableWithHaptics onPress={handleOpenCategorySheet}>
-                    <AisleHeader type={grocery.aisle} />
+                    <AisleHeader type={grocery.aisle} showEditIndicator />
                   </PressableWithHaptics>
                 </View>
               </View>
@@ -285,6 +301,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 12,
+  },
+  selectedItemCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
   unitButton: {
     borderRadius: 8,

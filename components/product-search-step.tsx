@@ -25,25 +25,25 @@ type EmptyCopy = {
 
 const EMPTY_COPY: Record<ProductSearchContext, EmptyCopy> = {
   shopping: {
-    idleTitle: 'Search products',
-    idleDescription: 'Start typing to find products and suggestions.',
-    loadingDescription: 'Looking through products and suggestions.',
+    idleTitle: 'Search shopping items',
+    idleDescription: 'Start typing to find shopping items and suggestions.',
+    loadingDescription: 'Looking through shopping items and suggestions.',
     emptyTitle: 'No matches found',
-    emptyDescription: 'Continue to add this item manually.',
+    emptyDescription: 'Continue to add a custom grocery entry.',
   },
   pantry: {
-    idleTitle: 'Search products',
-    idleDescription: 'Choose a tracked product to add it to the pantry.',
-    loadingDescription: 'Looking through existing products.',
-    emptyTitle: 'No existing product found',
-    emptyDescription: 'Pantry stock can only be linked to products that already exist.',
+    idleTitle: 'Search shopping items',
+    idleDescription: 'Choose a tracked shopping item to add it to the pantry.',
+    loadingDescription: 'Looking through existing shopping items.',
+    emptyTitle: 'No existing shopping item found',
+    emptyDescription: 'Pantry stock can only be linked to shopping items that already exist.',
   },
   recipe: {
-    idleTitle: 'Search items',
-    idleDescription: 'Start typing to find products and suggestions.',
-    loadingDescription: 'Looking through products and suggestions.',
+    idleTitle: 'Search shopping items',
+    idleDescription: 'Start typing to find shopping items and suggestions.',
+    loadingDescription: 'Looking through shopping items and suggestions.',
     emptyTitle: 'No matches found',
-    emptyDescription: 'Add this item to define its product details.',
+    emptyDescription: 'Create this shopping item first, then choose how much the recipe uses.',
   },
 };
 
@@ -68,8 +68,8 @@ export const ProductSearchStep = ({
   inputStyle,
   listStyle,
   listContentStyle,
-  productLabel = () => 'Existing item',
-  placeholder = 'Search products',
+  productLabel = () => 'Existing shopping item',
+  placeholder = 'Search shopping items',
   autoFocus,
 }: ProductSearchStepProps) => {
   const trimmedQuery = query.trim();

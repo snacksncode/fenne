@@ -16,8 +16,8 @@ import { TextInputRef } from '@/components/input';
 import { Pancake } from '@/components/svgs/pancake';
 import { useNavigation } from 'expo-router/react-navigation';
 import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, GripVertical, Trash2, Save } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, Keyboard, StyleProp, ViewStyle } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Pressable, Keyboard, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Typography } from '@/components/Typography';
 import { GestureDetector } from 'react-native-gesture-handler';
@@ -50,6 +50,7 @@ import { tempId } from '@/api/optimistic';
 import { z } from 'zod';
 
 const SCREEN_TRANSITION_DURATION_MS = 600;
+const INGREDIENT_LIST_VERTICAL_PADDING = 4;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -107,12 +108,14 @@ const IngredientItem = ({
   ingredient,
   onEdit,
   onDelete,
+  onLayout,
   style,
 }: {
   ingredient: IngredientFormData;
   style?: StyleProp<ViewStyle>;
   onEdit: () => void;
   onDelete: () => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }) => {
   const swipeRef = useRef<SwipeableMethods>(null);
   const scale = useSharedValue(1);
@@ -127,7 +130,13 @@ const IngredientItem = ({
   };
 
   return (
-    <Animated.View layout={LinearTransition.springify()} exiting={FadeOut} entering={FadeIn} style={style}>
+    <Animated.View
+      layout={LinearTransition.springify()}
+      exiting={FadeOut}
+      entering={FadeIn}
+      onLayout={onLayout}
+      style={style}
+    >
       <ReanimatedSwipeable
         ref={swipeRef}
         friction={1.5}
@@ -154,7 +163,7 @@ const IngredientItem = ({
           {ingredient.selectedProduct.type === 'existing' &&
             ingredient.selectedProduct.product.name !== displayName && (
               <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
-                Item: {ingredient.selectedProduct.product.name}
+                Shopping item: {ingredient.selectedProduct.product.name}
               </Typography>
             )}
           {ingredient.quantity && (
@@ -199,6 +208,41 @@ const EmptyIngredientsList = () => (
   </View>
 );
 
+type IngredientMeasurement = {
+  id: string;
+  height: number;
+};
+
+const useIngredientDividerLayout = (ingredients: IngredientFormData[]) => {
+  const [measurements, setMeasurements] = useState<IngredientMeasurement[]>([]);
+
+  const onIngredientLayout = useCallback((id: string, event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+
+    setMeasurements((current) => {
+      const existingIndex = current.findIndex((measurement) => measurement.id === id);
+      if (existingIndex === -1) return [...current, { id, height }];
+      if (current[existingIndex]?.height === height) return current;
+
+      return current.map((measurement, index) => (index === existingIndex ? { id, height } : measurement));
+    });
+  }, []);
+
+  const dividerOffsets = useMemo(() => {
+    const heightsById = new Map(measurements.map((measurement) => [measurement.id, measurement.height]));
+    if (ingredients.some((ingredient) => heightsById.get(ingredient.id) == null)) return [];
+
+    let offset = INGREDIENT_LIST_VERTICAL_PADDING;
+
+    return ingredients.slice(0, -1).map((ingredient) => {
+      offset += heightsById.get(ingredient.id) ?? 0;
+      return offset;
+    });
+  }, [ingredients, measurements]);
+
+  return { dividerOffsets, onIngredientLayout };
+};
+
 const IngredientsList = ({
   ingredients,
   handleAddIngredient,
@@ -212,6 +256,8 @@ const IngredientsList = ({
   onIngredientDelete: (ingredient: IngredientFormData) => void;
   onIngredientsReorder: (ingredients: IngredientFormData[]) => void;
 }) => {
+  const { dividerOffsets, onIngredientLayout } = useIngredientDividerLayout(ingredients);
+
   const renderIngredient = useCallback(
     ({ item: ingredient }: { item: IngredientFormData }) => (
       <IngredientItem
@@ -219,9 +265,10 @@ const IngredientsList = ({
         ingredient={ingredient}
         onEdit={() => onIngredientEdit(ingredient)}
         onDelete={() => onIngredientDelete(ingredient)}
+        onLayout={(event) => onIngredientLayout(ingredient.id, event)}
       />
     ),
-    [onIngredientDelete, onIngredientEdit]
+    [onIngredientDelete, onIngredientEdit, onIngredientLayout]
   );
 
   if (isEmpty(ingredients)) {
@@ -242,7 +289,7 @@ const IngredientsList = ({
             borderBottomWidth: 2,
             borderColor: colors.brown[900],
             borderRadius: 8,
-            paddingVertical: 4,
+            paddingVertical: INGREDIENT_LIST_VERTICAL_PADDING,
             overflow: 'hidden',
           }}
           layout={LinearTransition.springify()}
@@ -255,10 +302,20 @@ const IngredientsList = ({
             keyExtractor={(ingredient) => ingredient.id}
             renderItem={renderIngredient}
             customHandle
-            dragActivationDelay={100}
+            dragActivationDelay={250}
+            overDrag="vertical"
             activeItemScale={1.02}
             onDragEnd={({ data }) => onIngredientsReorder(data)}
           />
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {dividerOffsets.map((top, index) => (
+              <Animated.View
+                key={`ingredient-divider-${index}`}
+                layout={LinearTransition.springify()}
+                style={[styles.ingredientDivider, { top }]}
+              />
+            ))}
+          </View>
         </Animated.View>
       ) : null}
     </View>
@@ -286,7 +343,7 @@ const recipeSchema = z.object({
   ingredients: z
     .custom<IngredientFormData[]>()
     .refine((ingredients) => ingredients.length > 0, 'Add at least one ingredient')
-    .refine((ingredients) => ingredients.every(validIngredient), 'Every ingredient needs an item and quantity'),
+    .refine((ingredients) => ingredients.every(validIngredient), 'Every ingredient needs a shopping item and quantity'),
   liked: z.boolean(),
   meal_types: z.custom<MealType[]>().refine((mealTypes) => mealTypes.length > 0, 'Pick at least one meal type'),
   notes: z.string(),
@@ -344,13 +401,13 @@ export function RecipeForm({
             return;
           }
           if (attempt === maximumSaveAttempts - 1) {
-            setSubmitError('Could not resolve every item conversion');
+            setSubmitError('Could not resolve every shopping item conversion');
             return;
           }
 
           const resolvedIngredients = await resolveMissingConversions(ingredients, missingConversions);
           if (!resolvedIngredients) {
-            setSubmitError('Recipe not saved. Resolve the missing item conversions to continue.');
+            setSubmitError('Recipe not saved. Resolve the missing shopping item conversions to continue.');
             return;
           }
 
@@ -607,5 +664,15 @@ const styles = StyleSheet.create({
   },
   ingredientItem: {
     width: '100%',
+  },
+  ingredientDivider: {
+    borderColor: colors.brown[900],
+    borderStyle: 'dashed',
+    borderTopWidth: 1,
+    height: 0,
+    left: 0,
+    opacity: 0.25,
+    position: 'absolute',
+    right: 0,
   },
 });

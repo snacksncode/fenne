@@ -12,6 +12,7 @@ import { isHtmlEmpty } from '@/utils/is-html-empty';
 import { colors } from '@/constants/colors';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { prettyUnit } from '@/utils/unit-formatters';
+import { DashedDivider } from '@/components/dashed-divider';
 
 const systemFonts = [
   ...defaultSystemFonts,
@@ -171,45 +172,46 @@ export default function RecipePreview() {
               const displayName = ingredient.name_override?.trim() || ingredient.name || ingredient.product.name;
               const ingredientKey = ingredient.id || `${ingredient.product_id}-${ingredient.unit}-${ingredient.quantity}-${index}`;
               return (
-                <View
-                  key={ingredientKey}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    ...(index > 0 && { borderTopWidth: 1, borderColor: colors.brown[900] }),
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-                      {displayName}
-                    </Typography>
-                    {ingredient.product.name !== displayName && (
-                      <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
-                        Item: {ingredient.product.name}
+                <React.Fragment key={ingredientKey}>
+                  {index > 0 ? <DashedDivider /> : null}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+                        {displayName}
                       </Typography>
+                      {ingredient.product.name !== displayName && (
+                        <Typography variant="body-xs" weight="medium" color={colors.brown[700]}>
+                          Shopping item: {ingredient.product.name}
+                        </Typography>
+                      )}
+                    </View>
+                    {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
+                      <View
+                        style={{
+                          borderRadius: 999,
+                          height: 24,
+                          paddingHorizontal: 6,
+                          backgroundColor: colors.orange[500],
+                          borderWidth: 2,
+                          borderBottomWidth: 3,
+                          borderColor: colors.orange[600],
+                        }}
+                      >
+                        <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
+                          {ingredient.quantity} {prettyUnit(ingredient)}
+                        </Typography>
+                      </View>
                     )}
                   </View>
-                  {!(ingredient.quantity === 1 && ingredient.unit === 'count') && (
-                    <View
-                      style={{
-                        borderRadius: 999,
-                        height: 24,
-                        paddingHorizontal: 6,
-                        backgroundColor: colors.orange[500],
-                        borderWidth: 2,
-                        borderBottomWidth: 3,
-                        borderColor: colors.orange[600],
-                      }}
-                    >
-                      <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-                        {ingredient.quantity} {prettyUnit(ingredient)}
-                      </Typography>
-                    </View>
-                  )}
-                </View>
+                </React.Fragment>
               );
             })}
           </View>

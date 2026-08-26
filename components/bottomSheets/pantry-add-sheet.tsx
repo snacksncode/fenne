@@ -1,12 +1,12 @@
 import { useAddPantryEntry } from '@/api/pantry';
 import { ProductDTO } from '@/api/types';
-import { AisleIcon } from '@/components/aisle-header';
 import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { DateSelectInput } from '@/components/date-select-input';
 import { useAppForm } from '@/components/form/app-form';
 import { InlineQuantityInput } from '@/components/inline-quantity-input';
 import { ProductChoice, ProductSearchStep } from '@/components/product-search-step';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO } from '@/date-tools';
@@ -35,9 +35,9 @@ const unitLabel = (product: ProductDTO, quantity: number) => {
 };
 
 const shapeLabel = (product: ProductDTO) => {
-  if (product.shape === 'timed') return 'Reminder item';
-  if (product.shape === 'counted') return 'Counted item';
-  return 'Measured item';
+  if (product.shape === 'timed') return 'Restock reminder';
+  if (product.shape === 'counted') return 'Shopping item';
+  return 'Tracked by measurement';
 };
 
 const pantryShape = (product: ProductDTO) => {
@@ -179,7 +179,7 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
           query={query}
           onQueryChange={setQuery}
           onSelect={handleSelectProduct}
-          placeholder="Search products"
+          placeholder="Search shopping items"
           autoFocus
           productLabel={shapeLabel}
           listStyle={styles.searchList}
@@ -188,15 +188,11 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
       ) : selectedProduct ? (
         <View style={styles.detailsContent}>
           <View style={styles.selectedItem}>
-            <AisleIcon type={selectedProduct.aisle} />
-            <View style={{ flex: 1 }}>
-              <Typography variant="body-base" weight="bold" numberOfLines={1}>
-                {selectedProduct.name}
-              </Typography>
-              <Typography variant="body-xs" weight="regular" color={colors.brown[700]} style={{ marginTop: -4 }}>
-                {shapeLabel(selectedProduct)}
-              </Typography>
-            </View>
+            <ShoppingItemIdentity
+              name={selectedProduct.name}
+              aisle={selectedProduct.aisle}
+              compact
+            />
           </View>
 
           {isTimed ? (

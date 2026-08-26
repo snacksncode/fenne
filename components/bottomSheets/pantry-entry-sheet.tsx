@@ -5,6 +5,7 @@ import { Button } from '@/components/button';
 import { DateSelectInput } from '@/components/date-select-input';
 import { useAppForm } from '@/components/form/app-form';
 import { InlineQuantityInput } from '@/components/inline-quantity-input';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { formatDateToISO, parseISO } from '@/date-tools';
@@ -149,24 +150,14 @@ const PantryEntrySheetContent = ({ sheetId, entry }: PantryEntrySheetContentProp
       )}
     >
       <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Typography variant="heading-sm" weight="bold">
-            {entry.product.name}
-          </Typography>
-          <form.Subscribe selector={(state) => state.values.quantity}>
-            {(quantity) => (
-              <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
-                {isTimed ? 'Reminder item' : `Tracked as ${entryUnitLabel(entry, parseLocaleFloat(quantity))}`}
-              </Typography>
-            )}
-          </form.Subscribe>
-        </View>
+        <ShoppingItemIdentity name={entry.product.name} aisle={entry.product.aisle} style={{ flex: 1 }} />
         <Button
-          text="Edit item"
+          accessibilityLabel="Edit shopping item"
           variant="outlined"
           size="small"
           leftIcon={{ Icon: Pen }}
           onPress={handleEditProduct}
+          style={{ paddingHorizontal: 0, width: 42 }}
         />
       </View>
 
@@ -279,10 +270,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 20,
-  },
-  headerText: {
-    flex: 1,
-    gap: 2,
   },
   field: {
     gap: 8,

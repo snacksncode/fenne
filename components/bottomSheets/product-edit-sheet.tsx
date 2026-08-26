@@ -20,6 +20,7 @@ import {
 } from '@/components/product-behavior-selector';
 import { ReminderFrequencyFields } from '@/components/reminder-frequency-fields';
 import { ProductConversionFields } from '@/components/product-conversion-fields';
+import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
@@ -150,7 +151,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               return;
             }
 
-            setError('Could not save item');
+            setError('Could not save shopping item');
           },
         }
       );
@@ -161,9 +162,10 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     <BaseSheet
       id={sheetId}
       sizing={{ type: 'scrollable', detents: [1] }}
+      containerStyle={{ flex: 1 }}
       footer={sheetFooter.buttonRow(
         <Button
-          text={impact ? 'Save anyway' : 'Save item'}
+          text={impact ? 'Save anyway' : 'Save shopping item'}
           variant={impact ? 'secondary' : 'primary'}
           rightIcon={{ Icon: ArrowRight }}
           onPress={() => form.handleSubmit()}
@@ -173,21 +175,18 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
     >
       <KeyboardAwareScrollView
         ref={scrollRef}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={SHEET_FOOTER_HEIGHT + insets.bottom + 24}
-        extraKeyboardSpace={72}
+        contentContainerStyle={{ paddingBottom: SHEET_FOOTER_HEIGHT + insets.bottom + 24 }}
       >
         <form.AppForm>
-          <View style={{ gap: 16, paddingBottom: 72 }}>
-            <View>
-              <Typography variant="heading-sm" weight="bold">
-                Edit item
-              </Typography>
-              <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
-                Changes affect recipes, groceries, and pantry behavior.
-              </Typography>
-            </View>
+          <View style={{ gap: 16 }}>
+            <ShoppingItemIdentity
+              name={product.name}
+              aisle={product.aisle}
+              description="Changes affect recipes, groceries, and pantry behavior."
+            />
 
             <form.AppField name="name">
               {(field) => (
@@ -203,6 +202,10 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
             <form.Subscribe selector={(state) => state.values}>
               {(values) => (
                 <>
+                  <form.AppField name="mode">
+                    {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
+                  </form.AppField>
+
                   {values.mode !== 'kitchen_basic' && (
                     <form.AppField name="aisle">
                       {(field) => (
@@ -217,16 +220,12 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                               if (aisle != null) field.handleChange(aisle);
                             }}
                           >
-                            <AisleHeader type={field.state.value} />
+                            <AisleHeader type={field.state.value} showEditIndicator />
                           </PressableWithHaptics>
                         </View>
                       )}
                     </form.AppField>
                   )}
-
-                  <form.AppField name="mode">
-                    {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
-                  </form.AppField>
 
                   {values.mode === 'tracked' && (
                     <form.AppField name="unit">
@@ -255,16 +254,9 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                         <form.AppField name="reminder_frequency_unit">
                           {(unitField) => (
                             <ReminderFrequencyFields
-                              input={
-                                <frequencyField.NumberField
-                                  ref={(input) => {
-                                    fieldRefs.current.reminder_frequency_value = input;
-                                  }}
-                                  placeholder="1"
-                                  style={{ flex: 1 }}
-                                />
-                              }
+                              value={frequencyField.state.value}
                               unit={unitField.state.value}
+                              onValueChange={frequencyField.handleChange}
                               onUnitChange={unitField.handleChange}
                             />
                           )}

@@ -182,7 +182,7 @@ const reminderDescription = (productRow: GroceryPreviewProductRowDTO) => {
   const value = productRow.product.reminder_frequency_value;
   const unit = productRow.product.reminder_frequency_unit;
   const recipes = recipeDescription(productRow);
-  const reminder = value != null && unit != null ? `Reminder every ${value} ${unit}` : 'Reminder item';
+  const reminder = value != null && unit != null ? `Reminder every ${value} ${unit}` : 'Restock reminder';
 
   return [reminder, recipes].filter(Boolean).join(' · ');
 };
@@ -272,7 +272,7 @@ const Content = ({ preview, startDate, endDate }: ContentProps) => {
               >
                 <ProductSection
                   title="Do you have these?"
-                  description="Reminder items are optional. Check the ones you want added to this grocery list."
+                  description="Restock reminders are optional. Check the ones you want added to this grocery list."
                   icon={BellRing}
                   products={reminderProducts}
                   selectedProductIds={selectedProductIds}

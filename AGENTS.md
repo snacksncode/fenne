@@ -1,5 +1,11 @@
 # Frontend Agent Guide
 
+## Package Manager
+
+- This frontend uses Bun exclusively. Use `bun install`, `bun run <script>`, and `bunx` for dependency and script operations.
+- Never use `pnpm`, `npm`, or `yarn` in this directory. Do not run a different package manager even for linting or one-off commands.
+- `bun.lock` is the authoritative lockfile.
+
 ## Commits
 
 - Use Conventional Commits format for commit messages, such as `fix: ...`, `feat: ...`, or `chore: ...`.
