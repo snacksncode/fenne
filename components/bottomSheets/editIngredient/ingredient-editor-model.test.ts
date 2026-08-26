@@ -36,4 +36,21 @@ describe('product tracking form', () => {
 
     expect(ingredientFromProduct({ type: 'draft', product })).toMatchObject({ quantity: '1', unit: 'g' });
   });
+
+  it('resets hidden fields when changing to reminder or kitchen basic', () => {
+    const measured = {
+      ...productFormFromQuery('Chicken'),
+      aisle: 'meat' as const,
+      unit: 'g' as const,
+    };
+
+    expect(productDraftFromForm({ ...measured, mode: 'timed' })).toMatchObject({
+      aisle: 'meat',
+      unit: 'count',
+    });
+    expect(productDraftFromForm({ ...measured, mode: 'kitchen_basic' })).toMatchObject({
+      aisle: 'other',
+      unit: 'count',
+    });
+  });
 });

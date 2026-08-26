@@ -1,76 +1,74 @@
-import { AisleHeader } from '@/components/aisle-header';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { TextInputRef } from '@/components/input';
+import { formErrorMessage } from '@/components/form/app-form';
 import {
-  ProductBehaviorSelector,
-  TrackingUnitSelect,
-} from '@/components/product-behavior-selector';
-import { ReminderFrequencyFields } from '@/components/reminder-frequency-fields';
-import { Typography } from '@/components/Typography';
-import { StyleSheet, View } from 'react-native';
+  ShoppingItemBehaviorField,
+  ShoppingItemBehaviorFields,
+} from '@/components/shopping-item-behavior-fields';
+import { View } from 'react-native';
+import { Ref } from 'react';
 import { IngredientEditor } from './use-ingredient-editor';
 
 type ProductDraftStepProps = {
   form: IngredientEditor['productForm'];
   onSelectAisle: () => void;
   onSelectUnit: () => void;
+  nameInputRef?: Ref<TextInputRef>;
+  registerControl?: (field: ShoppingItemBehaviorField, node: View | null) => void;
 };
 
-export const ProductDraftStep = ({ form, onSelectAisle, onSelectUnit }: ProductDraftStepProps) => (
+const firstError = (errors: unknown[]) => errors.map(formErrorMessage).find((message) => message != null) ?? null;
+
+export const ProductDraftStep = ({
+  form,
+  onSelectAisle,
+  onSelectUnit,
+  nameInputRef,
+  registerControl,
+}: ProductDraftStepProps) => (
   <form.AppForm>
-    <form.Subscribe selector={(state) => state.values}>
-      {(values) => (
-        <View style={{ gap: 16 }}>
-          <form.AppField name="name">{(field) => <field.TextField label="Name" />}</form.AppField>
-
-          <form.AppField name="mode">
-            {(field) => <ProductBehaviorSelector value={field.state.value} onChange={field.handleChange} />}
+    <View style={{ gap: 16 }}>
+      <form.AppField name="name">
+        {(field) => <field.TextField ref={nameInputRef} label="Name" />}
+      </form.AppField>
+      <form.AppField name="mode">
+        {(modeField) => (
+          <form.AppField name="aisle">
+            {(aisleField) => (
+              <form.AppField name="unit">
+                {(unitField) => (
+                  <form.AppField name="reminder_frequency_value">
+                    {(frequencyField) => (
+                      <form.AppField name="reminder_frequency_unit">
+                        {(frequencyUnitField) => (
+                          <ShoppingItemBehaviorFields
+                            mode={modeField.state.value}
+                            aisle={aisleField.state.value}
+                            unit={unitField.state.value}
+                            reminderValue={frequencyField.state.value}
+                            reminderUnit={frequencyUnitField.state.value}
+                            onModeChange={modeField.handleChange}
+                            onAislePress={onSelectAisle}
+                            onUnitPress={onSelectUnit}
+                            onReminderValueChange={frequencyField.handleChange}
+                            onReminderUnitChange={frequencyUnitField.handleChange}
+                            errors={{
+                              aisle: firstError(aisleField.state.meta.errors),
+                              unit: firstError(unitField.state.meta.errors),
+                              reminder_frequency_value: firstError(frequencyField.state.meta.errors),
+                              reminder_frequency_unit: firstError(frequencyUnitField.state.meta.errors),
+                            }}
+                            registerControl={registerControl}
+                          />
+                        )}
+                      </form.AppField>
+                    )}
+                  </form.AppField>
+                )}
+              </form.AppField>
+            )}
           </form.AppField>
-
-          {values.mode !== 'kitchen_basic' && (
-            <form.AppField name="aisle">
-              {(field) => (
-                <View>
-                  <Typography variant="body-sm" weight="bold" style={styles.label}>
-                    Category
-                  </Typography>
-                  <PressableWithHaptics onPress={onSelectAisle}>
-                    <AisleHeader type={field.state.value} showEditIndicator />
-                  </PressableWithHaptics>
-                </View>
-              )}
-            </form.AppField>
-          )}
-
-          {values.mode === 'tracked' && (
-            <form.AppField name="unit">
-              {(field) => <TrackingUnitSelect unit={field.state.value} onPress={onSelectUnit} />}
-            </form.AppField>
-          )}
-
-          {values.mode === 'timed' && (
-            <form.AppField name="reminder_frequency_value">
-              {(frequencyField) => (
-                <form.AppField name="reminder_frequency_unit">
-                  {(unitField) => (
-                    <ReminderFrequencyFields
-                      value={frequencyField.state.value}
-                      unit={unitField.state.value}
-                      onValueChange={frequencyField.handleChange}
-                      onUnitChange={unitField.handleChange}
-                    />
-                  )}
-                </form.AppField>
-              )}
-            </form.AppField>
-          )}
-        </View>
-      )}
-    </form.Subscribe>
+        )}
+      </form.AppField>
+    </View>
   </form.AppForm>
 );
-
-const styles = StyleSheet.create({
-  label: {
-    marginBottom: 4,
-  },
-});

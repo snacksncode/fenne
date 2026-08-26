@@ -7,7 +7,9 @@ import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { productConversionRequirement } from '@/lib/product-conversions';
 import { parseLocaleFloat } from '@/utils';
 import { X } from 'lucide-react-native';
+import { Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { TextInputRef } from '@/components/input';
 import { SelectedProduct } from './ingredient-editor-model';
 import { IngredientEditor } from './use-ingredient-editor';
 
@@ -21,6 +23,9 @@ type IngredientDetailsStepProps = {
   conversionValues: IngredientEditor['conversionValues'];
   conversionError: string | null;
   onConversionChange: IngredientEditor['setConversionValue'];
+  displayNameInputRef?: Ref<TextInputRef>;
+  quantityInputRef?: Ref<TextInputRef>;
+  conversionInputRef?: Ref<TextInputRef>;
 };
 
 export const IngredientDetailsStep = ({
@@ -33,6 +38,9 @@ export const IngredientDetailsStep = ({
   conversionValues,
   conversionError,
   onConversionChange,
+  displayNameInputRef,
+  quantityInputRef,
+  conversionInputRef,
 }: IngredientDetailsStepProps) => (
   <form.AppForm>
     <form.Subscribe selector={(state) => state.values}>
@@ -65,13 +73,21 @@ export const IngredientDetailsStep = ({
             </View>
 
             <form.AppField name="name_override">
-              {(field) => <field.TextField label="Display name" placeholder={selectedProduct.product.name} />}
+              {(field) => (
+                <field.TextField
+                  ref={displayNameInputRef}
+                  label="Display name"
+                  placeholder={selectedProduct.product.name}
+                />
+              )}
             </form.AppField>
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <form.AppField name="quantity">
-                  {(field) => <field.NumberField label="Quantity" placeholder="e.g. 2" />}
+                  {(field) => (
+                    <field.NumberField ref={quantityInputRef} label="Quantity" placeholder="e.g. 2" />
+                  )}
                 </form.AppField>
               </View>
               <View style={{ flex: 1 }}>
@@ -98,6 +114,10 @@ export const IngredientDetailsStep = ({
                 values={conversionValues}
                 onChange={onConversionChange}
                 error={conversionError}
+                registerInput={(_unit, input) => {
+                  if (typeof conversionInputRef === 'function') conversionInputRef(input);
+                  else if (conversionInputRef) conversionInputRef.current = input;
+                }}
               />
             ) : null}
           </View>

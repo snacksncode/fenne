@@ -32,9 +32,28 @@ type EditIngredientSheetData = SheetProps<'edit-ingredient-sheet'>['data'];
 type UseIngredientEditorParams = {
   sheetId: SheetProps<'edit-ingredient-sheet'>['sheetId'];
   data: EditIngredientSheetData;
+  onProductInvalid?: (field: keyof ProductDraftForm) => void;
+  onIngredientInvalid?: (field: keyof IngredientDetailsFormData) => void;
+  onConversionInvalid?: () => void;
 };
 
-export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams) => {
+const productFieldOrder: (keyof ProductDraftForm)[] = [
+  'name',
+  'aisle',
+  'unit',
+  'reminder_frequency_value',
+  'reminder_frequency_unit',
+];
+
+const ingredientFieldOrder: (keyof IngredientDetailsFormData)[] = ['name_override', 'quantity', 'unit'];
+
+export const useIngredientEditor = ({
+  sheetId,
+  data,
+  onProductInvalid,
+  onIngredientInvalid,
+  onConversionInvalid,
+}: UseIngredientEditorParams) => {
   const sheets = useSheets();
   const editProduct = useEditProduct();
   const initialIngredient = data.ingredient;
@@ -55,6 +74,7 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     const conversion = parseLocaleFloat(conversionValues[requirement.ingredientUnit] ?? '');
     if (!Number.isFinite(conversion) || conversion <= 0) {
       setConversionError('Enter a conversion greater than 0');
+      onConversionInvalid?.();
       return null;
     }
 
@@ -84,6 +104,12 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     validators: {
       onSubmit: productDraftSchema,
     },
+    onSubmitInvalid: ({ formApi }) => {
+      const field = productFieldOrder.find(
+        (candidate) => (formApi.getFieldMeta(candidate)?.errors.length ?? 0) > 0
+      );
+      if (field) onProductInvalid?.(field);
+    },
     onSubmit: ({ value }) => {
       const selected: SelectedProduct = { type: 'draft', product: productDraftFromForm(value) };
       setSelectedProduct(selected);
@@ -98,6 +124,12 @@ export const useIngredientEditor = ({ sheetId, data }: UseIngredientEditorParams
     defaultValues: initialSelected ? ingredientFromProduct(initialSelected, initialIngredient) : emptyIngredientForm(),
     validators: {
       onSubmit: ingredientSchema,
+    },
+    onSubmitInvalid: ({ formApi }) => {
+      const field = ingredientFieldOrder.find(
+        (candidate) => (formApi.getFieldMeta(candidate)?.errors.length ?? 0) > 0
+      );
+      if (field) onIngredientInvalid?.(field);
     },
     onSubmit: async ({ value }) => {
       const resolvedProduct = await resolveIngredientProduct(value);

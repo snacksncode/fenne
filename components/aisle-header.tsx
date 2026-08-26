@@ -41,7 +41,7 @@ export const AISLE_LABELS: Record<AisleCategory, string> = {
 
 export const AISLE_CATEGORIES = Object.keys(AISLE_LABELS) as AisleCategory[];
 
-const AISLE_ICON_COLOR = '#CD7E34';
+const AISLE_ICON_COLOR = colors.orange[600];
 
 export const AisleIcon = ({ type }: { type: AisleCategory }) => {
   const renderIcon = () => {

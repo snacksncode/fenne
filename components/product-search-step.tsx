@@ -55,7 +55,7 @@ type ProductSearchStepProps = {
   inputStyle?: ComponentProps<typeof TextInput>['style'];
   listStyle?: StyleProp<ViewStyle>;
   listContentStyle?: StyleProp<ViewStyle>;
-  productLabel?: (product: ProductDTO) => string;
+  productLabel?: (product: ProductDTO) => string | null;
   placeholder?: string;
   autoFocus?: boolean;
 };
@@ -98,29 +98,40 @@ export const ProductSearchStep = ({
         style={listStyle}
         contentContainerStyle={[styles.listContent, listContentStyle]}
       >
-        {results.map((item) => (
-          <PressableWithHaptics
-            key={`${item.type}-${item.id}`}
-            onPress={() =>
-              item.type === 'product'
-                ? onSelect({ kind: 'product', product: item })
-                : onSelect({ kind: 'suggestion', suggestion: item })
-            }
-            scaleTo={0.98}
-          >
-            <View style={styles.option}>
-              <AisleIcon type={item.aisle} />
-              <View style={{ flex: 1 }}>
-                <Typography variant="body-base" weight="bold" color={colors.brown[900]} numberOfLines={1}>
-                  {item.name}
-                </Typography>
-                <Typography variant="body-xs" weight="regular" color={colors.brown[700]} style={{ marginTop: -4 }}>
-                  {item.type === 'product' ? productLabel(item) : 'Suggested'}
-                </Typography>
+        {results.map((item) => {
+          const label = item.type === 'product' ? productLabel(item) : 'Suggested';
+
+          return (
+            <PressableWithHaptics
+              key={`${item.type}-${item.id}`}
+              onPress={() =>
+                item.type === 'product'
+                  ? onSelect({ kind: 'product', product: item })
+                  : onSelect({ kind: 'suggestion', suggestion: item })
+              }
+              scaleTo={0.98}
+            >
+              <View style={styles.option}>
+                <AisleIcon type={item.aisle} />
+                <View style={{ flex: 1 }}>
+                  <Typography variant="body-base" weight="bold" color={colors.brown[900]} numberOfLines={1}>
+                    {item.name}
+                  </Typography>
+                  {label ? (
+                    <Typography
+                      variant="body-xs"
+                      weight="regular"
+                      color={colors.brown[700]}
+                      style={{ marginTop: -4 }}
+                    >
+                      {label}
+                    </Typography>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          </PressableWithHaptics>
-        ))}
+            </PressableWithHaptics>
+          );
+        })}
         {showCustomRow && (
           <PressableWithHaptics onPress={() => onSelect({ kind: 'custom', name: trimmedQuery })} scaleTo={0.98}>
             <View style={styles.option}>

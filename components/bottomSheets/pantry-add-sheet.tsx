@@ -34,12 +34,6 @@ const unitLabel = (product: ProductDTO, quantity: number) => {
   return prettyUnit({ quantity, unit: product.unit });
 };
 
-const shapeLabel = (product: ProductDTO) => {
-  if (product.shape === 'timed') return 'Restock reminder';
-  if (product.shape === 'counted') return 'Shopping item';
-  return 'Tracked by measurement';
-};
-
 const pantryShape = (product: ProductDTO) => {
   if (product.shape === 'measured' || product.shape === 'timed') return product.shape;
   return 'counted';
@@ -181,7 +175,7 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
           onSelect={handleSelectProduct}
           placeholder="Search shopping items"
           autoFocus
-          productLabel={shapeLabel}
+          productLabel={() => null}
           listStyle={styles.searchList}
           listContentStyle={styles.searchListContent}
         />

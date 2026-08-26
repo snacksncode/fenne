@@ -7,7 +7,7 @@ import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts();
 
-const errorMessage = (error: unknown) => {
+export const formErrorMessage = (error: unknown) => {
   if (typeof error === 'string') return error;
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message;
@@ -23,7 +23,7 @@ type FieldFrameProps = {
 
 const FieldFrame = ({ label, children, style }: FieldFrameProps) => {
   const field = useFieldContext<unknown>();
-  const errors = field.state.meta.errors.map(errorMessage).filter((message) => message != null);
+  const errors = field.state.meta.errors.map(formErrorMessage).filter((message) => message != null);
   const showErrors = field.state.meta.isTouched && errors.length > 0;
 
   return (

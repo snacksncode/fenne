@@ -1,5 +1,5 @@
 import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
-import { NumberInput } from '@/components/input';
+import { NumberInput, TextInputRef } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { StyleSheet, View } from 'react-native';
@@ -11,6 +11,7 @@ type ProductConversionFieldsProps = {
   values: Partial<Record<Unit, string>>;
   onChange: (unit: Unit, value: string) => void;
   error?: string | null;
+  registerInput?: (unit: Unit, input: TextInputRef | null) => void;
 };
 
 const unitLabel = (unit: Unit, count: number) =>
@@ -23,6 +24,7 @@ export const ProductConversionFields = ({
   values,
   onChange,
   error,
+  registerInput,
 }: ProductConversionFieldsProps) => (
   <View style={styles.container}>
     <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
@@ -39,6 +41,7 @@ export const ProductConversionFields = ({
         </Typography>
         <View style={styles.inputRow}>
           <NumberInput
+            ref={(input) => registerInput?.(unit, input)}
             value={values[unit] ?? ''}
             onChangeText={(value) => onChange(unit, value)}
             placeholder="e.g. 15"
