@@ -186,6 +186,7 @@ export const PantryAddSheet = (props: SheetProps<'pantry-add-sheet'>) => {
               name={selectedProduct.name}
               aisle={selectedProduct.aisle}
               compact
+              style={styles.selectedItemIdentity}
             />
           </View>
 
@@ -316,6 +317,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 12,
+  },
+  selectedItemIdentity: {
+    flex: 1,
   },
   field: {
     gap: 8,

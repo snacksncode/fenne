@@ -1,3 +1,6 @@
+import { GroceryRecipesSheet } from '@/components/bottomSheets/grocery-recipes-sheet';
+import { GroceryEntrySheet } from '@/components/bottomSheets/grocery-entry-sheet';
+import { GenerationAmountsSheet } from '@/components/bottomSheets/generation-amounts-sheet';
 import { SheetRegister } from '@/lib/sheet-context';
 
 import {
@@ -8,6 +11,7 @@ import {
   MealEntryDTO,
   PantryEntryDTO,
   ProductDTO,
+  PurchaseSuggestionDTO,
   RecipeDTO,
   ConsumptionLogDTO,
   ProductDeleteBlockersDTO,
@@ -45,6 +49,21 @@ import { ProductUsagesSheet } from '@/components/bottomSheets/product-usages-she
 
 declare module '@/lib/sheet-context' {
   interface Sheets {
+    'generation-amounts-sheet': {
+      data: {
+        product: Pick<ProductDTO, 'id' | 'name' | 'unit' | 'pack_sizes'>;
+        purchase: PurchaseSuggestionDTO;
+        quantity: number;
+        overridden?: boolean;
+      };
+      result: { quantity: number | null } | undefined;
+    };
+    'grocery-entry-sheet': {
+      data: { grocery: GroceryItemDTO };
+    };
+    'grocery-recipes-sheet': {
+      data: { name: string; recipes: { id: string; name: string }[]; reason?: string };
+    };
     'select-unit-sheet': {
       data: { unit: Unit };
       result: Unit;
@@ -141,6 +160,9 @@ declare module '@/lib/sheet-context' {
 export const Sheets = () => (
   <SheetRegister
     sheets={{
+      'generation-amounts-sheet': GenerationAmountsSheet,
+      'grocery-entry-sheet': GroceryEntrySheet,
+      'grocery-recipes-sheet': GroceryRecipesSheet,
       'select-unit-sheet': SelectUnitSheet,
       'select-category-sheet': SelectCategorySheet,
       'edit-ingredient-sheet': EditIngredientSheet,

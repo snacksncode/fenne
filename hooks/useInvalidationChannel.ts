@@ -82,6 +82,7 @@ export const useInvalidationChannel = () => {
           }
 
           if (data.resource === 'pantry_entries' || data.resource === 'consumption_logs') {
+            queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
             if (!queryClient.isFetching(groceriesOptions)) queryClient.invalidateQueries(groceriesOptions);
             if (!queryClient.isFetching(pantryOptions)) queryClient.invalidateQueries(pantryOptions);
             if (!queryClient.isFetching(consumptionLogsOptions)) {
@@ -112,5 +113,5 @@ export const useInvalidationChannel = () => {
     );
 
     return () => cable.disconnect();
-  }, [token, user?.family?.id]);
+  }, [token, user?.family?.id, queryClient, setConnectionStatus]);
 };

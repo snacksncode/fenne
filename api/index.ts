@@ -13,6 +13,7 @@ import {
   ScheduleDayDTO,
   ScheduleDayInput,
   ProductDTO,
+  PurchaseSuggestionDTO,
   ProductDraft,
   ProductUsagesDTO,
   PantryEntryDTO,
@@ -55,14 +56,14 @@ export const api = {
     addFromRecipe: (data: { recipe_id: string }) => {
       return client.post('/grocery_items/from_recipe', data);
     },
-    edit: (data: Pick<GroceryItemDTO, 'id'> & Partial<Pick<GroceryItemDTO, 'quantity' | 'unit' | 'status'>>) => {
+    edit: (data: Pick<GroceryItemDTO, 'id'> & Partial<Pick<GroceryItemDTO, 'quantity' | 'unit' | 'status'>> & { use_suggestion?: boolean }) => {
       const { id, ...itemData } = data;
       return client.patch<GroceryItemDTO>(`/grocery_items/${id}`, itemData);
     },
     delete: (data: { id: string }) => {
       return client.delete(`/grocery_items/${data.id}`);
     },
-    generate: (data: { start: string; end: string; checked_product_ids: string[] }) => {
+    generate: (data: { start: string; end: string; checked_product_ids: string[]; purchase_quantities?: { product_id: string; quantity: number | null }[] }) => {
       return client.post('/grocery_items/generate', data);
     },
     preview: (data: { start: string; end: string }) => {
@@ -138,6 +139,10 @@ export const api = {
     },
   },
   products: {
+    purchaseSuggestion: (id: string, needed: number, pantry: number) => {
+      const params = new URLSearchParams({ needed: String(needed), pantry: String(pantry) });
+      return client.get<PurchaseSuggestionDTO>(`/products/${id}/purchase_suggestion?${params}`);
+    },
     getAll: () => {
       return client.get<ProductDTO[]>('/products');
     },

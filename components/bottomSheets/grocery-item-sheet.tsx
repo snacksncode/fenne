@@ -223,6 +223,7 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
                       aisle={grocery.aisle}
                       description="Uses your saved shopping and pantry settings"
                       compact
+                      style={styles.selectedItemIdentity}
                     />
                   ) : (
                     <>
@@ -306,6 +307,9 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
     minWidth: 0,
+  },
+  selectedItemIdentity: {
+    flex: 1,
   },
   unitButton: {
     borderRadius: 8,

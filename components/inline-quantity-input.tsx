@@ -1,8 +1,8 @@
 import { NumberInput, TextInputRef } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Ref, useImperativeHandle, useRef } from 'react';
+import { Pressable, StyleProp, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
 
 type InlineQuantityInputProps = {
   accessibilityLabel: string;
@@ -10,6 +10,12 @@ type InlineQuantityInputProps = {
   onChangeText: (value: string) => void;
   unit: string;
   value: string;
+  ref?: Ref<TextInputRef>;
+  editable?: boolean;
+  placeholder?: string;
+  tone?: 'orange' | 'green';
+  containerStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
 };
 
 export const InlineQuantityInput = ({
@@ -18,23 +24,32 @@ export const InlineQuantityInput = ({
   onChangeText,
   unit,
   value,
+  ref,
+  editable = true,
+  placeholder = '0',
+  tone = 'orange',
+  containerStyle,
+  inputStyle,
 }: InlineQuantityInputProps) => {
   const inputRef = useRef<TextInputRef>(null);
+  useImperativeHandle(ref, () => inputRef.current!, []);
 
   return (
-    <Pressable accessible={false} accessibilityRole="none" onPress={() => inputRef.current?.focus()} style={styles.container}>
+    <Pressable accessible={false} accessibilityRole="none" disabled={!editable}
+      onPress={() => inputRef.current?.focus()} style={[styles.container, containerStyle]}>
       <NumberInput
         ref={inputRef}
         accessible
+        editable={editable}
         accessibilityLabel={accessibilityLabel}
         accessibilityValue={{ text: `${value || '0'} ${unit}` }}
         onBlur={onBlur}
         onChangeText={onChangeText}
-        placeholder="0"
-        style={styles.input}
+        placeholder={placeholder}
+        style={[styles.input, inputStyle]}
         value={value}
       />
-      <View pointerEvents="none" style={styles.unitPill}>
+      <View pointerEvents="none" style={[styles.unitPill, tone === 'green' && styles.greenUnitPill]}>
         <Typography variant="body-sm" weight="bold" color={colors.cream[100]} numberOfLines={1} style={styles.unitText}>
           {unit}
         </Typography>
@@ -83,4 +98,5 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     textAlign: 'center',
   },
+  greenUnitPill: { backgroundColor: colors.green[600], borderColor: colors.green[700] },
 });

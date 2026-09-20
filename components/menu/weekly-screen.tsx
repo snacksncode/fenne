@@ -13,7 +13,6 @@ import {
   getUnixTime,
   isAfter,
   isBefore,
-  isToday,
   startOfToday,
   startOfWeek,
 } from 'date-fns';
@@ -36,6 +35,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
 import { useRouter } from 'expo-router';
 import { useOnAppActive } from '@/hooks/use-on-app-active';
+import { useToday } from '@/hooks/use-today';
 
 const GAP_SIZE = 16;
 const HEADER_SIZE = 105;
@@ -69,13 +69,14 @@ const DayCardSkeleton = () => {
 };
 
 const ItemSkeleton = ({ date }: { date: Date }) => {
+  const today = useToday();
   return (
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <Typography variant="heading-sm" weight="bold">
-          {isToday(date) ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
+          {formatDateToISO(date) === today ? format(date, 'EEEE') : format(date, 'EEEE, d MMMM')}
         </Typography>
-        {isToday(date) ? (
+        {formatDateToISO(date) === today ? (
           <View
             style={{
               backgroundColor: colors.orange[500],
@@ -296,6 +297,7 @@ const Day = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | 
 
 const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO | undefined }) => {
   const date = parseISO(dateString);
+  const today = useToday();
 
   return (
     <View style={{ gap: 12 }}>
@@ -303,7 +305,7 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
         <Typography variant="heading-sm" weight="bold">
           {format(date, 'EEEE')}
         </Typography>
-        {isToday(date) ? (
+        {dateString === today ? (
           <View
             style={{
               backgroundColor: colors.orange[500],

@@ -4,6 +4,7 @@ import {
   addDays,
   startOfISOWeek,
   startOfMonth,
+  startOfDay,
   endOfMonth,
   endOfISOWeek,
   eachWeekOfInterval,
@@ -39,4 +40,9 @@ export const getISOWeeksForMonth = (dateString: string) => {
   const start = startOfISOWeek(startOfMonth(date));
   const end = endOfISOWeek(endOfMonth(date));
   return eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((w) => format(w, YEAR_WEEK));
+};
+
+// Use local calendar midnight so daylight-saving days may be 23 or 25 hours.
+export const millisecondsUntilNextDay = (now: Date) => {
+  return startOfDay(addDays(now, 1)).getTime() - now.getTime();
 };

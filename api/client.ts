@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { TOKEN_KEY } from '@/contexts/session';
 import { authSignal } from '@/api/auth-event';
 
-export const getBaseUrl = () => 'https://api.fenneplanner.com';
+export const getBaseUrl = () => (__DEV__ ? 'http://127.0.0.1:4000' : 'https://api.fenneplanner.com');
 export class APIError extends Error {
   data: unknown;
   constructor(data: unknown) {

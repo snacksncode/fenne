@@ -21,6 +21,7 @@ export type ProductDraftForm = {
   aisle: AisleCategory;
   mode: ProductMode;
   unit: Unit;
+  pack_sizes: string[];
   reminder_frequency_value: string;
   reminder_frequency_unit: 'days' | 'weeks' | 'months';
 };
@@ -42,6 +43,7 @@ export const productFormFromSuggestion = (suggestion: ProductSuggestionDTO): Pro
   aisle: suggestion.aisle,
   mode: 'tracked',
   unit: 'count',
+  pack_sizes: [],
   reminder_frequency_value: '1',
   reminder_frequency_unit: 'months',
 });
@@ -51,6 +53,7 @@ export const productFormFromQuery = (query: string): ProductDraftForm => ({
   aisle: 'other',
   mode: 'tracked',
   unit: 'count',
+  pack_sizes: [],
   reminder_frequency_value: '1',
   reminder_frequency_unit: 'months',
 });
@@ -67,6 +70,7 @@ export const productFormFromDraft = (draft: ProductDraft): ProductDraftForm => {
     aisle: draft.aisle,
     mode,
     unit: draft.unit,
+    pack_sizes: (draft.pack_sizes ?? []).map(String),
     reminder_frequency_value: draft.reminder_frequency_value?.toString() ?? '1',
     reminder_frequency_unit: draft.reminder_frequency_unit ?? 'months',
   };
@@ -81,6 +85,7 @@ export const productDraftFromForm = (form: ProductDraftForm): ProductDraft => {
     name: form.name.trim(),
     aisle: isKitchenBasic ? 'other' : form.aisle,
     unit: isTracked ? form.unit : 'count',
+    pack_sizes: isTracked && form.unit !== 'count' ? form.pack_sizes.map(parseLocaleFloat) : [],
     reminder_frequency_value: isTimed ? parseInt(form.reminder_frequency_value, 10) : null,
     reminder_frequency_unit: isTimed ? form.reminder_frequency_unit : null,
     is_kitchen_basic: isKitchenBasic,
@@ -105,10 +110,17 @@ export const productDraftSchema = z
     aisle: z.custom<AisleCategory>(),
     mode: z.enum(['tracked', 'timed', 'kitchen_basic']),
     unit: z.custom<Unit>(),
+    pack_sizes: z.array(z.string()),
     reminder_frequency_value: z.string(),
     reminder_frequency_unit: z.enum(['days', 'weeks', 'months']),
   })
   .superRefine((value, context) => {
+    if (value.mode === 'tracked' && value.unit !== 'count') {
+      const sizes = value.pack_sizes.map(parseLocaleFloat);
+      if (sizes.length > 6 || sizes.some((size) => !Number.isFinite(size) || size <= 0 || size > 1_000_000 || Math.abs(size * 1000 - Math.round(size * 1000)) > 0.000001) || new Set(sizes).size !== sizes.length) {
+        context.addIssue({ code: 'custom', path: ['pack_sizes'], message: 'Enter up to 6 different positive sizes, with at most 3 decimal places' });
+      }
+    }
     if (value.mode === 'timed') {
       const frequency = value.reminder_frequency_value.trim();
       if (!/^\d+$/.test(frequency) || Number(frequency) <= 0) {

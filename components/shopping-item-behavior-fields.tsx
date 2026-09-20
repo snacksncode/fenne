@@ -9,6 +9,7 @@ import { colors } from '@/constants/colors';
 import { StyleSheet, View } from 'react-native';
 
 export type ShoppingItemBehaviorField =
+  | 'pack_sizes'
   | 'aisle'
   | 'unit'
   | 'reminder_frequency_value'

@@ -2,7 +2,7 @@ import { Tag } from '@/components/svgs/tag';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '@/components/Typography';
 import { formatDateToISO, parseISO } from '@/date-tools';
-import { eachDayOfInterval, endOfMonth, format, getUnixTime, isToday, isWithinInterval } from 'date-fns';
+import { eachDayOfInterval, endOfMonth, format, getUnixTime, isWithinInterval } from 'date-fns';
 import { View, Pressable, ActivityIndicator } from 'react-native';
 import Animated, { SharedValue, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { chunk, times } from 'remeda';
@@ -10,6 +10,7 @@ import { memo } from 'react';
 import { scheduleOnUI } from 'react-native-worklets';
 import { colors } from '@/constants/colors';
 import { ScheduleDayDTO } from '@/api/types';
+import { useToday } from '@/hooks/use-today';
 
 type Props = {
   startOfMonthDate: Date;
@@ -58,6 +59,8 @@ const Day = memo(function Day({
   pressedDayKey: SharedValue<string | null>;
   isHighlighted: boolean;
 }) {
+  const today = useToday();
+  const isCurrentDay = dateString === today;
   const animatedStyle = useAnimatedStyle(() => {
     const isPressed = pressedDayKey.value === dateString;
     return { transform: [{ scale: withSpring(isPressed ? 0.925 : 1) }] };
@@ -132,17 +135,17 @@ const Day = memo(function Day({
           borderColor: '#D1C5B3',
           borderWidth: 1,
           borderBottomWidth: 2,
-          ...(isToday(date) && {
+          ...(isCurrentDay && {
             borderWidth: 2,
             borderBottomWidth: 3,
             borderColor: '#EC8032',
           }),
-          ...(isEmpty && !isToday(date) && !isHighlighted && { borderStyle: 'dashed', borderBottomWidth: 1 }),
-          ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }),
+          ...(isEmpty && !isCurrentDay && !isHighlighted && { borderStyle: 'dashed', borderBottomWidth: 1 }),
+          ...(isEmpty && !isCurrentDay && !isHighlighted && { opacity: 0.7 }),
           ...(isHighlighted && { borderColor: colors.green[600], borderWidth: 2, borderBottomWidth: 3 }),
         }}
       />
-      <View style={{ ...(isEmpty && !isToday(date) && !isHighlighted && { opacity: 0.7 }) }}>
+      <View style={{ ...(isEmpty && !isCurrentDay && !isHighlighted && { opacity: 0.7 }) }}>
         <Typography variant="body-base" weight="black" style={{ zIndex: 1 }}>
           {format(date, 'd')}
         </Typography>
@@ -152,7 +155,7 @@ const Day = memo(function Day({
           flexDirection: 'row',
           gap: 2,
           height: 4,
-          ...(isEmpty && !isToday(date) && { opacity: 0.7 }),
+          ...(isEmpty && !isCurrentDay && { opacity: 0.7 }),
         }}
       >
         {scheduleDay.breakfast ? (

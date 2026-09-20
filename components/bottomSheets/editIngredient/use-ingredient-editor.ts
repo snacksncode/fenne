@@ -3,6 +3,7 @@ import { ProductDTO } from '@/api/types';
 import { useAppForm } from '@/components/form/app-form';
 import { ProductChoice } from '@/components/product-search-step';
 import {
+  convertPackSizeInputs,
   productConversionRequirement,
   withProductConversion,
 } from '@/lib/product-conversions';
@@ -41,6 +42,7 @@ const productFieldOrder: (keyof ProductDraftForm)[] = [
   'name',
   'aisle',
   'unit',
+  'pack_sizes',
   'reminder_frequency_value',
   'reminder_frequency_unit',
 ];
@@ -154,6 +156,7 @@ export const useIngredientEditor = ({
     productForm.setFieldValue('aisle', form.aisle);
     productForm.setFieldValue('mode', form.mode);
     productForm.setFieldValue('unit', form.unit);
+    productForm.setFieldValue('pack_sizes', form.pack_sizes);
     productForm.setFieldValue('reminder_frequency_value', form.reminder_frequency_value);
     productForm.setFieldValue('reminder_frequency_unit', form.reminder_frequency_unit);
   };
@@ -233,7 +236,10 @@ export const useIngredientEditor = ({
         unit: productForm.state.values.unit,
       },
     });
-    if (unit != null) productForm.setFieldValue('unit', unit);
+    if (unit != null) {
+      productForm.setFieldValue('pack_sizes', convertPackSizeInputs(productForm.state.values.pack_sizes, productForm.state.values.unit, unit));
+      productForm.setFieldValue('unit', unit);
+    }
   };
 
   const selectIngredientUnit = async () => {

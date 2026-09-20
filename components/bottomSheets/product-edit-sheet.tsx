@@ -1,3 +1,4 @@
+import { PackSizeFields } from '@/components/pack-size-fields';
 import { missingProductConversionsFromError, productImpactFromError } from '@/api/errors';
 import { ProductFormField, productValidationErrorsFromError } from '@/api/product-validation-errors';
 import { useEditProduct } from '@/api/products';
@@ -21,7 +22,7 @@ import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
+import { convertPackSizeInputs, conversionValuesPayload, unitsRequireProductConversion } from '@/lib/product-conversions';
 import { ArrowRight } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { AccessibilityInfo, findNodeHandle, Keyboard, StyleSheet, View } from 'react-native';
@@ -30,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const productFormFields: ProductFormField[] = [
   'name',
+  'pack_sizes',
   'aisle',
   'unit',
   'reminder_frequency_value',
@@ -256,6 +258,7 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
                                       data: { unit: unitField.state.value },
                                     });
                                     if (unit != null && unit !== unitField.state.value) {
+                                      form.setFieldValue('pack_sizes', convertPackSizeInputs(form.state.values.pack_sizes, unitField.state.value, unit));
                                       unitField.handleChange(unit);
                                       setConversionValues({});
                                       setError(null);
@@ -287,6 +290,20 @@ const ProductEditSheetContent = ({ sheetId, product }: ProductEditSheetContentPr
               )}
             </form.AppField>
 
+            <form.Subscribe selector={(state) => ({ mode: state.values.mode, unit: state.values.unit })}>
+              {({ mode, unit }) => mode === 'tracked' && unit !== 'count' ? (
+                <form.AppField name="pack_sizes">
+                  {(field) => (
+                    <View ref={(node) => { controlRefs.current.pack_sizes = node; }} accessible accessibilityLabel="Pack sizes">
+                      <PackSizeFields unit={unit} values={field.state.value} onChange={field.handleChange} />
+                      {field.state.meta.errors.map(formErrorMessage).filter(Boolean).map((message, index) => (
+                        <Typography key={index} variant="body-xs" weight="medium" color={colors.red[600]}>{message}</Typography>
+                      ))}
+                    </View>
+                  )}
+                </form.AppField>
+              ) : null}
+            </form.Subscribe>
             {missingConversions.length > 0 ? (
               <form.Subscribe selector={(state) => state.values}>
                 {(values) => {

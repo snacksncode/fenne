@@ -17,6 +17,11 @@ export const useProducts = () => {
   return useQuery(productsOptions);
 };
 
+export const purchaseSuggestionOptions = (id: string, needed: number, pantry: number) => queryOptions({
+  queryKey: [...queryKeys.products.all(), id, 'purchase-suggestion', needed, pantry],
+  queryFn: () => api.products.purchaseSuggestion(id, needed, pantry),
+});
+
 export const useEditProduct = () => {
   const queryClient = useQueryClient();
 

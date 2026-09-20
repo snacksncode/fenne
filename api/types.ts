@@ -32,6 +32,7 @@ export type ProductDTO = {
   is_kitchen_basic: boolean;
   shape: ProductShape;
   conversions: Record<string, number>;
+  pack_sizes?: number[];
 };
 
 export type ProductSuggestionDTO = {
@@ -52,6 +53,7 @@ export type ProductDraft = {
   reminder_frequency_unit?: 'days' | 'weeks' | 'months' | null;
   is_kitchen_basic?: boolean;
   conversions?: Record<string, number>;
+  pack_sizes?: number[];
 };
 
 export type ProductSearchResult = {
@@ -99,6 +101,14 @@ export type ConsumptionLogDTO = {
 
 // Groceries
 
+export type PurchaseSuggestionDTO = {
+  needed: number;
+  pantry: number;
+  shortage: number;
+  suggested_quantity: number;
+  packs: { size: number; count: number }[];
+};
+
 export type GroceryItemDTO = {
   id: string;
   product: ProductDTO | null;
@@ -108,6 +118,8 @@ export type GroceryItemDTO = {
   status: 'pending' | 'completed';
   aisle: AisleCategory;
   source: 'generated' | 'manual';
+  purchase?: PurchaseSuggestionDTO | null;
+  quantity_overridden?: boolean;
   recipes: { id: string; name: string }[];
 };
 
@@ -145,6 +157,8 @@ export type GroceryPreviewProductRowDTO = {
   unit: Unit;
   checked: boolean;
   running_low: boolean;
+  purchase?: PurchaseSuggestionDTO | null;
+  quantity_overridden?: boolean;
   recipes: { id: string; name: string }[];
 };
 
@@ -217,6 +231,7 @@ export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO 
                 ? 'counted'
                 : 'measured',
           conversions: form.selectedProduct.product.conversions ?? {},
+          pack_sizes: form.selectedProduct.product.pack_sizes ?? [],
         } as ProductDTO),
   name: form.name,
   name_override: form.name_override,

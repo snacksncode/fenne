@@ -1,3 +1,6 @@
+import { Typography } from '@/components/Typography';
+import { colors } from '@/constants/colors';
+import { PackSizeFields } from '@/components/pack-size-fields';
 import { TextInputRef } from '@/components/input';
 import { formErrorMessage } from '@/components/form/app-form';
 import {
@@ -69,6 +72,20 @@ export const ProductDraftStep = ({
           </form.AppField>
         )}
       </form.AppField>
+      <form.Subscribe selector={(state) => ({ mode: state.values.mode, unit: state.values.unit })}>
+        {({ mode, unit }) => mode === 'tracked' && unit !== 'count' ? (
+          <form.AppField name="pack_sizes">
+            {(field) => (
+              <View ref={(node) => registerControl?.('pack_sizes', node)} accessible accessibilityLabel="Pack sizes">
+                <PackSizeFields unit={unit} values={field.state.value} onChange={field.handleChange} />
+                {field.state.meta.errors.map(formErrorMessage).filter(Boolean).map((message, index) => (
+                  <Typography key={index} variant="body-xs" weight="medium" color={colors.red[600]}>{message}</Typography>
+                ))}
+              </View>
+            )}
+          </form.AppField>
+        ) : null}
+      </form.Subscribe>
     </View>
   </form.AppForm>
 );

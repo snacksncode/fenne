@@ -14,19 +14,18 @@ import { EmptyState } from '@/components/empty-state';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Typography } from '@/components/Typography';
 import * as Haptics from 'expo-haptics';
-import { CirclePlus, CookingPot, ListPlus, Pen, Plus, ShoppingBasket, Trash2, WandSparkles } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { CirclePlus, CookingPot, ListPlus, Plus, ShoppingBasket, WandSparkles } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { GroceryQuantity } from '@/components/grocery-quantity';
+import { GrocerySwipeActions } from '@/components/grocery-swipe-actions';
+import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  Extrapolation,
-  interpolate,
-  interpolateColor,
   LinearTransition,
-  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSpring,
   withTiming,
   FadeOut,
   FadeIn,
@@ -36,11 +35,10 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnUI, scheduleOnRN } from 'react-native-worklets';
-import { doNothing, entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
+import { scheduleOnRN } from 'react-native-worklets';
+import { entries, groupBy, isEmpty, map, pipe, sortBy } from 'remeda';
 import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
-import { prettyUnit } from '@/utils/unit-formatters';
 import { useSheets } from '@/lib/sheet-context';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
@@ -169,110 +167,56 @@ const GroceriesSkeleton = () => {
   );
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const AnimatedTypography = Animated.createAnimatedComponent(Typography);
-
-const RightActions = (props: { progress: SharedValue<number>; onEdit: () => void; onRemove: () => void }) => {
-  const [width, setWidth] = useState(0);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(props.progress.value, [0, 1], [width, 0], Extrapolation.CLAMP) }],
-  }));
-
-  return (
-    <Animated.View
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={[styles.leftActionContainer, animatedStyle]}
-    >
-      <Button size="small" variant="outlined" onPress={props.onEdit} text="Edit" leftIcon={{ Icon: Pen }} />
-      <Button size="small" variant="secondary" onPress={props.onRemove} text="Remove" leftIcon={{ Icon: Trash2 }} />
-    </Animated.View>
-  );
-};
-
-const GroceryItem = ({ item: _item }: { item: GroceryItemDTO }) => {
+const GroceryItem = ({ item }: { item: GroceryItemDTO }) => {
   const sheets = useSheets();
   const swipeRef = useRef<SwipeableMethods>(null);
-  const editGroceryItem = useEditGroceryItem();
-  const deleteGroceryItem = useDeleteGroceryItem();
-  const item = { ..._item, ...(editGroceryItem.isPending && editGroceryItem.variables) };
-  const scale = useSharedValue(1);
-  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const isCompleted = item.status === 'completed';
-  const { progress, setChecked } = useCheckbox(isCompleted);
-
-  const vibrate = () => {
-    const style = Haptics.ImpactFeedbackStyle.Light;
-    Haptics.impactAsync(style).catch(doNothing);
+  const edit = useEditGroceryItem();
+  const remove = useDeleteGroceryItem();
+  const completed = item.status === 'completed';
+  const { progress } = useCheckbox(completed);
+  const busy = edit.isPending || remove.isPending;
+  const openEdit = () => {
+    swipeRef.current?.close();
+    sheets.present('grocery-entry-sheet', { data: { grocery: item } });
   };
-
-  const handlePress = () => {
-    vibrate();
-    setChecked(!isCompleted);
-    setTimeout(() => {
-      editGroceryItem.mutate({
-        id: _item.id,
-        status: item.status === 'pending' ? 'completed' : 'pending',
-      });
-    }, 500);
+  const removeItem = () => {
+    swipeRef.current?.close();
+    remove.mutate({ id: item.id });
   };
-
-  const closeSwipeable = () => swipeRef.current?.close();
-  const handleEdit = () => {
-    closeSwipeable();
-    sheets.present('grocery-item-sheet', { data: { grocery: _item } });
-  };
-  const onRemove = () => {
-    deleteGroceryItem.mutate({ id: _item.id });
-  };
-
-  const textStyles = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], ['#4A3E36', '#867a6e']),
-  }));
+  const toggle = () => edit.mutate({
+    id: item.id,
+    status: completed ? 'pending' : 'completed',
+    ...(!completed ? { quantity: item.quantity } : {}),
+  });
 
   return (
-    <AnimatedPressable
-      onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.9)))}
-      onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
-      onPress={handlePress}
-      onLongPress={handleEdit}
-    >
-      <ReanimatedSwipeable
-        ref={swipeRef}
-        friction={1.5}
-        rightThreshold={20}
-        renderRightActions={(progress) => <RightActions progress={progress} onEdit={handleEdit} onRemove={onRemove} />}
-        childrenContainerStyle={styles.groceryRow}
-      >
-        <Animated.View style={scaleStyle}>
-          <Checkbox progress={progress} />
-        </Animated.View>
-        <AnimatedTypography
-          variant="body-base"
-          weight="bold"
-          numberOfLines={1}
-          style={[{ flex: 1 }, textStyles]}
-        >
-          {item.name}
-        </AnimatedTypography>
-        {!(item.quantity === 1 && item.unit === 'count') && (
-          <View
-            style={{
-              borderRadius: 999,
-              height: 24,
-              paddingHorizontal: 6,
-              backgroundColor: colors.orange[500],
-              borderWidth: 2,
-              borderBottomWidth: 3,
-              borderColor: colors.orange[600],
-            }}
-          >
-            <Typography variant="body-sm" weight="bold" color={colors.cream[100]}>
-              {item.quantity} {prettyUnit(item)}
+    <View>
+      <ReanimatedSwipeable ref={swipeRef} enabled={!busy} friction={1.5} rightThreshold={35}
+        overshootLeft={false} overshootRight overshootFriction={8}
+        renderRightActions={(swipeProgress) => (
+          <GrocerySwipeActions progress={swipeProgress} name={item.name} onEdit={openEdit} onRemove={removeItem} disabled={busy} />
+        )}>
+        <Pressable onLongPress={openEdit} disabled={busy} style={styles.groceryRow} accessible={false}>
+          <PressableWithHaptics onPress={toggle} onLongPress={openEdit}
+            accessibilityRole="checkbox" accessibilityLabel={`Bought ${item.name}`}
+            accessibilityState={{ checked: completed, disabled: busy || (!completed && item.quantity === 0) }}
+            disabled={busy || (!completed && item.quantity === 0)} hitSlop={8}>
+            <Checkbox progress={progress} />
+          </PressableWithHaptics>
+          <View style={{ flex: 1 }} accessible accessibilityRole="button" accessibilityLabel={`Edit ${item.name}`}
+            accessibilityActions={[{ name: 'activate', label: 'Edit item' }]} onAccessibilityAction={openEdit}>
+            <Typography variant="body-base" weight="bold" numberOfLines={1}
+              style={{ color: completed ? colors.brown[600] : colors.brown[900] }}>
+              {item.name}
             </Typography>
           </View>
-        )}
+          {!(item.quantity === 1 && item.unit === 'count') && <GroceryQuantity quantity={item.quantity} unit={item.unit} />}
+        </Pressable>
       </ReanimatedSwipeable>
-    </AnimatedPressable>
+      {(edit.isError || remove.isError) && <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ padding: 12 }}>
+        {remove.isError ? 'Could not remove this item. Try again.' : 'Could not update this item. Try again.'}
+      </Typography>}
+    </View>
   );
 };
 
@@ -326,10 +270,9 @@ const Aisle = ({
     <AisleHeader type={aisle} />
     <Animated.View
       style={{
-        backgroundColor: '#FEF2DD',
-        borderWidth: 1,
-        borderBottomWidth: 2,
-        borderColor: '#4A3E36',
+        backgroundColor: colors.surface.raised,
+        padding: 1,
+        paddingBottom: 2,
         borderRadius: 8,
         overflow: 'hidden',
       }}
@@ -346,6 +289,9 @@ const Aisle = ({
           <GroceryItem key={item.id} item={item} />
         </Animated.View>
       ))}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+        borderWidth: 1, borderBottomWidth: 2, borderColor: colors.brown[900], borderRadius: 8,
+      }]} />
     </Animated.View>
   </Animated.View>
 );
@@ -394,6 +340,8 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
   const insets = useSafeAreaInsets();
   const sheets = useSheets();
   const groceries = useGroceries();
+  const { refetch } = groceries;
+  useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
   const groceryCheckout = useGroceryCheckout();
 
   const [enterAnimationsEnabled, setEnterAnimationsEnabled] = useState(false);
@@ -476,6 +424,8 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                 variant="secondary"
                 onPress={handleCheckout}
                 text="Checkout!"
+                disabled={groceryCheckout.isPending}
+                isLoading={groceryCheckout.isPending}
                 leftIcon={{ Icon: ShoppingBasket }}
               />
             </Animated.View>
@@ -561,12 +511,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: 16,
     paddingVertical: 10,
-  },
-  leftActionContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 8,
-    alignItems: 'center',
+    backgroundColor: colors.surface.raised,
   },
 });
 
