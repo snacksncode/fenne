@@ -1,6 +1,10 @@
+import { ListLayoutView } from '@/components/list-layout-view';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { useActiveTabPress } from '@/hooks/use-active-tab-press';
+import { BlurTargetView } from 'expo-blur';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import {
   useDeleteGroceryItem,
-  useEditGroceryItem,
   useGroceries,
   useGroceryCheckout,
 } from '@/api/groceries';
@@ -20,9 +24,8 @@ import { useFocusEffect } from 'expo-router';
 import { GroceryQuantity } from '@/components/grocery-quantity';
 import { GrocerySwipeActions } from '@/components/grocery-swipe-actions';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -41,6 +44,7 @@ import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
+import { useGroceryChecks } from '@/hooks/use-grocery-checks';
 
 type AisleDTO = {
   aisle: AisleCategory;
@@ -151,7 +155,8 @@ const AisleSkeleton = () => {
 const GroceriesSkeleton = () => {
   const insets = useSafeAreaInsets();
   return (
-    <FlatList
+    <FlashList
+      maintainVisibleContentPosition={{ disabled: true }}
       data={[1, 2, 3]}
       renderItem={() => <AisleSkeleton />}
       style={{ backgroundColor: '#FEF7EA', flex: 1 }}
@@ -167,27 +172,26 @@ const GroceriesSkeleton = () => {
   );
 };
 
-const GroceryItem = ({ item }: { item: GroceryItemDTO }) => {
+type GroceryChecks = ReturnType<typeof useGroceryChecks>;
+
+const GroceryItem = ({ item, checks }: { item: GroceryItemDTO; checks: GroceryChecks }) => {
   const sheets = useSheets();
   const swipeRef = useRef<SwipeableMethods>(null);
-  const edit = useEditGroceryItem();
   const remove = useDeleteGroceryItem();
-  const completed = item.status === 'completed';
+  const completed = (checks.checks[item.id]?.status ?? item.status) === 'completed';
   const { progress } = useCheckbox(completed);
-  const busy = edit.isPending || remove.isPending;
+  const busy = checks.isSaving(item.id) || remove.isPending;
   const openEdit = () => {
+    if (checks.checks[item.id]) return;
     swipeRef.current?.close();
     sheets.present('grocery-entry-sheet', { data: { grocery: item } });
   };
   const removeItem = () => {
     swipeRef.current?.close();
+    checks.cancel(item.id);
     remove.mutate({ id: item.id });
   };
-  const toggle = () => edit.mutate({
-    id: item.id,
-    status: completed ? 'pending' : 'completed',
-    ...(!completed ? { quantity: item.quantity } : {}),
-  });
+  const toggle = () => checks.toggle(item);
 
   return (
     <View>
@@ -213,8 +217,8 @@ const GroceryItem = ({ item }: { item: GroceryItemDTO }) => {
           {!(item.quantity === 1 && item.unit === 'count') && <GroceryQuantity quantity={item.quantity} unit={item.unit} />}
         </Pressable>
       </ReanimatedSwipeable>
-      {(edit.isError || remove.isError) && <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ padding: 12 }}>
-        {remove.isError ? 'Could not remove this item. Try again.' : 'Could not update this item. Try again.'}
+      {remove.isError && <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ padding: 12 }}>
+        Could not remove this item. Try again.
       </Typography>}
     </View>
   );
@@ -223,13 +227,10 @@ const GroceryItem = ({ item }: { item: GroceryItemDTO }) => {
 const GAP_SIZE = 24;
 
 const CompletedSeparator = () => (
-  <Animated.View
-    entering={FadeIn}
-    exiting={FadeOut}
-    layout={LinearTransition.springify()}
+  <ListLayoutView
     style={{ position: 'relative', zIndex: -1, alignItems: 'center', gap: 8 }}
   >
-    <View
+    <ListLayoutView
       style={{
         borderBottomWidth: 1,
         borderColor: '#867a6e',
@@ -249,26 +250,21 @@ const CompletedSeparator = () => (
     >
       Completed
     </Typography>
-  </Animated.View>
+  </ListLayoutView>
 );
 
 const Aisle = ({
   aisle: { aisle, items },
-  enterAnimationsEnabled,
   isBought = false,
+  checks,
 }: {
   aisle: AisleDTO;
-  enterAnimationsEnabled: boolean;
   isBought?: boolean;
+  checks: GroceryChecks;
 }) => (
-  <Animated.View
-    style={{ gap: 12 }}
-    layout={LinearTransition.springify()}
-    exiting={FadeOut}
-    {...(enterAnimationsEnabled && { entering: FadeIn })}
-  >
+  <ListLayoutView style={{ gap: 12 }}>
     <AisleHeader type={aisle} />
-    <Animated.View
+    <ListLayoutView
       style={{
         backgroundColor: colors.surface.raised,
         padding: 1,
@@ -276,24 +272,18 @@ const Aisle = ({
         borderRadius: 8,
         overflow: 'hidden',
       }}
-      layout={LinearTransition.springify()}
     >
       {items.map((item, index) => (
-        <Animated.View
-          key={isBought ? `${item.id}-bought` : item.id}
-          layout={LinearTransition.springify()}
-          exiting={FadeOut}
-          {...(enterAnimationsEnabled && { entering: FadeIn })}
-        >
+        <ListLayoutView key={isBought ? `${item.id}-bought` : item.id}>
           {index > 0 ? <DashedDivider /> : null}
-          <GroceryItem key={item.id} item={item} />
-        </Animated.View>
+          <GroceryItem key={item.id} item={item} checks={checks} />
+        </ListLayoutView>
       ))}
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+      <ListLayoutView pointerEvents="none" style={[StyleSheet.absoluteFill, {
         borderWidth: 1, borderBottomWidth: 2, borderColor: colors.brown[900], borderRadius: 8,
       }]} />
-    </Animated.View>
-  </Animated.View>
+    </ListLayoutView>
+  </ListLayoutView>
 );
 
 const parseAisles = (groceries: GroceryItemDTO[]): ListItem[] => {
@@ -337,23 +327,18 @@ const parseAisles = (groceries: GroceryItemDTO[]): ListItem[] => {
 };
 
 const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIsExpanded: (v: boolean) => void }) => {
+  const listRef = useRef<FlashListRef<ListItem>>(null);
+  useActiveTabPress(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
   const insets = useSafeAreaInsets();
   const sheets = useSheets();
   const groceries = useGroceries();
+  const checks = useGroceryChecks();
+  const { flush } = checks;
+  useFocusEffect(useCallback(() => () => { void flush(); }, [flush]));
   const { refetch } = groceries;
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
   const groceryCheckout = useGroceryCheckout();
 
-  const [enterAnimationsEnabled, setEnterAnimationsEnabled] = useState(false);
-
-  useEffect(() => {
-    if (!groceries.data) return;
-    const id = setTimeout(() => setEnterAnimationsEnabled(true), 500);
-    return () => {
-      setEnterAnimationsEnabled(false);
-      clearTimeout(id);
-    };
-  }, [groceries.data]);
 
   const expand = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -368,21 +353,31 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
   const hasAtLeastOneChecked = groceries.data.some((item) => item.status === 'completed');
   const aisles = parseAisles(groceries.data);
 
-  const handleCheckout = () => groceryCheckout.mutate();
+  const handleCheckout = () => {
+    if (!checks.hasPending) groceryCheckout.mutate();
+  };
 
   return (
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
-      <FlatList
+      <AnimatedFlashList
+        ref={listRef}
+        maintainVisibleContentPosition={{ disabled: true }}
         data={aisles}
+        getItemType={(item) => item.type}
         ListEmptyComponent={EmptyList}
+        ListHeaderComponent={checks.error ? (
+          <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ paddingBottom: 12 }}>
+            Could not save some checked items. Please try again.
+          </Typography>
+        ) : null}
         renderItem={({ item }) => {
           if (item.type === 'separator') {
             return <CompletedSeparator />;
           }
           if (item.type === 'bought-aisle') {
-            return <Aisle aisle={item} isBought enterAnimationsEnabled={enterAnimationsEnabled} />;
+            return <Aisle aisle={item} isBought checks={checks} />;
           }
-          return <Aisle aisle={item} enterAnimationsEnabled={enterAnimationsEnabled} />;
+          return <Aisle aisle={item} checks={checks} />;
         }}
         style={{ backgroundColor: '#FEF7EA', flex: 1 }}
         keyExtractor={(item) =>
@@ -424,7 +419,7 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
                 variant="secondary"
                 onPress={handleCheckout}
                 text="Checkout!"
-                disabled={groceryCheckout.isPending}
+                disabled={groceryCheckout.isPending || checks.hasPending}
                 isLoading={groceryCheckout.isPending}
                 leftIcon={{ Icon: ShoppingBasket }}
               />
@@ -493,12 +488,15 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
 };
 
 const Groceries = () => {
+  const blurTarget = useRef<View | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const tabFocusStyle = useTabFocusAnimation();
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: '#FEF7EA' }, tabFocusStyle]}>
-      <RouteTitle icon={ShoppingBasket} text="Groceries" />
-      <PageContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <PageContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
+      </BlurTargetView>
+      <RouteTitle blurTarget={blurTarget} icon={ShoppingBasket} text="Groceries" />
     </Animated.View>
   );
 };

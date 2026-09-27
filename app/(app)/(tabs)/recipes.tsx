@@ -1,18 +1,22 @@
+import { ListLayoutView } from '@/components/list-layout-view';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { useActiveTabPress } from '@/hooks/use-active-tab-press';
+import { BlurTargetView } from 'expo-blur';
 import { Recipe } from '@/components/recipe';
 import { RouteTitle } from '@/components/RouteTitle';
 import { EmptyState } from '@/components/empty-state';
 import { useRecipes } from '@/api/recipes';
 import { RecipeDTO } from '@/api/types';
 import { useRouter } from 'expo-router';
-import { View, StyleSheet, FlatList, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
-import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
-import { isEmpty, isEmptyish } from 'remeda';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
+import Animated, { FadeIn, useAnimatedStyle } from 'react-native-reanimated';
+import { isEmptyish } from 'remeda';
 import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
 import { useSheets } from '@/lib/sheet-context';
 import { BookMarked, Check, Funnel, Plus } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { colors } from '@/constants/colors';
 import { Button } from '@/components/button';
@@ -48,6 +52,7 @@ const RecipesSkeleton = () => {
   const insets = useSafeAreaInsets();
   return (
     <FlashList
+      maintainVisibleContentPosition={{ disabled: true }}
       data={[1, 2, 3]}
       renderItem={() => (
         <View
@@ -82,13 +87,13 @@ const RecipeItem = ({ recipe }: { recipe: RecipeDTO }) => {
   const router = useRouter();
   const sheets = useSheets();
   return (
-    <Animated.View layout={LinearTransition.springify()} entering={FadeIn} exiting={FadeOut}>
+    <ListLayoutView>
       <Recipe
         recipe={recipe}
         onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id } })}
         onLongPress={() => sheets.present('recipe-options-sheet', { data: { recipe } })}
       />
-    </Animated.View>
+    </ListLayoutView>
   );
 };
 
@@ -97,16 +102,19 @@ const GAP_SIZE = 16;
 const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: string }) => {
   const insets = useSafeAreaInsets();
   const recipes = useRecipes();
+  const listRef = useRef<FlashListRef<RecipeDTO>>(null);
+  useActiveTabPress(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
 
   if (!recipes.data) return <RecipesSkeleton />;
-  if (isEmpty(recipes.data)) return <EmptyList />;
 
   const filteredRecipes = sortRecipes(filterRecipes(recipes.data, { mealFilter, search }));
   const isFiltering = search.trim().length > 0 || mealFilter !== 'all';
 
   return (
     <Animated.View style={{ flex: 1 }} entering={FadeIn}>
-      <FlatList
+      <AnimatedFlashList
+        ref={listRef}
+        maintainVisibleContentPosition={{ disabled: true }}
         data={filteredRecipes}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item: recipe }) => <RecipeItem recipe={recipe} />}
@@ -127,6 +135,7 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
 };
 
 const Recipes = () => {
+  const blurTarget = useRef<View | null>(null);
   const router = useRouter();
   const sheets = useSheets();
   const recipes = useRecipes();
@@ -148,8 +157,10 @@ const Recipes = () => {
     <Animated.View style={[{ flex: 1 }, tabFocusStyle]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1, backgroundColor: colors.cream[100] }}>
-          <RouteTitle icon={BookMarked} text="Recipes" />
-          <PageContent mealFilter={mealFilter} search={search} />
+          <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+            <PageContent mealFilter={mealFilter} search={search} />
+          </BlurTargetView>
+          <RouteTitle blurTarget={blurTarget} icon={BookMarked} text="Recipes" />
           {!isEmptyish(recipes.data) ? (
             <Animated.View
               style={[

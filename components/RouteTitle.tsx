@@ -1,8 +1,9 @@
+import { BlurView } from 'expo-blur';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { useRouter } from 'expo-router';
 import { Cog, ListTodo, LucideIcon } from 'lucide-react-native';
-import { ReactNode } from 'react';
+import { ReactNode, RefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSheets } from '@/lib/sheet-context';
@@ -11,13 +12,13 @@ import { colors } from '@/constants/colors';
 import { Button } from '@/components/button';
 
 type Props = {
+  blurTarget: RefObject<View | null>;
   icon: LucideIcon;
   text: string;
-  footerSlot?: ReactNode;
   rightSlot?: ReactNode;
 };
 
-export const RouteTitle = ({ icon: Icon, text, footerSlot, rightSlot }: Props) => {
+export const RouteTitle = ({ blurTarget, icon: Icon, text, rightSlot }: Props) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const sheets = useSheets();
@@ -43,9 +44,21 @@ export const RouteTitle = ({ icon: Icon, text, footerSlot, rightSlot }: Props) =
         paddingHorizontal: 20,
         borderBottomColor: colors.brown[900],
         borderBottomWidth: 1,
-        backgroundColor: colors.cream[100],
+        overflow: 'hidden',
       }}
     >
+      <BlurView
+        pointerEvents="none"
+        blurTarget={blurTarget}
+        blurMethod="dimezisBlurView"
+        intensity={80}
+        tint="light"
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface.headerOverlay }]}
+      />
       <View style={styles.container}>
         <View style={styles.title}>
           <Icon color={colors.brown[900]} size={32} strokeWidth={2.25} />
@@ -73,7 +86,6 @@ export const RouteTitle = ({ icon: Icon, text, footerSlot, rightSlot }: Props) =
           <Button onPress={onPress} variant="primary" size="small" text={`Todo list`} leftIcon={{ Icon: ListTodo }} />
         )}
       </View>
-      {footerSlot}
     </View>
   );
 };

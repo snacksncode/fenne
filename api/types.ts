@@ -316,7 +316,6 @@ export type ScheduleDayDTO = {
   breakfast: MealEntryDTO | null;
   lunch: MealEntryDTO | null;
   dinner: MealEntryDTO | null;
-  is_shopping_day: boolean;
 };
 
 export type ScheduleMealEntry = { type: 'recipe'; recipe_id: string } | { type: 'dining_out'; name: string };
@@ -326,5 +325,4 @@ export type ScheduleDayInput = {
   breakfast?: ScheduleMealEntry | null;
   lunch?: ScheduleMealEntry | null;
   dinner?: ScheduleMealEntry | null;
-  is_shopping_day?: boolean;
 };

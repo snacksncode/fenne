@@ -1,4 +1,3 @@
-import { Tag } from '@/components/svgs/tag';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '@/components/Typography';
 import { formatDateToISO, parseISO } from '@/date-tools';
@@ -15,32 +14,9 @@ import { useToday } from '@/hooks/use-today';
 type Props = {
   startOfMonthDate: Date;
   onDaySelect: (day: { dateString: string }) => void;
-  onDayLongPress?: (day: { dateString: string }) => void;
   scheduleMap: Record<string, ScheduleDayDTO>;
   selectedRange?: { startDateString: string; endDateString: string };
 };
-
-const ShoppingDayTag = () => (
-  <View
-    style={{
-      zIndex: 3,
-      backgroundColor: '#61AA64',
-      borderWidth: 1,
-      width: 18,
-      height: 18,
-      padding: 4,
-      borderRadius: 999,
-      borderColor: '#5B8B5D',
-      position: 'absolute',
-      right: -4,
-      top: -4,
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <Tag color="white" size={11} />
-  </View>
-);
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -48,14 +24,12 @@ const Day = memo(function Day({
   dateString,
   scheduleDay,
   onDaySelect,
-  onDayLongPress,
   pressedDayKey,
   isHighlighted,
 }: {
   dateString: string;
   scheduleDay: ScheduleDayDTO | undefined;
   onDaySelect: (day: { dateString: string }) => void;
-  onDayLongPress?: (day: { dateString: string }) => void;
   pressedDayKey: SharedValue<string | null>;
   isHighlighted: boolean;
 }) {
@@ -98,18 +72,12 @@ const Day = memo(function Day({
     onDaySelect({ dateString });
   };
 
-  const handleLongPress = () => {
-    if (!onDayLongPress) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onDayLongPress({ dateString });
-  };
 
   return (
     <AnimatedPressable
       onPressIn={() => scheduleOnUI(() => (pressedDayKey.value = dateString))}
       onPressOut={() => scheduleOnUI(() => (pressedDayKey.value = null))}
       onPress={handlePress}
-      onLongPress={handleLongPress}
       style={[
         {
           flex: 1,
@@ -125,7 +93,6 @@ const Day = memo(function Day({
         animatedStyle,
       ]}
     >
-      {scheduleDay.is_shopping_day ? <ShoppingDayTag /> : null}
       <View
         style={{
           zIndex: 2,
@@ -177,7 +144,6 @@ export const Month = memo(function Month({
   startOfMonthDate,
   selectedRange,
   onDaySelect,
-  onDayLongPress,
 }: Props) {
   const pressedDayKey = useSharedValue<string | null>(null);
   const end = endOfMonth(startOfMonthDate);
@@ -224,7 +190,6 @@ export const Month = memo(function Month({
                     key={getUnixTime(day)}
                     scheduleDay={scheduleDay}
                     onDaySelect={onDaySelect}
-                    onDayLongPress={onDayLongPress}
                     pressedDayKey={pressedDayKey}
                     isHighlighted={isWithinRange}
                   />

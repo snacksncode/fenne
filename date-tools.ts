@@ -46,3 +46,9 @@ export const getISOWeeksForMonth = (dateString: string) => {
 export const millisecondsUntilNextDay = (now: Date) => {
   return startOfDay(addDays(now, 1)).getTime() - now.getTime();
 };
+
+// Seven calendar days, starting tomorrow, independent of the visible month.
+export const getDefaultGroceryDateRange = (today: Date) => ({
+  startDateString: formatDateToISO(addDays(today, 1)),
+  endDateString: formatDateToISO(addDays(today, 7)),
+});

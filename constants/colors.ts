@@ -27,6 +27,7 @@ export const colors = {
   },
   surface: {
     canvas: '#FEF7EA',
+    headerOverlay: '#FEF7EA33',
     raised: '#FEF2DD',
     subtle: '#FEF4E2',
     skeleton: '#EEDBB9',

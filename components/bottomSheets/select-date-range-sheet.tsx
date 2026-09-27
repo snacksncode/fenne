@@ -6,25 +6,21 @@ import { Month } from '@/components/menu/month';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { formatDateToISO, getISOWeeksForMonth } from '@/date-tools';
+import { formatDateToISO, getISOWeeksForMonth, getDefaultGroceryDateRange } from '@/date-tools';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { useRouter } from 'expo-router';
 import {
   addMonths,
-  addWeeks,
-  endOfToday,
   format,
   isAfter,
   isBefore,
   parseISO,
   startOfMonth,
   startOfToday,
-  startOfTomorrow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, WandSparkles } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
-import { filter, find, pipe, values } from 'remeda';
 
 type Range = {
   startDateString: string;
@@ -38,20 +34,7 @@ export const SelectDateRangeSheet = (props: SheetProps<'select-date-range-sheet'
   const weeks = getISOWeeksForMonth(formatDateToISO(startOfMonth(currentMonthDate)));
   const [range, setRange] = useState<Range>();
   const { scheduleMap, isLoading } = useSchedule({ weeks });
-  const defaultRange = useMemo<Range | undefined>(() => {
-    if (isLoading) return undefined;
-
-    const result = pipe(
-      values(scheduleMap),
-      filter((day) => isAfter(parseISO(day.date), endOfToday())),
-      find((day) => day.is_shopping_day)
-    );
-
-    return {
-      startDateString: formatDateToISO(startOfTomorrow()),
-      endDateString: result?.date ?? formatDateToISO(addWeeks(startOfToday(), 1)),
-    };
-  }, [isLoading, scheduleMap]);
+  const [defaultRange] = useState(() => getDefaultGroceryDateRange(new Date()));
   const selectedRange = range ?? defaultRange;
   const previewQuery = useGroceryPreview({
     start: selectedRange?.startDateString,

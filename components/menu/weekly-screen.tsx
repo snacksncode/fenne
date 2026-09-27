@@ -1,6 +1,9 @@
+import { ListLayoutView } from '@/components/list-layout-view';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { useActiveTabPress } from '@/hooks/use-active-tab-press';
 import { Typography } from '@/components/Typography';
 import { atom, useAtom } from 'jotai';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -10,9 +13,6 @@ import {
   eachWeekOfInterval,
   endOfWeek,
   format,
-  getUnixTime,
-  isAfter,
-  isBefore,
   startOfToday,
   startOfWeek,
 } from 'date-fns';
@@ -20,25 +20,23 @@ import {
 import Animated from 'react-native-reanimated';
 
 import { difference, first, isEmpty, isTruthy } from 'remeda';
-import { Tag } from '@/components/svgs/tag';
-import { FlashList, FlashListRef, ViewToken } from '@shopify/flash-list';
+import { FlashListRef, ViewToken } from '@shopify/flash-list';
 import { Button } from '@/components/button';
 import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
 import { useBackToToday } from '@/components/menu/shared';
 import { useSheets } from '@/lib/sheet-context';
-import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
+import { MealEntry } from '@/components/menu/meal-entry';
 import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { MealType, ScheduleDayDTO, MealEntryDTO } from '@/api/types';
+import { MealType, ScheduleDayDTO } from '@/api/types';
 import { useSchedule } from '@/api/schedules';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useMount } from '@/hooks/use-mount';
-import { useRouter } from 'expo-router';
 import { useOnAppActive } from '@/hooks/use-on-app-active';
 import { useToday } from '@/hooks/use-today';
 
 const GAP_SIZE = 16;
-const HEADER_SIZE = 105;
+const HEADER_SIZE = 59;
 
 const DayCardSkeleton = () => {
   return (
@@ -139,31 +137,6 @@ export function getThreeWeekSlice(today: Date) {
   return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
 }
 
-const Entry = ({ entry, dateString }: { entry: MealEntryDTO & { mealType: MealType }; dateString: string }) => {
-  const router = useRouter();
-  const sheets = useSheets();
-  return (
-    <PressableWithHaptics
-      onPress={
-        entry.type === 'recipe'
-          ? () => router.push({ pathname: '/recipe/[id]', params: { id: entry.recipe.id } })
-          : undefined
-      }
-      onLongPress={() => {
-        sheets.present('edit-meal-sheet', {
-          data: { entry: { ...entry, dateString } },
-        });
-      }}
-      style={{ gap: 2 }}
-      scaleTo={0.985}
-    >
-      <MealTypeKicker type={entry.mealType} />
-      <Typography variant="heading-sm" weight="black">
-        {entry.type === 'recipe' ? entry.recipe.name : entry.name}
-      </Typography>
-    </PressableWithHaptics>
-  );
-};
 
 export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDayDTO) => {
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
@@ -189,7 +162,7 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
   };
 
   return (
-    <View
+    <ListLayoutView
       style={{
         backgroundColor: '#FEF2DD',
         paddingHorizontal: 16,
@@ -201,10 +174,10 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
       }}
     >
       {entries.map((entry, index) => (
-        <View key={entry.id + entry.mealType}>
-          <Entry entry={entry} dateString={data.date} />
+        <ListLayoutView key={entry.mealType}>
+          <MealEntry entry={entry} dateString={data.date} />
           {index !== entries.length - 1 ? (
-            <View
+            <ListLayoutView
               style={{
                 height: 1,
                 backgroundColor: '#EEDBB9',
@@ -212,10 +185,10 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
               }}
             />
           ) : null}
-        </View>
+        </ListLayoutView>
       ))}
       {entries.length !== 3 ? (
-        <View
+        <ListLayoutView
           style={{
             marginHorizontal: -16,
             marginBottom: -12,
@@ -226,7 +199,7 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
             height: 40,
           }}
         >
-          <View
+          <ListLayoutView
             style={{
               position: 'relative',
               top: 0,
@@ -235,27 +208,24 @@ const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
               borderColor: '#EEDBB9',
             }}
           />
-          <PressableWithHaptics
-            style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}
-            onPress={onPress}
-          >
-            <View style={{ flexDirection: 'row', gap: 4 }}>
+          <PressableWithHaptics style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }} onPress={onPress}>
+            <ListLayoutView style={{ flexDirection: 'row', gap: 4 }}>
               <Plus color="#4A3E36" size={18} strokeWidth={2.5} />
               <Typography variant="body-sm" weight="bold">
                 Another Meal?
               </Typography>
-            </View>
+            </ListLayoutView>
           </PressableWithHaptics>
-        </View>
+        </ListLayoutView>
       ) : null}
-    </View>
+    </ListLayoutView>
   );
 };
 
 const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
   return (
     <PressableWithHaptics onPress={onPress}>
-      <View
+      <ListLayoutView
         style={{
           backgroundColor: '#FEF4E2',
           padding: 16,
@@ -276,7 +246,7 @@ const EmptyDayCard = ({ onPress }: { onPress: () => void }) => {
         <Typography variant="body-sm" weight="bold">
           Tap to add a meal
         </Typography>
-      </View>
+      </ListLayoutView>
     </PressableWithHaptics>
   );
 };
@@ -324,23 +294,6 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
             </Typography>
           </View>
         ) : null}
-        {data?.is_shopping_day ? (
-          <View
-            style={{
-              backgroundColor: '#61AA64',
-              borderColor: '#5B8B5D',
-              borderWidth: 1,
-              borderBottomWidth: 2,
-              borderRadius: 999,
-              height: 24,
-              paddingHorizontal: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Tag color="#FEF7EA" size={14} />
-          </View>
-        ) : null}
         <Typography variant="body-sm" weight="bold" color={colors.brown[700]} style={{ flex: 1, textAlign: 'right' }}>
           {format(date, 'd MMM')}
         </Typography>
@@ -350,27 +303,11 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
   );
 };
 
-export const scrollTargetAtom = atom<{ dateString: string } | null>(null);
-
 const useDateRange = () => {
   const [dateRange, setDateRange] = useState({
     start: formatDateToISO(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
     end: formatDateToISO(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
   });
-
-  const expandRange = (dateString: string) => {
-    const date = parseISO(dateString);
-
-    if (isBefore(date, parseISO(dateRange.start))) {
-      const newStart = addWeeks(startOfWeek(date, { weekStartsOn: 1 }), -1);
-      setDateRange({ ...dateRange, start: formatDateToISO(newStart) });
-    }
-
-    if (isAfter(date, parseISO(dateRange.end))) {
-      const newEnd = addWeeks(endOfWeek(date, { weekStartsOn: 1 }), 1);
-      setDateRange({ ...dateRange, end: formatDateToISO(newEnd) });
-    }
-  };
 
   const expandWeekIntoPast = () => {
     setDateRange((prev) => {
@@ -390,7 +327,6 @@ const useDateRange = () => {
 
   return {
     weeks,
-    expandRange,
     expandWeekIntoPast,
     expandWeekIntoFuture,
   };
@@ -398,17 +334,18 @@ const useDateRange = () => {
 
 export const hasWeeklyScreenLoadedAtom = atom(false);
 
+type MenuDay = { date: string; schedule: ScheduleDayDTO | undefined };
+
 export const WeeklyScreen = () => {
   const [hasLoaded, setHasWeeklyScreenLoaded] = useAtom(hasWeeklyScreenLoadedAtom);
   const [, setFocusCount] = useState(0);
-  const weeklyListRef = useRef<FlashListRef<string>>(null);
+  const weeklyListRef = useRef<FlashListRef<MenuDay>>(null);
   const insets = useSafeAreaInsets();
   const hasScrolledRef = useRef(false);
-  const [scrollTarget, setScrollTarget] = useAtom(scrollTargetAtom);
-  const { weeks, expandWeekIntoFuture, expandWeekIntoPast, expandRange } = useDateRange();
+  const { weeks, expandWeekIntoFuture, expandWeekIntoPast } = useDateRange();
   const backToToday = useBackToToday();
   const { scheduleMap, isInitialLoading } = useSchedule({ weeks });
-  const days = weeks.flatMap(getDatesFromISOWeek);
+  const days = weeks.flatMap(getDatesFromISOWeek).map((date) => ({ date, schedule: scheduleMap[date] }));
 
   useOnAppActive(() => setFocusCount((c) => c + 1));
 
@@ -417,44 +354,44 @@ export const WeeklyScreen = () => {
     return () => setHasWeeklyScreenLoaded(false);
   });
 
-  const scrollToDate = ({
-    dateString,
-    animated,
-    offset,
-  }: {
-    dateString: string;
-    animated: boolean;
-    offset?: number;
-  }) => {
-    setImmediate(() => {
-      weeklyListRef.current?.scrollToItem({
-        item: dateString,
-        viewOffset: -1 * (insets.top + HEADER_SIZE + GAP_SIZE + (offset ?? 0)),
-        animated,
+  const scrollToDate = useCallback(
+    ({ dateString, animated }: { dateString: string; animated: boolean }) => {
+      setImmediate(() => {
+        const index = days.findIndex((day) => day.date === dateString);
+        if (index < 0) return;
+        weeklyListRef.current?.scrollToIndex({
+          index,
+          viewOffset: -1 * (insets.top + HEADER_SIZE + GAP_SIZE),
+          animated,
+        });
       });
-    });
-  };
+    },
+    [days, insets.top]
+  );
 
-  useEffect(() => {
-    if (!scrollTarget || !weeklyListRef.current) return;
-    if (!days.includes(scrollTarget.dateString)) return expandRange(scrollTarget.dateString);
-    scrollToDate({ dateString: scrollTarget.dateString, offset: 60, animated: true });
-    setScrollTarget(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, scrollTarget]);
+  const scrollToToday = useCallback(
+    ({ animated }: { animated: boolean }) => {
+      scrollToDate({ dateString: formatDateToISO(startOfToday()), animated });
+    },
+    [scrollToDate]
+  );
 
-  const scrollToToday = ({ animated }: { animated: boolean }) => {
-    scrollToDate({ dateString: formatDateToISO(startOfToday()), animated });
-  };
+  const { setShow } = backToToday;
+  const returnToToday = useCallback(() => {
+    setShow({ state: false, lock: Date.now() });
+    scrollToToday({ animated: true });
+  }, [setShow, scrollToToday]);
 
-  const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<string>[] }) => {
+  useActiveTabPress(returnToToday);
+
+  const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<MenuDay>[] }) => {
     if (isEmpty(viewableItems) || isInitialLoading) return;
 
     const today = formatDateToISO(startOfToday());
-    if (viewableItems.find(({ item }) => item === today)) setHasWeeklyScreenLoaded(true);
+    if (viewableItems.find(({ item }) => item.date === today)) setHasWeeklyScreenLoaded(true);
 
     backToToday.handleViewableItemsChanged({
-      viewableItems,
+      viewableItems: viewableItems.map((token) => ({ ...token, item: token.item.date })),
       todayItem: formatDateToISO(startOfToday()),
     });
   };
@@ -477,10 +414,7 @@ export const WeeklyScreen = () => {
           variant="primary"
           text="Back to today"
           size="small"
-          onPress={() => {
-            backToToday.setShow({ state: false, lock: Date.now() });
-            scrollToToday({ animated: true });
-          }}
+          onPress={returnToToday}
         />
       </Animated.View>
       {!hasLoaded && (
@@ -489,13 +423,12 @@ export const WeeklyScreen = () => {
         </View>
       )}
       {!isEmpty(scheduleMap) && (
-        <FlashList
-          maxItemsInRecyclePool={0}
+        <AnimatedFlashList
           ref={weeklyListRef}
           data={days}
-          renderItem={({ item }) => <Item dateString={item} data={scheduleMap[item]} />}
+          renderItem={({ item }) => <Item dateString={item.date} data={item.schedule} />}
           style={{ backgroundColor: colors.cream[100], flex: 1 }}
-          keyExtractor={(item) => getUnixTime(item).toString()}
+          keyExtractor={(item) => item.date}
           ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
           contentContainerStyle={{
             paddingHorizontal: 20,

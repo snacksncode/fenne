@@ -1,3 +1,7 @@
+import { ListLayoutView } from '@/components/list-layout-view';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { useActiveTabPress } from '@/hooks/use-active-tab-press';
+import { BlurTargetView } from 'expo-blur';
 import { usePantry } from '@/api/pantry';
 import { AisleCategory, PantryEntryDTO } from '@/api/types';
 import { AISLE_CATEGORIES, AisleHeader } from '@/components/aisle-header';
@@ -14,7 +18,7 @@ import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useSheets } from '@/lib/sheet-context';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import {
   addDays,
   addMonths,
@@ -26,9 +30,9 @@ import {
 } from 'date-fns';
 import { Archive, Boxes, Check, Funnel, History, Plus, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Keyboard, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
+import { useMemo, useRef, useState } from 'react';
+import { Keyboard, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
@@ -203,35 +207,19 @@ const PantryRow = ({ entry }: { entry: PantryEntryDTO }) => {
   );
 };
 
-const PantryAisleGroup = ({
-  aisle,
-  enterAnimationsEnabled,
-}: {
-  aisle: PantryAisle;
-  enterAnimationsEnabled: boolean;
-}) => {
+const PantryAisleGroup = ({ aisle }: { aisle: PantryAisle }) => {
   return (
-    <Animated.View
-      style={styles.aisle}
-      layout={LinearTransition.springify()}
-      exiting={FadeOut}
-      {...(enterAnimationsEnabled && { entering: FadeIn })}
-    >
+    <ListLayoutView style={styles.aisle}>
       <AisleHeader type={aisle.aisle} />
-      <Animated.View style={styles.aisleRows} layout={LinearTransition.springify()}>
+      <ListLayoutView style={styles.aisleRows}>
         {aisle.entries.map((entry, index) => (
-          <Animated.View
-            key={entry.id}
-            layout={LinearTransition.springify()}
-            exiting={FadeOut}
-            {...(enterAnimationsEnabled && { entering: FadeIn })}
-          >
+          <ListLayoutView key={entry.id}>
             {index > 0 ? <DashedDivider /> : null}
             <PantryRow entry={entry} />
-          </Animated.View>
+          </ListLayoutView>
         ))}
-      </Animated.View>
-    </Animated.View>
+      </ListLayoutView>
+    </ListLayoutView>
   );
 };
 
@@ -255,7 +243,7 @@ const PantrySkeleton = () => {
   const insets = useSafeAreaInsets();
 
   return (
-    <FlatList
+    <FlashList
       data={[1, 2, 3]}
       renderItem={() => (
         <View style={styles.skeletonAisle}>
@@ -289,6 +277,9 @@ const PantrySkeleton = () => {
 };
 
 const Pantry = () => {
+  const listRef = useRef<FlashListRef<PantryAisle>>(null);
+  useActiveTabPress(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
+  const blurTarget = useRef<View | null>(null);
   const router = useRouter();
   const sheets = useSheets();
   const [filter, setFilter] = useState<PantryFilter>('all');
@@ -297,20 +288,11 @@ const Pantry = () => {
   const pantry = usePantry();
   const entries = useFilteredEntries(pantry.data, filter, search);
   const aisles = usePantryAisles(entries);
-  const [enterAnimationsEnabled, setEnterAnimationsEnabled] = useState(false);
   const { isKeyboardOpen } = useKeyboardOpen();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom + 88, -keyboardHeight.value + 12) }));
   const tabFocusStyle = useTabFocusAnimation();
 
-  useEffect(() => {
-    if (!pantry.data) return;
-    const id = setTimeout(() => setEnterAnimationsEnabled(true), 500);
-    return () => {
-      setEnterAnimationsEnabled(false);
-      clearTimeout(id);
-    };
-  }, [pantry.data]);
 
   const openFilterSheet = async () => {
     const nextFilter = await sheets.present('pantry-filter-sheet', { data: { current: filter } });
@@ -321,7 +303,34 @@ const Pantry = () => {
     <Animated.View style={[styles.screen, tabFocusStyle]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.screen}>
+          <BlurTargetView ref={blurTarget} style={styles.screen}>
+            {pantry.data == null ? (
+              <PantrySkeleton />
+            ) : (
+              <AnimatedFlashList
+                ref={listRef}
+                data={aisles}
+                renderItem={({ item }) => (
+                  <PantryAisleGroup aisle={item} />
+                )}
+                keyExtractor={(item) => item.aisle}
+                ListEmptyComponent={<EmptyPantry filter={filter} search={search} />}
+                style={styles.list}
+                ItemSeparatorComponent={() => <View style={{ height: 24 }} />}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                maintainVisibleContentPosition={{ disabled: true }}
+                contentContainerStyle={{
+                  ...(entries.length === 0 && { flexGrow: 1 }),
+                  paddingHorizontal: 20,
+                  paddingTop: insets.top + 76,
+                  paddingBottom: insets.bottom + (entries.length === 0 ? 72 : 152),
+                }}
+              />
+            )}
+          </BlurTargetView>
           <RouteTitle
+            blurTarget={blurTarget}
             icon={Archive}
             text="Pantry"
             rightSlot={
@@ -347,29 +356,6 @@ const Pantry = () => {
               </View>
             }
           />
-          {pantry.data == null ? (
-            <PantrySkeleton />
-          ) : (
-            <FlashList
-              data={aisles}
-              renderItem={({ item }) => (
-                <PantryAisleGroup aisle={item} enterAnimationsEnabled={enterAnimationsEnabled} />
-              )}
-              keyExtractor={(item) => item.aisle}
-              ListEmptyComponent={<EmptyPantry filter={filter} search={search} />}
-              style={styles.list}
-              ItemSeparatorComponent={() => <View style={{ height: 24 }} />}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              maintainVisibleContentPosition={{ disabled: true }}
-              contentContainerStyle={{
-                ...(entries.length === 0 && { flexGrow: 1 }),
-                paddingHorizontal: 20,
-                paddingTop: insets.top + 76,
-                paddingBottom: insets.bottom + (entries.length === 0 ? 72 : 152),
-              }}
-            />
-          )}
           {pantry.data != null ? (
             <Animated.View style={[styles.toolbar, toolbarStyle]}>
               <View style={styles.searchContainer}>

@@ -16,7 +16,6 @@ import {
   ConsumptionLogDTO,
   ProductDeleteBlockersDTO,
 } from '@/api/types';
-import { TabParamList } from '@/app/(app)/(tabs)';
 
 import { SelectUnitSheet, Unit } from '@/components/bottomSheets/select-unit-sheet';
 import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
@@ -27,7 +26,6 @@ import { RecipeOptionsSheet } from '@/components/bottomSheets/recipe-options-she
 import { LeaveFamilySheet } from '@/components/bottomSheets/leave-family-sheet';
 import { ChangePasswordSheet } from '@/components/bottomSheets/change-password-sheet';
 import { ChangeDetailsSheet } from '@/components/bottomSheets/change-details-sheet';
-import { EditCalendarDaySheet } from '@/components/bottomSheets/edit-calendar-day-sheet';
 import { EditMealSheet } from '@/components/bottomSheets/edit-meal-sheet';
 import { InviteFamilyMemberSheet } from '@/components/bottomSheets/invite-family-member-sheet';
 import { SelectDateSheet } from '@/components/bottomSheets/select-date-sheet';
@@ -37,7 +35,6 @@ import { ConvertGuestSheet } from '@/components/bottomSheets/convert-guest-sheet
 import { DeleteAccountSheet } from '@/components/bottomSheets/delete-account-sheet';
 import { RecipeFilterSheet, MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { AddFromRecipeSheet } from '@/components/bottomSheets/add-from-recipe-sheet';
-import { BottomTabNavigationProp } from 'expo-router/js-tabs';
 import { SelectRecipeSheet } from '@/components/bottomSheets/select-recipe-sheet';
 import { PantryEntrySheet } from '@/components/bottomSheets/pantry-entry-sheet';
 import { ProductEditSheet } from '@/components/bottomSheets/product-edit-sheet';
@@ -99,12 +96,6 @@ declare module '@/lib/sheet-context' {
     'change-password-sheet': {};
     'change-details-sheet': {};
     'convert-guest-sheet': {};
-    'edit-calendar-day-sheet': {
-      data: {
-        dateString: string;
-        navigation: BottomTabNavigationProp<TabParamList>;
-      };
-    };
     'edit-meal-sheet': {
       data: {
         entry: MealEntryDTO & { mealType: MealType; dateString: string };
@@ -173,7 +164,6 @@ export const Sheets = () => (
       'change-password-sheet': ChangePasswordSheet,
       'change-details-sheet': ChangeDetailsSheet,
       'convert-guest-sheet': ConvertGuestSheet,
-      'edit-calendar-day-sheet': EditCalendarDaySheet,
       'edit-meal-sheet': EditMealSheet,
       'invite-family-member-sheet': InviteFamilyMemberSheet,
       'select-date-sheet': SelectDateSheet,

@@ -8,7 +8,7 @@ import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { FlashList } from '@shopify/flash-list';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
 import { router } from 'expo-router';
 import { ChevronLeft, PackageSearch } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
@@ -97,7 +97,8 @@ const Items = () => {
             </Typography>
           </View>
         </View>
-        <FlashList
+        <AnimatedFlashList
+          maintainVisibleContentPosition={{ disabled: true }}
           data={filteredProducts}
           renderItem={({ item }) => <ProductRow product={item} />}
           keyExtractor={(item) => item.id}

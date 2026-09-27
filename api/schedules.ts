@@ -4,7 +4,7 @@ import { indexBy, isDefined, isNullish, pickBy } from 'remeda';
 import { getISOWeekString } from '@/date-tools';
 import { MealEntryDTO, ScheduleMealEntry } from '@/api/types';
 import { recipesOptions } from '@/api/recipes';
-import { useRef } from 'react';
+import { useState } from 'react';
 import { tempId, useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
 import { queryKeys } from '@/api/query-keys';
@@ -19,9 +19,9 @@ export const scheduleOptions = (weekKey: string) => {
 
 export const useSchedule = ({ weeks, enabled }: { weeks: string[]; enabled?: boolean }) => {
   const queryClient = useQueryClient();
-  const initialWeeks = useRef(weeks);
+  const [initialWeeks] = useState(weeks);
   const queries = useQueries({ queries: weeks.map((weekKey) => ({ ...scheduleOptions(weekKey), enabled })) });
-  const isInitialLoading = initialWeeks.current.some((weekKey) => {
+  const isInitialLoading = initialWeeks.some((weekKey) => {
     const queryState = queryClient.getQueryState(scheduleOptions(weekKey).queryKey);
     if (!queryState) return false;
     const isPending = queryState.status === 'pending';
@@ -42,7 +42,7 @@ export const useUpdateScheduleDay = () => {
   return useMutation({
     mutationKey: ['updateScheduleDay'],
     mutationFn: api.schedules.updateDay,
-    onMutate: async ({ dateString, breakfast, dinner, lunch, is_shopping_day }) => {
+    onMutate: async ({ dateString, breakfast, dinner, lunch }) => {
       const weekKey = getISOWeekString(dateString);
       const { queryKey } = scheduleOptions(weekKey);
 
@@ -65,7 +65,6 @@ export const useUpdateScheduleDay = () => {
             breakfast: processEntry(breakfast),
             lunch: processEntry(lunch),
             dinner: processEntry(dinner),
-            is_shopping_day,
           };
 
           Object.assign(day, pickBy(data, isDefined));

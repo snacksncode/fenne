@@ -1,3 +1,4 @@
+import { ListLayoutView } from '@/components/list-layout-view';
 import { ConsumptionLogDTO, MealType } from '@/api/types';
 import { useAddConsumptionLog, useConsumptionLogs } from '@/api/consumption-logs';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
@@ -5,7 +6,7 @@ import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
 import { prettyUnit } from '@/utils/unit-formatters';
-import { FlashList } from '@shopify/flash-list';
+import { AnimatedFlashList } from '@/components/animated-flash-list';
 import { addDays, format, parseISO, startOfToday, subDays } from 'date-fns';
 import { router } from 'expo-router';
 import { ChevronLeft, CookingPot, Croissant, Drumstick } from 'lucide-react-native';
@@ -132,21 +133,21 @@ const ConsumptionSlot = ({ mealType, date, log }: { mealType: MealType; date: st
 };
 
 const DaySection = ({ day }: { day: DayRow }) => (
-  <View style={styles.daySection}>
-    <View style={styles.dayHeader}>
+  <ListLayoutView style={styles.daySection}>
+    <ListLayoutView style={styles.dayHeader}>
       <Typography variant="heading-sm" weight="black">
         {format(parseISO(day.date), 'EEEE')}
       </Typography>
       <Typography variant="body-sm" weight="bold" color={colors.brown[700]}>
         {format(parseISO(day.date), 'd MMM')}
       </Typography>
-    </View>
-    <View style={styles.slots}>
+    </ListLayoutView>
+    <ListLayoutView style={styles.slots}>
       {mealTypes.map((mealType) => (
-        <ConsumptionSlot key={mealType} mealType={mealType} date={day.date} log={day.logsByMeal[mealType]} />
+        <ListLayoutView key={mealType}><ConsumptionSlot mealType={mealType} date={day.date} log={day.logsByMeal[mealType]} /></ListLayoutView>
       ))}
-    </View>
-  </View>
+    </ListLayoutView>
+  </ListLayoutView>
 );
 
 const Consumptions = () => {
@@ -171,7 +172,8 @@ const Consumptions = () => {
           </View>
         </View>
       </View>
-      <FlashList
+      <AnimatedFlashList
+        maintainVisibleContentPosition={{ disabled: true }}
         data={days}
         renderItem={({ item }) => <DaySection day={item} />}
         keyExtractor={(item) => item.date}
