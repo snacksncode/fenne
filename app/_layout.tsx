@@ -1,6 +1,7 @@
 import { SheetHost } from '@/lib/sheet-context';
 import { Sheets } from '@/sheets';
-import { SplashScreen, Stack } from 'expo-router';
+import { DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
+import { colors } from '@/constants/colors';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -18,6 +19,19 @@ import { authSignal } from '@/api/auth-event';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 SplashScreen.preventAutoHideAsync();
+
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.surface.canvas,
+    card: colors.surface.canvas,
+    text: colors.brown[900],
+    primary: colors.orange[500],
+    border: colors.border.subtle,
+    notification: colors.red[500],
+  },
+};
 
 export const splashScreenRequirementsAtom = atom({
   queriesRestored: false,
@@ -41,32 +55,34 @@ export default function Layout() {
   }, [splashScreenRequirements]);
 
   return (
-    <QueryErrorBoundary>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister: asyncStoragePersister,
-          maxAge: WEEK_IN_MS,
-        }}
-        onSuccess={() => {
-          setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }));
-          queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
-        }}
-      >
-        <SessionProvider>
-          <GestureHandlerRootView>
-            <KeyboardProvider>
-              <SheetHost>
-                <Sheets />
-                <InvalidationChannel />
-                <RootLayout />
-              </SheetHost>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </SessionProvider>
-      </PersistQueryClientProvider>
-      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
-    </QueryErrorBoundary>
+    <ThemeProvider value={navigationTheme}>
+      <QueryErrorBoundary>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: asyncStoragePersister,
+            maxAge: WEEK_IN_MS,
+          }}
+          onSuccess={() => {
+            setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }));
+            queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+          }}
+        >
+          <SessionProvider>
+            <GestureHandlerRootView>
+              <KeyboardProvider>
+                <SheetHost>
+                  <Sheets />
+                  <InvalidationChannel />
+                  <RootLayout />
+                </SheetHost>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </SessionProvider>
+        </PersistQueryClientProvider>
+        <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      </QueryErrorBoundary>
+    </ThemeProvider>
   );
 }
 

@@ -3,6 +3,7 @@ import React from 'react';
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import { ListAnimationContext, AnimatedListCell } from './list-layout-view';
 import { AnimatedFlashList } from './animated-flash-list';
+import { colors } from '@/constants/colors';
 
 let mockFocused = true;
 let mockReducedMotion = false;
@@ -15,7 +16,15 @@ jest.mock('expo-router/react-navigation', () => ({ useIsFocused: () => mockFocus
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: any, ...args: any[]) => fn(...args) }));
 jest.mock('react-native-reanimated', () => ({
   __esModule: true,
-  default: { createAnimatedComponent: (component: any) => component, View: 'AnimatedView' },
+  default: {
+    createAnimatedComponent: (component: any) => {
+      const React = jest.requireActual('react');
+      return React.forwardRef(function MockAnimatedComponent(props: any, ref: any) {
+        return React.createElement(component, { ...props, ref, style: [props.style, {}] });
+      });
+    },
+    View: 'AnimatedView',
+  },
   FadeIn: { duration: () => 'fade-in' },
   LayoutAnimationConfig: ({ children }: any) => children,
   useReducedMotion: () => mockReducedMotion,
@@ -65,6 +74,21 @@ describe('list data animation transactions', () => {
     renderer = undefined as unknown as ReactTestRenderer;
     jest.restoreAllMocks();
     jest.useRealTimers();
+  });
+
+  it('preserves background and sizing when Reanimated supplies a style array', () => {
+    act(() => {
+      renderer = create(
+        <AnimatedFlashList
+          data={[first]}
+          keyExtractor={keyExtractor}
+          renderItem={() => null}
+          style={{ backgroundColor: colors.surface.canvas, flex: 1 }}
+        />
+      );
+    });
+    // FlashList 2.0.2 spreads this value into a View style object.
+    expect({ ...mockListProps.style }).toEqual({ backgroundColor: colors.surface.canvas, flex: 1 });
   });
 
   it('does not animate initial loading, equal refetches, or scrolling', () => {

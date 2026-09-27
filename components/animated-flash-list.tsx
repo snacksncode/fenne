@@ -1,7 +1,7 @@
 import { FlashList, FlashListProps, FlashListRef } from '@shopify/flash-list';
 import { useIsFocused } from 'expo-router/react-navigation';
-import { Ref, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { ForwardedRef, forwardRef, Ref, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet } from 'react-native';
 import { scheduleOnRN } from 'react-native-worklets';
 import { AnimatedListCell, ListAnimationContext, ListAnimationPhase } from './list-layout-view';
 import Animated, { useAnimatedScrollHandler, useReducedMotion, useSharedValue } from 'react-native-reanimated';
@@ -10,7 +10,16 @@ import { isDeepEqual } from 'remeda';
 const MAX_ANIMATED_CHANGES = 20;
 const SCROLL_SETTLE_MS = 150;
 
-const ReanimatedFlashList = Animated.createAnimatedComponent(FlashList) as typeof FlashList;
+// Reanimated supplies a style array, but FlashList spreads style as an object.
+// Flatten after Reanimated processes props so background and sizing survive.
+const StyledFlashList = forwardRef(function StyledFlashList<T>(
+  { style, ...props }: FlashListProps<T>,
+  ref: ForwardedRef<FlashListRef<T>>
+) {
+  return <FlashList {...props} ref={ref} style={StyleSheet.flatten(style)} />;
+}) as typeof FlashList;
+
+const ReanimatedFlashList = Animated.createAnimatedComponent(StyledFlashList) as typeof FlashList;
 
 type Props<T> = FlashListProps<T> & {
   ref?: Ref<FlashListRef<T>>;
