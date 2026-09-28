@@ -1,3 +1,4 @@
+import { fuzzySearch } from './fuzzy-search';
 import { RecipeDTO, MealType } from '@/api/types';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 
@@ -19,9 +20,10 @@ export const sortRecipes = (recipes: RecipeDTO[], mealType?: MealType): RecipeDT
 
 export const filterRecipes = (
   recipes: RecipeDTO[],
-  opts: { mealFilter?: MealFilter; search?: string }
+  opts: { mealFilter?: MealFilter; search?: string; mealType?: MealType }
 ): RecipeDTO[] => {
-  return recipes
-    .filter((r) => !opts.mealFilter || opts.mealFilter === 'all' || r.meal_types.includes(opts.mealFilter))
-    .filter((r) => !opts.search || r.name.toLowerCase().includes(opts.search.toLowerCase()));
+  const eligible = recipes.filter(
+    (r) => !opts.mealFilter || opts.mealFilter === 'all' || r.meal_types.includes(opts.mealFilter)
+  );
+  return fuzzySearch(sortRecipes(eligible, opts.mealType), opts.search ?? '', (recipe) => recipe.name);
 };

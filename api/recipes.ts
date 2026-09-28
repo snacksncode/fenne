@@ -39,7 +39,10 @@ export const useAddRecipe = () => {
   return useMutation({
     mutationKey: ['addRecipe'],
     mutationFn: api.recipes.add,
-    onSettled: () => queryClient.invalidateQueries(recipesOptions),
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries(recipesOptions),
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() }),
+    ]),
   });
 };
 
@@ -87,7 +90,10 @@ export const useEditRecipe = () => {
       if (context?.recipeContext) revert(context.recipeContext);
       if (context?.recipesContext) revert(context.recipesContext);
     },
-    onSettled: () => queryClient.invalidateQueries(recipesOptions),
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries(recipesOptions),
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() }),
+    ]),
   });
 };
 

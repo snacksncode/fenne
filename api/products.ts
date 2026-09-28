@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
+import { useCurrentUser } from '@/api/auth';
+import { searchProductCatalog } from '@/utils/product-search';
 import { api } from '@/api';
-import { ProductSearchResult } from '@/api/types';
-import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { pantryOptions } from '@/api/pantry';
 import { groceriesOptions } from '@/api/groceries';
@@ -57,20 +59,23 @@ export const useDeleteProduct = () => {
       queryClient.invalidateQueries(pantryOptions);
       queryClient.invalidateQueries(groceriesOptions);
       queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.suggestions.all() });
     },
   });
 };
 
-export const productSuggestionsOptions = (query: string, context: ProductSearchContext) =>
-  queryOptions<ProductSearchResult>({
-    queryKey: queryKeys.products.suggestions.search(context, query),
-    queryFn: () => api.products.suggestions(query, context),
-    enabled: query.trim().length > 0,
-    placeholderData: query.trim().length > 0 ? keepPreviousData : undefined,
-    gcTime: 0,
-  });
+export const productCatalogOptions = (familyId: string) => queryOptions({
+  queryKey: queryKeys.products.catalog(familyId),
+  queryFn: api.products.catalog,
+  staleTime: Infinity,
+  enabled: familyId.length > 0,
+});
 
 export const useProductSuggestions = (query: string, context: ProductSearchContext) => {
-  return useQuery(productSuggestionsOptions(query, context));
+  const { data: user } = useCurrentUser();
+  const catalog = useQuery(productCatalogOptions(user?.family.id ?? ''));
+  const data = useMemo(
+    () => catalog.data ? searchProductCatalog(catalog.data, query, context) : undefined,
+    [catalog.data, query, context]
+  );
+  return { ...catalog, data };
 };

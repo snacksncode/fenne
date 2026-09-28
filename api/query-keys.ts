@@ -1,5 +1,3 @@
-import { ProductSearchContext } from '@/api/products';
-
 export const queryKeys = {
   auth: {
     currentUser: () => ['currentUser'] as const,
@@ -14,10 +12,8 @@ export const queryKeys = {
   },
   products: {
     all: () => ['products'] as const,
-    suggestions: {
-      all: () => ['suggestions'] as const,
-      search: (context: ProductSearchContext, query: string) => ['suggestions', context, query] as const,
-    },
+    catalogs: () => ['products', 'catalog'] as const,
+    catalog: (familyId: string) => ['products', 'catalog', familyId] as const,
   },
   pantry: {
     all: () => ['pantry'] as const,

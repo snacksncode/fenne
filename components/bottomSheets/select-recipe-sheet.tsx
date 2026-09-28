@@ -10,7 +10,7 @@ import { colors } from '@/constants/colors';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useMount } from '@/hooks/use-mount';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
+import { filterRecipes } from '@/utils/recipe-utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { BookMarked, Check, Funnel } from 'lucide-react-native';
 import { useState } from 'react';
@@ -27,7 +27,7 @@ export const SelectRecipeSheet = (props: SheetProps<'select-recipe-sheet'>) => {
 
   useMount(() => void queryClient.prefetchQuery(recipesOptions));
 
-  const filteredRecipes = sortRecipes(filterRecipes(recipes.data ?? [], { search: search || undefined, mealFilter }));
+  const filteredRecipes = filterRecipes(recipes.data ?? [], { search, mealFilter });
 
   const openFilterSheet = async () => {
     const filter = await sheets.present('recipe-filter-sheet', { data: { current: mealFilter } });

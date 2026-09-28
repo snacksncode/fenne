@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import Animated, { FadeIn, useAnimatedStyle } from 'react-native-reanimated';
 import { isEmptyish } from 'remeda';
-import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
+import { filterRecipes } from '@/utils/recipe-utils';
 import { useSheets } from '@/lib/sheet-context';
 import { BookMarked, Check, Funnel, Plus } from 'lucide-react-native';
 import { useRef, useState } from 'react';
@@ -107,7 +107,7 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
 
   if (!recipes.data) return <RecipesSkeleton />;
 
-  const filteredRecipes = sortRecipes(filterRecipes(recipes.data, { mealFilter, search }));
+  const filteredRecipes = filterRecipes(recipes.data, { mealFilter, search });
   const isFiltering = search.trim().length > 0 || mealFilter !== 'all';
 
   return (

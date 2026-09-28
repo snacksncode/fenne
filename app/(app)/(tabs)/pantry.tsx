@@ -1,3 +1,4 @@
+import { fuzzySearch } from '@/utils/fuzzy-search';
 import { ListLayoutView } from '@/components/list-layout-view';
 import { AnimatedFlashList } from '@/components/animated-flash-list';
 import { useActiveTabPress } from '@/hooks/use-active-tab-press';
@@ -43,7 +44,6 @@ const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: Pantr
   return useMemo(() => {
     const pantryEntries = entries ?? [];
     const visible = pantryEntries.filter((entry) => !entry.product.is_kitchen_basic);
-    const normalizedSearch = search.trim().toLocaleLowerCase();
 
     const filtered = visible.filter((entry) => {
       if (filter === 'tracked') return entry.product.shape === 'counted' || entry.product.shape === 'measured';
@@ -51,13 +51,8 @@ const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: Pantr
       return true;
     });
 
-    return filtered
-      .filter((entry) => {
-        if (!normalizedSearch) return true;
-
-        return entry.product.name.toLocaleLowerCase().includes(normalizedSearch);
-      })
-      .sort((a, b) => a.product.name.localeCompare(b.product.name));
+    const sorted = filtered.sort((a, b) => a.product.name.localeCompare(b.product.name));
+    return fuzzySearch(sorted, search, (entry) => entry.product.name);
   }, [entries, filter, search]);
 };
 

@@ -1,0 +1,25 @@
+/// <reference types="jest" />
+import type { RecipeDTO, MealType } from '@/api/types';
+import { filterRecipes } from './recipe-utils';
+
+const recipe = (name: string, meal_types: MealType[]): RecipeDTO => ({
+  id: name, name, meal_types, ingredients: [], time_in_minutes: 10, liked: false, notes: '',
+});
+const recipes = [recipe('Roast Chicken', ['dinner']), recipe('Chicken', ['lunch']), recipe('Omelette', ['breakfast'])];
+
+it('keeps exact matches ahead of preferred meal ordering', () => {
+  expect(filterRecipes(recipes, { search: 'chicken', mealType: 'dinner' }).map((r) => r.name))
+    .toEqual(['Chicken', 'Roast Chicken']);
+});
+it('applies meal filters before matching', () => {
+  expect(filterRecipes(recipes, { search: 'chiken', mealFilter: 'dinner' })).toEqual([recipes[0]]);
+});
+it('retains normal sorting for a whitespace-only query', () => {
+  expect(filterRecipes(recipes, { search: '  ', mealType: 'dinner' }).map((r) => r.name))
+    .toEqual(['Roast Chicken', 'Chicken', 'Omelette']);
+});
+
+it('preserves preferred meal ordering when fuzzy scores tie', () => {
+  expect(filterRecipes(recipes, { search: 'chiken', mealType: 'dinner' }).map((r) => r.name))
+    .toEqual(['Roast Chicken', 'Chicken']);
+});

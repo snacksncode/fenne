@@ -1,0 +1,78 @@
+[
+  {
+    "query": "chciken",
+    "names": [
+      "Chicken Breast",
+      "Soap",
+      "Chicken"
+    ],
+    "expected": [
+      0,
+      2
+    ]
+  },
+  {
+    "query": "  CREME  ",
+    "names": [
+      "Cr\u00e8me fra\u00eeche",
+      "Rice"
+    ],
+    "expected": [
+      0
+    ]
+  },
+  {
+    "query": "breest chiken",
+    "names": [
+      "Chicken Breast",
+      "Chicken Wings",
+      "Beef Breast"
+    ],
+    "expected": [
+      0
+    ]
+  },
+  {
+    "query": "milk",
+    "names": [
+      "Oat Milk",
+      "Milk",
+      "Millet"
+    ],
+    "expected": [
+      1,
+      0,
+      2
+    ]
+  },
+  {
+    "query": "  \t ",
+    "names": [
+      "Zucchini",
+      "Apple"
+    ],
+    "expected": [
+      0,
+      1
+    ]
+  },
+  {
+    "query": "zzzzzz",
+    "names": [
+      "Milk",
+      "Rice"
+    ],
+    "expected": []
+  },
+  {
+    "query": "cream",
+    "names": [
+      "Extra thick organic sour cream",
+      "Cream"
+    ],
+    "expected": [
+      1,
+      0
+    ]
+  }
+]

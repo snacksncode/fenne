@@ -20,7 +20,7 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ensure } from '@/utils';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/button';
-import { sortRecipes, filterRecipes } from '@/utils/recipe-utils';
+import { filterRecipes } from '@/utils/recipe-utils';
 import { TextInput } from '@/components/input';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
@@ -162,8 +162,7 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
     setStep('select-meal');
   };
 
-  const filteredRecipes = filterRecipes(recipes.data ?? [], { search: search || undefined, mealFilter });
-  const sortedRecipes = sortRecipes(filteredRecipes, mealType ?? undefined);
+  const sortedRecipes = filterRecipes(recipes.data ?? [], { search, mealFilter, mealType: mealType ?? undefined });
   const hasRecipes = !isEmpty(recipes.data ?? []);
   const isRecipeListStep = step === 'select-meal' && mode === 'meal' && hasRecipes;
 

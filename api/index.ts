@@ -6,7 +6,7 @@ import {
   GroceryItemDTO,
   GroceryItemInput,
   GroceryPreviewDTO,
-  ProductSearchResult,
+  ProductCatalog,
   RecipeDTO,
   RecipeInputDTO,
   MealType,
@@ -156,10 +156,7 @@ export const api = {
     delete: (data: { id: string }) => {
       return client.delete(`/products/${data.id}`);
     },
-    suggestions: (query: string, context: 'recipe' | 'shopping' | 'pantry' = 'recipe') => {
-      const params = new URLSearchParams({ q: query, context });
-      return client.get<ProductSearchResult>(`/suggestions?${params}`);
-    },
+    catalog: () => client.get<ProductCatalog>('/product_catalog'),
   },
   pantry: {
     getAll: () => {

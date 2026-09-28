@@ -56,6 +56,11 @@ export type ProductDraft = {
   pack_sizes?: number[];
 };
 
+export type ProductCatalog = {
+  products: ProductDTO[];
+  suggestions: ProductSuggestionDTO[];
+};
+
 export type ProductSearchResult = {
   results: ProductSearchResultItem[];
   add_available: boolean;

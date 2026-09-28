@@ -77,8 +77,7 @@ export const useInvalidationChannel = () => {
           }
 
           if (data.resource === 'products') {
-            if (!queryClient.isFetching(productsOptions)) queryClient.invalidateQueries(productsOptions);
-            queryClient.invalidateQueries({ queryKey: queryKeys.products.suggestions.all() });
+            queryClient.invalidateQueries(productsOptions);
           }
 
           if (data.resource === 'pantry_entries' || data.resource === 'consumption_logs') {
@@ -102,6 +101,8 @@ export const useInvalidationChannel = () => {
         },
         connected: () => {
           setConnectionStatus('connected');
+          // Refresh changes missed while this device was disconnected.
+          queryClient.invalidateQueries({ queryKey: queryKeys.products.catalogs() });
         },
         disconnected: () => {
           setConnectionStatus('disconnected');

@@ -1,3 +1,4 @@
+import { fuzzySearch } from '@/utils/fuzzy-search';
 import { useProducts } from '@/api/products';
 import { ProductDTO } from '@/api/types';
 import { AISLE_LABELS, AisleIcon } from '@/components/aisle-header';
@@ -77,11 +78,8 @@ const Items = () => {
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom, -keyboardHeight.value + 12) }));
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-
-    return (products.data ?? [])
-      .filter((product) => (query ? product.name.toLocaleLowerCase().includes(query) : true))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...(products.data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    return fuzzySearch(sorted, search, (product) => product.name);
   }, [products.data, search]);
 
   return (

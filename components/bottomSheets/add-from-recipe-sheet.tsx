@@ -14,7 +14,7 @@ import { isEmpty, isEmptyish } from 'remeda';
 import { useAddRecipeToGroceries } from '@/api/groceries';
 import { Button } from '@/components/button';
 import { useRouter } from 'expo-router';
-import { filterRecipes, sortRecipes } from '@/utils/recipe-utils';
+import { filterRecipes } from '@/utils/recipe-utils';
 import { useState } from 'react';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { TextInput } from '@/components/input';
@@ -57,7 +57,7 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
   };
 
   const hasRecipes = !isEmptyish(recipes.data);
-  const filtered = hasRecipes ? sortRecipes(filterRecipes(recipes.data!, { mealFilter, search })) : [];
+  const filtered = hasRecipes ? filterRecipes(recipes.data!, { mealFilter, search }) : [];
 
   return (
     <BaseSheet id={props.sheetId}>

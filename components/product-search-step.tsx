@@ -5,7 +5,6 @@ import { TextInput } from '@/components/input';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Plus, Search } from 'lucide-react-native';
 import { ComponentProps } from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
@@ -73,13 +72,17 @@ export const ProductSearchStep = ({
   autoFocus,
 }: ProductSearchStepProps) => {
   const trimmedQuery = query.trim();
-  const debouncedQuery = useDebouncedValue(query, 250);
-  const search = useProductSuggestions(debouncedQuery, context);
+  const search = useProductSuggestions(query, context);
   const results = trimmedQuery.length > 0 ? (search.data?.results ?? []) : [];
   const showLoading = trimmedQuery.length > 0 && search.isFetching && results.length === 0;
   const showCustomRow = context === 'recipe' && trimmedQuery.length > 0 && search.data?.add_available === true;
   const showEmptyState = results.length === 0 && !showCustomRow;
   const copy = EMPTY_COPY[context];
+  const loadFailed = search.isError && !search.data;
+  const emptyTitle = loadFailed ? 'Could not load shopping items'
+    : showLoading ? 'Searching...' : trimmedQuery ? copy.emptyTitle : copy.idleTitle;
+  const emptyDescription = loadFailed ? 'Check your connection and try again.'
+    : showLoading ? copy.loadingDescription : trimmedQuery ? copy.emptyDescription : copy.idleDescription;
 
   return (
     <View style={styles.container}>
@@ -146,11 +149,16 @@ export const ProductSearchStep = ({
           <View style={styles.emptyState}>
             <Search size={24} color={colors.brown[700]} strokeWidth={2.4} />
             <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>
-              {showLoading ? 'Searching...' : trimmedQuery ? copy.emptyTitle : copy.idleTitle}
+              {emptyTitle}
             </Typography>
             <Typography variant="body-xs" weight="regular" color={colors.brown[700]} style={styles.emptyText}>
-              {showLoading ? copy.loadingDescription : trimmedQuery ? copy.emptyDescription : copy.idleDescription}
+              {emptyDescription}
             </Typography>
+            {loadFailed && (
+              <PressableWithHaptics onPress={() => void search.refetch()}>
+                <Typography variant="body-sm" weight="bold" color={colors.brown[900]}>Try again</Typography>
+              </PressableWithHaptics>
+            )}
           </View>
         )}
       </ScrollView>
