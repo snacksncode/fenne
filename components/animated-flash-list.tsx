@@ -29,6 +29,7 @@ type Props<T> = FlashListProps<T> & {
 /** Stage data so recycling is paused before the animated commit reaches FlashList. */
 export function AnimatedFlashList<T>({
   data,
+  contentContainerStyle,
   ref,
   onScroll,
   onScrollBeginDrag,
@@ -37,7 +38,7 @@ export function AnimatedFlashList<T>({
   ...props
 }: Props<T>) {
   const list = useRef<FlashListRef<T>>(null);
-  const [{ data: displayedData, addedKeys, animateUntil }, setDisplayedData] = useState({ data, addedKeys: [] as string[], animateUntil: 0 });
+  const [{ data: displayedData, contentContainerStyle: displayedContentStyle, addedKeys, animateUntil }, setDisplayedData] = useState({ data, contentContainerStyle, addedKeys: [] as string[], animateUntil: 0 });
   const dragging = useSharedValue(false);
   const lastScroll = useSharedValue(-Infinity);
   const lastOffset = useSharedValue({ x: 0, y: 0 });
@@ -48,7 +49,14 @@ export function AnimatedFlashList<T>({
   useImperativeHandle(ref, () => list.current!);
 
   useLayoutEffect(() => {
-    if (isDeepEqual(displayedData, data)) return;
+    if (isDeepEqual(displayedData, data)) {
+      if (!isDeepEqual(displayedContentStyle, contentContainerStyle)) {
+        // Insets and other style-only changes do not start an animation transaction.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDisplayedData(current => ({ ...current, contentContainerStyle }));
+      }
+      return;
+    }
     const previous = new Map(displayedData?.map((item, index) => [keyExtractor(item, index), item]));
     let changedItems = 0;
     const added: string[] = [];
@@ -77,9 +85,8 @@ export function AnimatedFlashList<T>({
     }
     // The old-data render arms the cell transitions first. Prepare FlashList
     // before this second commit applies the new data and changes native layout.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDisplayedData({ data, addedKeys: animate ? added : [], animateUntil: animate ? Date.now() + 500 : 0 });
-  }, [data, displayedData, focused, reduceMotion, keyExtractor, dragging, lastScroll, phase]);
+    setDisplayedData({ data, contentContainerStyle, addedKeys: animate ? added : [], animateUntil: animate ? Date.now() + 500 : 0 });
+  }, [data, displayedData, contentContainerStyle, displayedContentStyle, focused, reduceMotion, keyExtractor, dragging, lastScroll, phase]);
 
   useEffect(() => {
     if (!animateUntil) return;
@@ -122,6 +129,8 @@ export function AnimatedFlashList<T>({
         {...props}
         ref={list}
         data={displayedData}
+        // Empty-state flex and padding must stay with their data during preparation.
+        contentContainerStyle={displayedContentStyle}
         keyExtractor={keyExtractor}
         CellRendererComponent={AnimatedListCell}
         onScroll={scrollHandler}

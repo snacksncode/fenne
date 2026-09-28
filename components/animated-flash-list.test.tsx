@@ -9,6 +9,7 @@ let mockFocused = true;
 let mockReducedMotion = false;
 const mockEvents: string[] = [];
 let mockListProps: any;
+const mockCommits: any[] = [];
 let mockAnimationContext: any;
 const mockPrepare = jest.fn(() => mockEvents.push('prepare'));
 
@@ -41,6 +42,7 @@ jest.mock('@shopify/flash-list', () => ({
     const React = jest.requireActual('react');
     React.useImperativeHandle(props.ref, () => ({ prepareForLayoutAnimationRender: mockPrepare }));
     mockListProps = props;
+    mockCommits.push({ data: props.data, style: props.contentContainerStyle });
     mockAnimationContext = React.useContext(jest.requireActual('./list-layout-view').ListAnimationContext);
     mockEvents.push(`render:${props.data?.map((row: any) => row.id).join(',')}`);
     return null;
@@ -67,6 +69,7 @@ describe('list data animation transactions', () => {
     mockFocused = true;
     mockReducedMotion = false;
     mockEvents.length = 0;
+    mockCommits.length = 0;
     mockPrepare.mockClear();
   });
   afterEach(() => {
@@ -89,6 +92,38 @@ describe('list data animation transactions', () => {
     });
     // FlashList 2.0.2 spreads this value into a View style object.
     expect({ ...mockListProps.style }).toEqual({ backgroundColor: colors.surface.canvas, flex: 1 });
+  });
+
+  it('keeps empty-state sizing with the data during the preparation commit', () => {
+    const emptyStyle = { flexGrow: 1, paddingBottom: 106 };
+    const filledStyle = { paddingBottom: 186 };
+    act(() => {
+      renderer = create(<AnimatedFlashList data={[]} keyExtractor={keyExtractor}
+        renderItem={() => null} contentContainerStyle={emptyStyle} />);
+    });
+    mockCommits.length = 0;
+    act(() => renderer.update(<AnimatedFlashList data={[first]} keyExtractor={keyExtractor}
+      renderItem={() => null} contentContainerStyle={filledStyle} />));
+    expect(mockCommits).toEqual([
+      { data: [], style: emptyStyle },
+      { data: [first], style: filledStyle },
+    ]);
+    mockCommits.length = 0;
+    act(() => renderer.update(<AnimatedFlashList data={[]} keyExtractor={keyExtractor}
+      renderItem={() => null} contentContainerStyle={emptyStyle} />));
+    expect(mockCommits).toEqual([
+      { data: [first], style: filledStyle },
+      { data: [], style: emptyStyle },
+    ]);
+  });
+
+  it('applies inset changes without preparing a data animation', () => {
+    act(() => { renderer = create(<AnimatedFlashList data={[]} keyExtractor={keyExtractor}
+      renderItem={() => null} contentContainerStyle={{ flexGrow: 1, paddingTop: 100 }} />); });
+    act(() => renderer.update(<AnimatedFlashList data={[]} keyExtractor={keyExtractor}
+      renderItem={() => null} contentContainerStyle={{ flexGrow: 1, paddingTop: 120 }} />));
+    expect(mockListProps.contentContainerStyle).toEqual({ flexGrow: 1, paddingTop: 120 });
+    expect(mockPrepare).not.toHaveBeenCalled();
   });
 
   it('does not animate initial loading, equal refetches, or scrolling', () => {
