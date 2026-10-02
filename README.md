@@ -1,50 +1,38 @@
-# Welcome to your Expo app 👋
+# Fenne mobile app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Fenne is a household meal planner built with Expo, React Native and TypeScript. Its main screens are Menu, Groceries, Pantry and Recipes. Domain terminology is documented in the workspace's `../CONTEXT.md`; repository conventions are in [AGENTS.md](AGENTS.md).
 
-## Get started
+## Development
 
-1. Install dependencies
+Use Bun; `bun.lock` is the dependency lockfile.
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+bun install --frozen-lockfile
+bun run start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The app uses native modules and a development build. If the development app and Metro are already running, use those processes. Native builds are separate, explicit operations through `bun run ios` or `bun run android`; source-only changes normally use the existing development session.
 
-## Learn more
+[api/client.ts](api/client.ts) selects `http://127.0.0.1:4000` in development and the hosted API in release builds, then adds `/v2` to request paths. Run the local Rails API on port 4000. A physical phone or Android emulator may need a different reachable host; the API address is currently a source setting, not an environment variable. ActionCable derives its address from the same host.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Checks
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```sh
+bunx tsc --noEmit
+bun run lint
+bun run test --watchAll=false --runInBand
+```
 
-## Join the community
+Tests use the existing Jest/Expo configuration. For a focused run, append the test file path to the last command. Runtime mobile verification uses Argent against the already-running app; see [AGENTS.md](AGENTS.md).
 
-Join our community of developers creating universal apps.
+## Where behavior lives
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `app/`: Expo routes; authenticated tabs are under `app/(app)/(tabs)/`.
+- `api/`: v2 requests, query hooks and mutation behavior.
+- `components/form/`: shared TanStack Form controls and structured validation feedback.
+- `components/bottomSheets/`, `sheets.tsx`, `lib/sheet-context.tsx`: sheet content, registration and presentation.
+- `lib/session.ts`, `contexts/session.tsx`, `lib/family-data.ts`: session changes and scoped data refresh.
+- `hooks/`, `utils/`: workflow state and domain calculations/search.
+- `date-tools.ts`, `constants/colors.ts`: shared date behavior and color tokens.
+
+Use the existing form, session and sheet owners when extending workflows. They handle field errors, cancellation and stale work across account changes.
