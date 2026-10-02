@@ -1,11 +1,9 @@
 import type { PurchaseSuggestionDTO } from '@/api/types';
 import { z } from 'zod';
 
-export const validGenerationAmount = (text: string) => {
-  const amount = Number(text.trim().replace(',', '.'));
-  return /^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(text.trim())
-    && Number.isFinite(amount) && amount >= 0 && amount <= 1_000_000_000;
-};
+import { validQuantityText } from '@/lib/quantity';
+
+export const validGenerationAmount = validQuantityText;
 
 const amount = z.string().refine(validGenerationAmount, 'Enter an amount between 0 and 1,000,000,000.');
 export const generationAmountsSchema = z.object({ pantry: amount, quantity: amount.nullable() });

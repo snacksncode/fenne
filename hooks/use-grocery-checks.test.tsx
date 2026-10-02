@@ -4,13 +4,18 @@ import React from 'react';
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, AppStateStatus } from 'react-native';
-import { api } from '@/api';
-import { groceriesOptions, useDeleteGroceryItem } from '@/api/groceries';
+import { groceriesRequests } from '@/api/groceries';
+import { groceriesQuery, useDeleteGroceryItem } from '@/api/groceries';
 import { GroceryItemDTO } from '@/api/types';
 import { useGroceryChecks } from './use-grocery-checks';
 
 jest.mock('nanoid/non-secure', () => ({ nanoid: () => 'test-id' }));
-jest.mock('@/api', () => ({ api: { groceries: { edit: jest.fn(), delete: jest.fn(), getAll: jest.fn() } } }));
+jest.mock('@/api/client', () => ({ client: {} }));
+jest.mock('@/api/groceries', () => {
+  const actual = jest.requireActual('@/api/groceries');
+  Object.assign(actual.groceriesRequests, { edit: jest.fn(), delete: jest.fn(), getAll: jest.fn() });
+  return actual;
+});
 jest.mock('@/query-client', () => ({ queryClient: new (jest.requireActual('@tanstack/react-query').QueryClient)() }));
 
 const item = (id: string): GroceryItemDTO => ({
@@ -24,7 +29,7 @@ describe('grocery check bursts', () => {
   let checks: ReturnType<typeof useGroceryChecks>;
   let remove: ReturnType<typeof useDeleteGroceryItem>;
   let appState: (state: AppStateStatus) => void;
-  const edit = jest.mocked(api.groceries.edit);
+  const edit = jest.mocked(groceriesRequests.edit);
   const first = item('first');
   const second = item('second');
   const Harness = () => {
@@ -32,7 +37,7 @@ describe('grocery check bursts', () => {
     remove = useDeleteGroceryItem();
     return null;
   };
-  const rows = () => client.getQueryData(groceriesOptions.queryKey)!;
+  const rows = () => client.getQueryData(groceriesQuery.queryKey)!;
   const advance = async (ms: number) => {
     await act(async () => { jest.advanceTimersByTime(ms); });
   };
@@ -41,7 +46,7 @@ describe('grocery check bursts', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     client = new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
-    client.setQueryData(groceriesOptions.queryKey, [first, second]);
+    client.setQueryData(groceriesQuery.queryKey, [first, second]);
     edit.mockImplementation(async (change) => ({ ...item(change.id), ...change }));
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_, listener) => {
       appState = listener;
@@ -97,7 +102,7 @@ describe('grocery check bursts', () => {
 
   it('unchecks after the same delay without sending a purchase quantity', async () => {
     const bought = { ...first, status: 'completed' as const };
-    client.setQueryData(groceriesOptions.queryKey, [bought]);
+    client.setQueryData(groceriesQuery.queryKey, [bought]);
     act(() => checks.toggle(bought));
     expect(checks.checks.first.status).toBe('pending');
     expect(rows()[0].status).toBe('completed');
@@ -110,7 +115,7 @@ describe('grocery check bursts', () => {
     await advance(200);
     await act(async () => { checks.cancel(first.id); remove.mutate({ id: first.id }); });
     expect(rows().map(({ id }) => id)).toEqual(['second']);
-    expect(api.groceries.delete).toHaveBeenCalledWith({ id: 'first' }, expect.anything());
+    expect(groceriesRequests.delete).toHaveBeenCalledWith({ id: 'first' }, expect.anything());
     expect(edit).not.toHaveBeenCalled();
     await advance(300);
     expect(edit).toHaveBeenCalledTimes(1);

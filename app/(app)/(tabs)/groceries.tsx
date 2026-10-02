@@ -1,13 +1,8 @@
-import { ListLayoutView } from '@/components/list-layout-view';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { AnimatedFlashList, ListLayoutView } from '@/components/animated-list';
 import { useActiveTabPress } from '@/hooks/use-active-tab-press';
 import { BlurTargetView } from 'expo-blur';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
-import {
-  useDeleteGroceryItem,
-  useGroceries,
-  useGroceryCheckout,
-} from '@/api/groceries';
+import { useGroceries } from '@/api/groceries';
 import { AisleCategory, GroceryItemDTO } from '@/api/types';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
@@ -44,7 +39,7 @@ import { AisleHeader } from '@/components/aisle-header';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
-import { useGroceryChecks } from '@/hooks/use-grocery-checks';
+import { GroceryWorkflowContext, useGroceryEntry, useGroceryWorkflow } from '@/hooks/use-grocery-workflow';
 
 type AisleDTO = {
   aisle: AisleCategory;
@@ -172,26 +167,20 @@ const GroceriesSkeleton = () => {
   );
 };
 
-type GroceryChecks = ReturnType<typeof useGroceryChecks>;
-
-const GroceryItem = ({ item, checks }: { item: GroceryItemDTO; checks: GroceryChecks }) => {
+const GroceryItem = ({ item }: { item: GroceryItemDTO }) => {
   const sheets = useSheets();
   const swipeRef = useRef<SwipeableMethods>(null);
-  const remove = useDeleteGroceryItem();
-  const completed = (checks.checks[item.id]?.status ?? item.status) === 'completed';
+  const { completed, busy, canEdit, removeFailed, toggle, remove } = useGroceryEntry(item);
   const { progress } = useCheckbox(completed);
-  const busy = checks.isSaving(item.id) || remove.isPending;
   const openEdit = () => {
-    if (checks.checks[item.id]) return;
+    if (!canEdit) return;
     swipeRef.current?.close();
     sheets.present('grocery-entry-sheet', { data: { grocery: item } });
   };
   const removeItem = () => {
     swipeRef.current?.close();
-    checks.cancel(item.id);
-    remove.mutate({ id: item.id });
+    remove();
   };
-  const toggle = () => checks.toggle(item);
 
   return (
     <View>
@@ -217,7 +206,7 @@ const GroceryItem = ({ item, checks }: { item: GroceryItemDTO; checks: GroceryCh
           {!(item.quantity === 1 && item.unit === 'count') && <GroceryQuantity quantity={item.quantity} unit={item.unit} />}
         </Pressable>
       </ReanimatedSwipeable>
-      {remove.isError && <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ padding: 12 }}>
+      {removeFailed && <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ padding: 12 }}>
         Could not remove this item. Try again.
       </Typography>}
     </View>
@@ -256,11 +245,9 @@ const CompletedSeparator = () => (
 const Aisle = ({
   aisle: { aisle, items },
   isBought = false,
-  checks,
 }: {
   aisle: AisleDTO;
   isBought?: boolean;
-  checks: GroceryChecks;
 }) => (
   <ListLayoutView style={{ gap: 12 }}>
     <AisleHeader type={aisle} />
@@ -276,7 +263,7 @@ const Aisle = ({
       {items.map((item, index) => (
         <ListLayoutView key={isBought ? `${item.id}-bought` : item.id}>
           {index > 0 ? <DashedDivider /> : null}
-          <GroceryItem key={item.id} item={item} checks={checks} />
+          <GroceryItem key={item.id} item={item} />
         </ListLayoutView>
       ))}
       <ListLayoutView pointerEvents="none" style={[StyleSheet.absoluteFill, {
@@ -332,13 +319,9 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
   const insets = useSafeAreaInsets();
   const sheets = useSheets();
   const groceries = useGroceries();
-  const checks = useGroceryChecks();
-  const { flush } = checks;
-  useFocusEffect(useCallback(() => () => { void flush(); }, [flush]));
+  const workflow = useGroceryWorkflow();
   const { refetch } = groceries;
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
-  const groceryCheckout = useGroceryCheckout();
-
 
   const expand = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -353,137 +336,135 @@ const PageContent = ({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIs
   const hasAtLeastOneChecked = groceries.data.some((item) => item.status === 'completed');
   const aisles = parseAisles(groceries.data);
 
-  const handleCheckout = () => {
-    if (!checks.hasPending) groceryCheckout.mutate();
-  };
-
   return (
-    <Animated.View style={{ flex: 1 }} entering={FadeIn}>
-      <AnimatedFlashList
-        ref={listRef}
-        maintainVisibleContentPosition={{ disabled: true }}
-        data={aisles}
-        getItemType={(item) => item.type}
-        ListEmptyComponent={EmptyList}
-        ListHeaderComponent={checks.error ? (
-          <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ paddingBottom: 12 }}>
-            Could not save some checked items. Please try again.
-          </Typography>
-        ) : null}
-        renderItem={({ item }) => {
-          if (item.type === 'separator') {
-            return <CompletedSeparator />;
+    <GroceryWorkflowContext value={workflow.entries}>
+      <Animated.View style={{ flex: 1 }} entering={FadeIn}>
+        <AnimatedFlashList
+          ref={listRef}
+          maintainVisibleContentPosition={{ disabled: true }}
+          data={aisles}
+          getItemType={(item) => item.type}
+          ListEmptyComponent={EmptyList}
+          ListHeaderComponent={workflow.checkError ? (
+            <Typography variant="body-xs" weight="medium" color={colors.red[600]} style={{ paddingBottom: 12 }}>
+              Could not save some checked items. Please try again.
+            </Typography>
+          ) : null}
+          renderItem={({ item }) => {
+            if (item.type === 'separator') {
+              return <CompletedSeparator />;
+            }
+            if (item.type === 'bought-aisle') {
+              return <Aisle aisle={item} isBought />;
+            }
+            return <Aisle aisle={item} />;
+          }}
+          style={{ backgroundColor: '#FEF7EA', flex: 1 }}
+          keyExtractor={(item) =>
+            item.type === 'aisle' ? item.aisle : item.type === 'bought-aisle' ? `${item.aisle}-bought` : 'separator'
           }
-          if (item.type === 'bought-aisle') {
-            return <Aisle aisle={item} isBought checks={checks} />;
-          }
-          return <Aisle aisle={item} checks={checks} />;
-        }}
-        style={{ backgroundColor: '#FEF7EA', flex: 1 }}
-        keyExtractor={(item) =>
-          item.type === 'aisle' ? item.aisle : item.type === 'bought-aisle' ? `${item.aisle}-bought` : 'separator'
-        }
-        ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
-        contentContainerStyle={{
-          ...(isEmpty(aisles) && { flexGrow: 1 }),
-          paddingHorizontal: 20,
-          paddingTop: insets.top + 76,
-          paddingBottom: insets.bottom + (isEmpty(aisles) ? 72 : 152),
-        }}
-      />
-      {isExpanded && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
-          <Pressable
-            style={{ flex: 1, backgroundColor: 'rgba(254, 247, 234, 0.85)' }}
-            onPress={() => setIsExpanded(false)}
-          />
-        </Animated.View>
-      )}
-      <LayoutAnimationConfig skipEntering>
-        <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16, flexDirection: 'row', gap: 8 }}>
-          {hasAtLeastOneChecked ? (
-            <Animated.View
-              key="checkout"
-              style={{ flexDirection: 'row', gap: 8 }}
-              entering={SlideInRight.springify()}
-              exiting={SlideOutRight.springify()}
-            >
-              <Button
-                accessibilityLabel="Add grocery item"
-                variant="outlined"
-                onPress={() => sheets.present('grocery-item-sheet')}
-                leftIcon={{ Icon: CirclePlus }}
-                style={{ paddingHorizontal: 0, width: 48 }}
-              />
-              <Button
-                variant="secondary"
-                onPress={handleCheckout}
-                text="Checkout!"
-                disabled={groceryCheckout.isPending || checks.hasPending}
-                isLoading={groceryCheckout.isPending}
-                leftIcon={{ Icon: ShoppingBasket }}
-              />
-            </Animated.View>
-          ) : isExpanded ? (
-            <Animated.View
-              key="expanded"
-              style={{ gap: 8, alignItems: 'flex-end' }}
-              exiting={SlideOutRight.springify()}
-            >
-              <Animated.View entering={FadeInDown.springify().delay(100)}>
-                <Button
-                  variant="outlined"
-                  onPress={() => {
-                    setIsExpanded(false);
-                    sheets.present('add-from-recipe-sheet');
-                  }}
-                  text="Add from Recipe"
-                  leftIcon={{ Icon: CookingPot }}
-                />
-              </Animated.View>
-              <Animated.View entering={FadeInDown.springify().delay(50)}>
-                <Button
-                  variant="outlined"
-                  onPress={() => {
-                    setIsExpanded(false);
-                    sheets.present('select-date-range-sheet');
-                  }}
-                  text="Generate from Menu"
-                  leftIcon={{ Icon: WandSparkles }}
-                />
-              </Animated.View>
-              <Animated.View entering={FadeInDown.springify()}>
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    setIsExpanded(false);
-                    sheets.present('grocery-item-sheet');
-                  }}
-                  text="What's missing?"
-                  leftIcon={{ Icon: ListPlus }}
-                />
-              </Animated.View>
-            </Animated.View>
-          ) : (
-            <GestureDetector gesture={swipeUp}>
+          ItemSeparatorComponent={() => <View style={{ height: GAP_SIZE }} />}
+          contentContainerStyle={{
+            ...(isEmpty(aisles) && { flexGrow: 1 }),
+            paddingHorizontal: 20,
+            paddingTop: insets.top + 76,
+            paddingBottom: insets.bottom + (isEmpty(aisles) ? 72 : 152),
+          }}
+        />
+        {isExpanded && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
+            <Pressable
+              style={{ flex: 1, backgroundColor: 'rgba(254, 247, 234, 0.85)' }}
+              onPress={() => setIsExpanded(false)}
+            />
+          </Animated.View>
+        )}
+        <LayoutAnimationConfig skipEntering>
+          <View style={{ position: 'absolute', bottom: insets.bottom + 88, right: 16, flexDirection: 'row', gap: 8 }}>
+            {hasAtLeastOneChecked ? (
               <Animated.View
-                key="add"
+                key="checkout"
                 style={{ flexDirection: 'row', gap: 8 }}
                 entering={SlideInRight.springify()}
                 exiting={SlideOutRight.springify()}
               >
                 <Button
-                  accessibilityLabel="Open grocery actions"
-                  variant="primary"
-                  onPress={() => setIsExpanded(true)}
-                  leftIcon={{ Icon: Plus }}
+                  accessibilityLabel="Add grocery item"
+                  variant="outlined"
+                  onPress={() => sheets.present('grocery-item-sheet')}
+                  leftIcon={{ Icon: CirclePlus }}
+                  style={{ paddingHorizontal: 0, width: 48 }}
+                />
+                <Button
+                  variant="secondary"
+                  onPress={workflow.checkout}
+                  text="Checkout!"
+                  disabled={workflow.saving || workflow.checksPending}
+                  isLoading={workflow.saving}
+                  leftIcon={{ Icon: ShoppingBasket }}
                 />
               </Animated.View>
-            </GestureDetector>
-          )}
-        </View>
-      </LayoutAnimationConfig>
-    </Animated.View>
+            ) : isExpanded ? (
+              <Animated.View
+                key="expanded"
+                style={{ gap: 8, alignItems: 'flex-end' }}
+                exiting={SlideOutRight.springify()}
+              >
+                <Animated.View entering={FadeInDown.springify().delay(100)}>
+                  <Button
+                    variant="outlined"
+                    onPress={() => {
+                      setIsExpanded(false);
+                      sheets.present('add-from-recipe-sheet');
+                    }}
+                    text="Add from Recipe"
+                    leftIcon={{ Icon: CookingPot }}
+                  />
+                </Animated.View>
+                <Animated.View entering={FadeInDown.springify().delay(50)}>
+                  <Button
+                    variant="outlined"
+                    onPress={() => {
+                      setIsExpanded(false);
+                      sheets.present('select-date-range-sheet');
+                    }}
+                    text="Generate from Menu"
+                    leftIcon={{ Icon: WandSparkles }}
+                  />
+                </Animated.View>
+                <Animated.View entering={FadeInDown.springify()}>
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      setIsExpanded(false);
+                      sheets.present('grocery-item-sheet');
+                    }}
+                    text="What's missing?"
+                    leftIcon={{ Icon: ListPlus }}
+                  />
+                </Animated.View>
+              </Animated.View>
+            ) : (
+              <GestureDetector gesture={swipeUp}>
+                <Animated.View
+                  key="add"
+                  style={{ flexDirection: 'row', gap: 8 }}
+                  entering={SlideInRight.springify()}
+                  exiting={SlideOutRight.springify()}
+                >
+                  <Button
+                    accessibilityLabel="Open grocery actions"
+                    variant="primary"
+                    onPress={() => setIsExpanded(true)}
+                    leftIcon={{ Icon: Plus }}
+                  />
+                </Animated.View>
+              </GestureDetector>
+            )}
+          </View>
+        </LayoutAnimationConfig>
+      </Animated.View>
+    </GroceryWorkflowContext>
   );
 };
 

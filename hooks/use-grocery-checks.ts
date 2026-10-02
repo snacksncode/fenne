@@ -7,6 +7,7 @@ export const useGroceryChecks = () => {
   const { mutateAsync } = useEditGroceryChecks();
   const queued = useRef(new Map<string, GroceryCheck>());
   const saving = useRef(new Set<string>());
+  const inFlight = useRef(new Set<Promise<boolean>>());
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [checks, setChecks] = useState<Record<string, GroceryCheck>>({});
   const [error, setError] = useState(false);
@@ -16,21 +17,31 @@ export const useGroceryChecks = () => {
     clearTimeout(timer.current);
     const batch = [...queued.current.values()];
     queued.current.clear();
-    if (!batch.length) return;
-    batch.forEach(({ id }) => saving.current.add(id));
-    refresh((value) => value + 1);
-    try {
-      await mutateAsync(batch);
-    } catch {
-      setError(true);
-    } finally {
-      batch.forEach(({ id }) => saving.current.delete(id));
-      setChecks((current) => {
-        const next = { ...current };
-        batch.forEach(({ id }) => delete next[id]);
-        return next;
-      });
+    if (batch.length) {
+      batch.forEach(({ id }) => saving.current.add(id));
+      refresh((value) => value + 1);
+      const save = (async () => {
+        try {
+          await mutateAsync(batch);
+          return true;
+        } catch {
+          setError(true);
+          return false;
+        } finally {
+          batch.forEach(({ id }) => saving.current.delete(id));
+          setChecks((current) => {
+            const next = { ...current };
+            batch.forEach(({ id }) => delete next[id]);
+            return next;
+          });
+        }
+      })();
+      inFlight.current.add(save);
+      void save.then(() => inFlight.current.delete(save));
     }
+    // Checkout and navigation may arrive while a previous burst is still saving.
+    const results = await Promise.all([...inFlight.current]);
+    return results.every(Boolean);
   }, [mutateAsync]);
 
   useEffect(() => {

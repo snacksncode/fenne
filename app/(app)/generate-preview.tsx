@@ -1,5 +1,7 @@
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { Provider } from 'jotai';
+import { useGenerationDraftStore, useGenerationProductDraft, useGenerationSubmission } from '@/hooks/use-generation-draft';
 import { GenerationGroceryItem, GROCERY_LAYOUT_TRANSITION } from '@/components/generation-grocery-item';
 import { DashedDivider } from '@/components/dashed-divider';
 import { AISLE_CATEGORIES, AisleHeader } from '@/components/aisle-header';
@@ -7,7 +9,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GroceryPreviewDTO, GroceryPreviewProductRowDTO } from '@/api/types';
-import { useGenerateGroceryItems, useGroceryPreview } from '@/api/groceries';
+import { useGroceryPreview } from '@/api/groceries';
 import { parseISO } from '@/date-tools';
 import { Typography } from '@/components/Typography';
 import { Button } from '@/components/button';
@@ -16,8 +18,6 @@ import { RecipeMealIcon } from '@/components/recipe-meal-icon';
 import { BellRing, ChevronLeft, ShoppingBasket, WandSparkles } from 'lucide-react-native';
 import { format } from 'date-fns';
 import { groupBy, isEmptyish } from 'remeda';
-import { useAppForm } from '@/components/form/app-form';
-import { z } from 'zod';
 import Animated from 'react-native-reanimated';
 
 const Count = ({ count }: { count: number }) => {
@@ -40,31 +40,21 @@ const Count = ({ count }: { count: number }) => {
   );
 };
 
-// ─── IngredientRow ─────────────────────────────────────────────────────────────
-
-type ProductRowProps = {
+const ProductRow = ({ productRow, previewRecipes, description }: {
   productRow: GroceryPreviewProductRowDTO;
   previewRecipes: GroceryPreviewDTO['recipes'];
-  isChecked: boolean;
-  onToggle: (id: string) => void;
   description: string;
-  override?: number | null;
-  onPurchaseChange: (id: string, quantity: number | null) => void;
-  onEditingChange: (id: string, editing: boolean) => void;
-};
-
-const ProductRow = ({ productRow, previewRecipes, isChecked, onToggle, description, override, onPurchaseChange, onEditingChange }: ProductRowProps) => {
-  useEffect(() => () => onEditingChange(productRow.product_id, false), [productRow.product_id, onEditingChange]);
+}) => {
+  const { checked, override, toggle, setQuantity, setEditing } = useGenerationProductDraft(productRow.product_id);
   return (
-    <View style={{ opacity: isChecked ? 1 : 0.55 }}>
+    <View style={{ opacity: checked ? 1 : 0.55 }}>
       <GenerationGroceryItem
         product={productRow.product} purchase={productRow.purchase}
         quantity={override === null ? productRow.purchase?.suggested_quantity ?? productRow.quantity : override ?? productRow.quantity}
         overridden={override === undefined ? productRow.quantity_overridden : override !== null}
-        onChange={(quantity) => onPurchaseChange(productRow.product_id, quantity)}
-        onEditingChange={(editing) => onEditingChange(productRow.product_id, editing)}
-        checked={isChecked} checkboxLabel={`${productRow.product.name}, ${isChecked ? 'included' : 'excluded'}`}
-        onToggle={() => onToggle(productRow.product_id)} recipes={productRow.recipes.map((recipe) => ({ ...recipe,
+        onChange={setQuantity} onEditingChange={setEditing}
+        checked={checked} checkboxLabel={`${productRow.product.name}, ${checked ? 'included' : 'excluded'}`}
+        onToggle={toggle} recipes={productRow.recipes.map((recipe) => ({ ...recipe,
           meal_type: previewRecipes.find((included) => included.id === recipe.id)?.meal_type }))} reason={description}
       />
     </View>
@@ -78,12 +68,7 @@ type ProductSectionProps = {
   icon: typeof BellRing;
   products: GroceryPreviewProductRowDTO[];
   previewRecipes: GroceryPreviewDTO['recipes'];
-  selectedProductIds: Set<string>;
-  onToggle: (id: string) => void;
   getDescription: (productRow: GroceryPreviewProductRowDTO) => string;
-  overrides: Record<string, number | null>;
-  onPurchaseChange: (id: string, quantity: number | null) => void;
-  onEditingChange: (id: string, editing: boolean) => void;
 };
 
 const ProductSection = ({
@@ -93,9 +78,7 @@ const ProductSection = ({
   icon: Icon,
   products,
   previewRecipes,
-  selectedProductIds,
-  onToggle,
-  getDescription, overrides, onPurchaseChange, onEditingChange,
+  getDescription,
 }: ProductSectionProps) => {
   if (isEmptyish(products)) return null;
   const productsByAisle = groupBy(products, (row) => row.product.aisle);
@@ -117,28 +100,25 @@ const ProductSection = ({
       </Typography>
       <View style={{ gap: 32, marginTop: 8 }}>
         {groups.map(({ aisle, products: aisleProducts }) => (
-
-            <Animated.View layout={GROCERY_LAYOUT_TRANSITION} key={aisle ?? "reminders"} style={{ gap: 12 }}>
-              {aisle && <AisleHeader type={aisle} />}
-              <Animated.View layout={GROCERY_LAYOUT_TRANSITION} style={{ backgroundColor: colors.surface.raised, borderWidth: 1, borderBottomWidth: 2,
-                borderColor: colors.brown[900], borderRadius: 8, overflow: 'hidden' }}>
-                {aisleProducts.map((productRow, index) => (
-                  <Animated.View layout={GROCERY_LAYOUT_TRANSITION} key={productRow.product_id} style={{ overflow: 'hidden' }}>
-                    {index > 0 && <DashedDivider />}
-                    <ProductRow
-                      productRow={productRow}
-                      previewRecipes={previewRecipes}
-                      override={overrides[productRow.product_id]}
-                      onPurchaseChange={onPurchaseChange}
-                      onEditingChange={onEditingChange}
-                      isChecked={selectedProductIds.has(productRow.product_id)}
-                      onToggle={onToggle}
-                      description={getDescription(productRow)}
-                    />
-                  </Animated.View>
-                ))}
-              </Animated.View>
+          <Animated.View layout={GROCERY_LAYOUT_TRANSITION} key={aisle ?? 'reminders'} style={{ gap: 12 }}>
+            {aisle && <AisleHeader type={aisle} />}
+            <Animated.View
+              layout={GROCERY_LAYOUT_TRANSITION}
+              style={{ backgroundColor: colors.surface.raised, borderWidth: 1, borderBottomWidth: 2,
+                borderColor: colors.brown[900], borderRadius: 8, overflow: 'hidden' }}
+            >
+              {aisleProducts.map((productRow, index) => (
+                <Animated.View layout={GROCERY_LAYOUT_TRANSITION} key={productRow.product_id} style={{ overflow: 'hidden' }}>
+                  {index > 0 && <DashedDivider />}
+                  <ProductRow
+                    productRow={productRow}
+                    previewRecipes={previewRecipes}
+                    description={getDescription(productRow)}
+                  />
+                </Animated.View>
+              ))}
             </Animated.View>
+          </Animated.View>
         ))}
       </View>
     </Animated.View>
@@ -163,46 +143,17 @@ type ContentProps = {
   endDate: string;
 };
 
-const groceryGenerationSchema = z.object({
-  checked_product_ids: z.array(z.string()),
-});
+const GenerationReview = (props: ContentProps) => {
+  const store = useGenerationDraftStore(props.preview);
+  return <Provider store={store}><Content {...props} /></Provider>;
+};
 
 const Content = ({ preview, startDate, endDate }: ContentProps) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  const generateGroceryItems = useGenerateGroceryItems();
-  const [editingIds, setEditingIds] = useState<Set<string>>(new Set());
-  const onEditingChange = useCallback((id: string, editing: boolean) => setEditingIds((current) => {
-    if (current.has(id) === editing) return current;
-    const next = new Set(current);
-    if (editing) next.add(id); else next.delete(id);
-    return next;
-  }), []);
-  const [overrides, setOverrides] = useState<Record<string, number | null>>({});
-  const onPurchaseChange = (id: string, quantity: number | null) => setOverrides((current) => ({ ...current, [id]: quantity }));
-  const form = useAppForm({
-    defaultValues: {
-      checked_product_ids: preview.products.filter((product) => product.checked).map((product) => product.product_id),
-    },
-    validators: {
-      onSubmit: groceryGenerationSchema,
-    },
-    onSubmit: ({ value }) => {
-      generateGroceryItems.mutate(
-        { start: startDate, end: endDate, checked_product_ids: value.checked_product_ids, purchase_quantities: Object.entries(overrides).filter(([id]) => value.checked_product_ids.includes(id)).map(([product_id, quantity]) => ({ product_id, quantity })) },
-        { onSuccess: () => router.back() }
-      );
-    },
+  const { submit, editing, saving, failed } = useGenerationSubmission({
+    preview, start: startDate, end: endDate, onSuccess: () => router.back(),
   });
-
-  const toggleProduct = (productId: string) => {
-    const current = form.state.values.checked_product_ids;
-    const next = current.includes(productId)
-      ? current.filter((selectedId) => selectedId !== productId)
-      : [...current, productId];
-    form.setFieldValue('checked_product_ids', next);
-  };
 
   const reminderProducts = preview.products.filter(
     (productRow) => productRow.running_low || productRow.product.shape === 'timed'
@@ -234,95 +185,75 @@ const Content = ({ preview, startDate, endDate }: ContentProps) => {
         </Typography>
       </View>
 
-      {generateGroceryItems.isError && <Typography variant="body-sm" weight="medium" color={colors.red[600]} style={{ paddingHorizontal: 20 }}>Could not add these items. Try again.</Typography>}
-      <form.AppForm>
-        <form.Subscribe selector={(state) => state.values.checked_product_ids}>
-          {(checkedProductIds) => {
-            const selectedProductIds = new Set(checkedProductIds);
+      {failed && <Typography variant="body-sm" weight="medium" color={colors.red[600]} style={{ paddingHorizontal: 20 }}>Could not add these items. Try again.</Typography>}
+      <KeyboardAwareScrollView
+        bottomOffset={120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          gap: 32,
+          paddingBottom: insets.bottom + 100,
+        }}
+      >
+        <ProductSection
+          title="Do you have these?"
+          groupByCategory={false}
+          description="Select any reminders you want to add."
+          icon={BellRing}
+          products={reminderProducts}
+          previewRecipes={preview.recipes}
+          getDescription={reminderDescription}
+        />
 
-            return (
-              <KeyboardAwareScrollView
-                bottomOffset={120}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingHorizontal: 20,
-                  paddingTop: 16,
-                  gap: 32,
-                  paddingBottom: insets.bottom + 100,
-                }}
-              >
-                <ProductSection
-                  title="Do you have these?"
-                  groupByCategory={false}
-                  description="Select any reminders you want to add."
-                  icon={BellRing}
-                  products={reminderProducts}
-                  previewRecipes={preview.recipes}
-                  selectedProductIds={selectedProductIds}
-                  onToggle={toggleProduct}
-                  overrides={overrides}
-                  onPurchaseChange={onPurchaseChange}
-                  onEditingChange={onEditingChange}
-                  getDescription={reminderDescription}
-                />
+        <ProductSection
+          title="Shopping list"
+          description="Tap the amount to change what you’ll buy."
+          icon={ShoppingBasket}
+          products={shoppingProducts}
+          previewRecipes={preview.recipes}
+          getDescription={recipeDescription}
+        />
 
-                <ProductSection
-                  title="Shopping list"
-                  description="Tap the amount to change what you’ll buy."
-                  icon={ShoppingBasket}
-                  products={shoppingProducts}
-                  previewRecipes={preview.recipes}
-                  selectedProductIds={selectedProductIds}
-                  onToggle={toggleProduct}
-                  overrides={overrides}
-                  onPurchaseChange={onPurchaseChange}
-                  onEditingChange={onEditingChange}
-                  getDescription={recipeDescription}
-                />
+        {isEmptyish(preview.products) && (
+          <View
+            style={{
+              backgroundColor: colors.surface.raised,
+              borderWidth: 1,
+              borderBottomWidth: 2,
+              borderColor: colors.brown[900],
+              borderRadius: 8,
+              padding: 20,
+              gap: 4,
+            }}
+          >
+            <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
+              Nothing to add
+            </Typography>
+            <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
+              The scheduled meals are covered by kitchen basics or pantry stock.
+            </Typography>
+          </View>
+        )}
 
-                {isEmptyish(preview.products) && (
-                  <View
-                    style={{
-                      backgroundColor: colors.surface.raised,
-                      borderWidth: 1,
-                      borderBottomWidth: 2,
-                      borderColor: colors.brown[900],
-                      borderRadius: 8,
-                      padding: 20,
-                      gap: 4,
-                    }}
-                  >
-                    <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-                      Nothing to add
-                    </Typography>
-                    <Typography variant="body-sm" weight="medium" color={colors.brown[800]}>
-                      The scheduled meals are covered by kitchen basics or pantry stock.
-                    </Typography>
-                  </View>
-                )}
-
-                {!isEmptyish(preview.recipes) && (
-                  <View style={{ gap: 8 }}>
-                    <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
-                      Meals included
-                    </Typography>
-                    {preview.recipes.map((recipe) => (
-                      <View key={recipe.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <RecipeMealIcon mealType={recipe.meal_type} />
-                        <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
-                          {recipe.name}
-                        </Typography>
-                        {recipe.amount > 1 && <Count count={recipe.amount} />}
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </KeyboardAwareScrollView>
-            );
-          }}
-        </form.Subscribe>
-      </form.AppForm>
+        {!isEmptyish(preview.recipes) && (
+          <View style={{ gap: 8 }}>
+            <Typography variant="heading-sm" weight="bold" color={colors.brown[800]}>
+              Meals included
+            </Typography>
+            {preview.recipes.map((recipe) => (
+              <View key={recipe.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <RecipeMealIcon mealType={recipe.meal_type} />
+                <Typography variant="body-base" weight="bold" color={colors.brown[900]} style={{ flex: 1 }}>
+                  {recipe.name}
+                </Typography>
+                {recipe.amount > 1 && <Count count={recipe.amount} />}
+              </View>
+            ))}
+          </View>
+        )}
+      </KeyboardAwareScrollView>
 
       {/* Bottom button */}
       <View
@@ -341,11 +272,11 @@ const Content = ({ preview, startDate, endDate }: ContentProps) => {
       >
         <Button
           variant="primary"
-          text={editingIds.size > 0 ? "Save the amount to continue" : "Add to groceries"}
-          disabled={editingIds.size > 0}
+          text={editing ? "Save the amount to continue" : "Add to groceries"}
+          disabled={editing || saving}
           leftIcon={{ Icon: WandSparkles }}
-          onPress={() => form.handleSubmit()}
-          isLoading={generateGroceryItems.isPending}
+          onPress={submit}
+          isLoading={saving}
         />
       </View>
     </View>
@@ -372,5 +303,5 @@ export default function GeneratePreview() {
     );
   }
 
-  return <Content preview={preview.data} startDate={startDate} endDate={endDate} />;
+  return <GenerationReview key={`${startDate}:${endDate}`} preview={preview.data} startDate={startDate} endDate={endDate} />;
 }

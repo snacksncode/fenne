@@ -1,100 +1,31 @@
-import { useAddGroceryItem, useEditGroceryItem } from '@/api/groceries';
-import { GroceryItemFormData, groceryItemToFormData, GroceryItemInput } from '@/api/types';
-import { AisleHeader, AisleIcon } from '@/components/aisle-header';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
-import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
+import { AisleIcon } from '@/components/aisle-header';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { QuantityShortcuts } from '@/components/quantity-shortcuts';
 import { Button } from '@/components/button';
-import { useAppForm } from '@/components/form/app-form';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
+import { useGroceryItemForm } from '@/hooks/use-grocery-item-form';
 import { ProductChoice, ProductSearchStep } from '@/components/product-search-step';
 import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { nanoid } from 'nanoid/non-secure';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
-import { parseLocaleFloat } from '@/utils';
-import { z } from 'zod';
+import { parseLocaleFloat } from '@/lib/quantity';
 
 type Phase = 'select' | 'details';
-
-const emptyGroceryItem: GroceryItemFormData = {
-  id: nanoid(),
-  name: '',
-  quantity: '1',
-  unit: 'count',
-  aisle: 'other',
-  status: 'pending',
-  product: null,
-  source: 'manual',
-  recipes: [],
-};
-
-const groceryItemSchema = z.object({
-  id: z.string(),
-  name: z.string().trim().min(1, 'Name is required'),
-  quantity: z.string().refine((value) => {
-    const quantity = parseLocaleFloat(value);
-    return Number.isFinite(quantity) && quantity > 0;
-  }, 'Quantity must be positive'),
-  unit: z.custom<Unit>(),
-  aisle: z.custom<GroceryItemFormData['aisle']>(),
-  product: z.custom<GroceryItemFormData['product']>(),
-  source: z.custom<GroceryItemFormData['source']>(),
-  status: z.custom<GroceryItemFormData['status']>(),
-  recipes: z.custom<GroceryItemFormData['recipes']>(),
-});
 
 export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const sheets = useSheets();
   const initialGrocery = props.data?.grocery;
   const isEditing = !!initialGrocery;
-  const [query, setQuery] = useState(() => (initialGrocery ? groceryItemToFormData(initialGrocery).name : ''));
+  const [query, setQuery] = useState(initialGrocery?.name ?? '');
   const [phase, setPhase] = useState<Phase>(isEditing ? 'details' : 'select');
 
-  const addGroceryItem = useAddGroceryItem();
-  const editGroceryItem = useEditGroceryItem();
-  const form = useAppForm({
-    defaultValues: initialGrocery ? groceryItemToFormData(initialGrocery) : emptyGroceryItem,
-    validators: {
-      onSubmit: groceryItemSchema,
-    },
-    onSubmit: ({ value }) => {
-      if (isEditing) {
-        editGroceryItem.mutate({
-          id: value.id,
-          quantity: parseLocaleFloat(value.quantity),
-          ...(value.product == null && { unit: value.unit }),
-        });
-      } else {
-        const quantity = parseLocaleFloat(value.quantity);
-        const input: GroceryItemInput = value.product
-          ? {
-              type: 'product',
-              product_id: value.product.id,
-              unit: value.unit,
-              quantity,
-            }
-          : {
-              type: 'custom',
-              name: value.name.trim(),
-              aisle: value.aisle,
-              unit: value.unit,
-              quantity,
-            };
-        addGroceryItem.mutate(input);
-      }
-      sheets.dismiss(props.sheetId);
-      Keyboard.dismiss();
-    },
+  const { form, feedback } = useGroceryItemForm(initialGrocery, async () => {
+    Keyboard.dismiss();
+    await sheets.dismiss(props.sheetId);
   });
-
-  const handleSave = () => {
-    form.handleSubmit();
-  };
 
   const handleOpenUnitSheet = async () => {
     Keyboard.dismiss();
@@ -151,137 +82,114 @@ export const GroceryItemSheet = (props: SheetProps<'grocery-item-sheet'>) => {
   const title = isEditing ? 'Edit grocery entry' : 'Add grocery entry';
 
   return (
-    <BaseSheet
-      containerStyle={{ minHeight: 210 }}
-      id={props.sheetId}
-      scrollableOptions={{ scrollingExpandsSheet: false }}
-      footer={
-        phase === 'details'
-          ? sheetFooter.buttonRow(
-              <Button
-                text={initialGrocery ? 'Save changes' : 'Save grocery entry'}
-                variant="primary"
-                rightIcon={{ Icon: ArrowRight }}
-                onPress={handleSave}
-                isLoading={addGroceryItem.isPending || editGroceryItem.isPending}
-              />
-            )
-          : phase === 'select'
-            ? sheetFooter.buttonRow(
-                <Button
-                  text="Continue"
-                  variant="primary"
-                  rightIcon={{ Icon: ArrowRight }}
-                  onPress={continueWithCustomItem}
-                />
-              )
-            : undefined
-      }
-    >
-      <form.AppForm>
-        <View style={{ gap: 8 }}>
-          <View style={styles.header}>
-            {phase === 'details' && !isEditing && (
-              <Button
-                accessibilityLabel="Go back"
-                size="small"
-                variant="outlined"
-                leftIcon={{ Icon: ArrowLeft }}
-                onPress={handleBackToSelect}
-                style={{ paddingHorizontal: 0, width: 42 }}
-              />
-            )}
-            <Typography variant="heading-sm" weight="bold">
-              {title}
-            </Typography>
-          </View>
-        </View>
-
-        {phase === 'select' && (
-          <ProductSearchStep
-            context="shopping"
-            query={query}
-            onQueryChange={(name) => {
-              form.setFieldValue('name', name);
-              form.setFieldValue('product', null);
-              setQuery(name);
-            }}
-            onSelect={selectSearchOption}
-            placeholder="e.g. Avocado"
-            listStyle={{ maxHeight: 150 }}
+    <form.AppForm>
+      <BaseSheet
+        containerStyle={{ minHeight: 210 }}
+        id={props.sheetId}
+        scrollableOptions={{ scrollingExpandsSheet: false }}
+        footer={phase === 'details' ? (
+          <form.SubmitButton
+            text={initialGrocery ? 'Save changes' : 'Save grocery entry'}
+            variant="primary"
+            rightIcon={{ Icon: ArrowRight }}
           />
+        ) : (
+          <Button text="Continue" variant="primary" rightIcon={{ Icon: ArrowRight }} onPress={continueWithCustomItem} />
         )}
-
-        {phase === 'details' && (
-          <form.Subscribe selector={(state) => state.values}>
-            {(grocery) => (
-              <View style={{ gap: 16, marginTop: 8 }}>
-                <View style={styles.selectedItem}>
-                  {grocery.product ? (
-                    <ShoppingItemIdentity
-                      name={grocery.name}
-                      aisle={grocery.aisle}
-                      description="Uses your saved shopping and pantry settings"
-                      compact
-                      style={styles.selectedItemIdentity}
-                    />
-                  ) : (
-                    <>
-                      <AisleIcon type={grocery.aisle} />
-                      <View style={styles.selectedItemCopy}>
-                        <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
-                          Custom grocery entry
-                        </Typography>
-                        <Typography variant="body-base" weight="bold">
-                          {grocery.name}
-                        </Typography>
-                        <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
-                          Only appears on this grocery list
-                        </Typography>
-                      </View>
-                    </>
-                  )}
-                </View>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <form.AppField name="quantity">
-                      {(field) => <field.NumberField label="Quantity" placeholder="e.g. 2" />}
-                    </form.AppField>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-                      Unit
-                    </Typography>
-                    <PressableWithHaptics onPress={handleOpenUnitSheet}>
-                      <View style={styles.unitButton}>
-                        <Typography variant="body-sm" weight="bold">
-                          {UNITS.find((u) => u.value === grocery.unit)?.label({
-                            count: parseLocaleFloat(grocery.quantity),
-                          })}
-                        </Typography>
-                      </View>
-                    </PressableWithHaptics>
-                  </View>
-                </View>
-                <QuantityShortcuts
-                  unit={grocery.unit}
-                  currentValue={grocery.quantity}
-                  onSelect={(quantity) => form.setFieldValue('quantity', quantity)}
+      >
+        <View ref={feedback.contentRef}>
+          <View style={{ gap: 8 }}>
+            <View style={styles.header}>
+              {phase === 'details' && !isEditing && (
+                <Button
+                  accessibilityLabel="Go back"
+                  size="small"
+                  variant="outlined"
+                  leftIcon={{ Icon: ArrowLeft }}
+                  onPress={handleBackToSelect}
+                  style={{ paddingHorizontal: 0, width: 42 }}
                 />
-                <View>
-                  <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-                    Category
-                  </Typography>
-                  <PressableWithHaptics onPress={handleOpenCategorySheet}>
-                    <AisleHeader type={grocery.aisle} showEditIndicator />
-                  </PressableWithHaptics>
+              )}
+              <Typography variant="heading-sm" weight="bold">
+                {title}
+              </Typography>
+            </View>
+          </View>
+
+          {phase === 'select' && (
+            <ProductSearchStep
+              context="shopping"
+              query={query}
+              onQueryChange={(name) => {
+                form.setFieldValue('name', name);
+                form.setFieldValue('product', null);
+                setQuery(name);
+              }}
+              onSelect={selectSearchOption}
+              placeholder="e.g. Avocado"
+              listStyle={{ maxHeight: 150 }}
+            />
+          )}
+
+          {phase === 'details' && (
+            <form.Subscribe selector={(state) => state.values}>
+              {(grocery) => (
+                <View style={{ gap: 16, marginTop: 8 }}>
+                  <View style={styles.selectedItem}>
+                    {grocery.product ? (
+                      <ShoppingItemIdentity
+                        name={grocery.name}
+                        aisle={grocery.aisle}
+                        description="Uses your saved shopping and pantry settings"
+                        compact
+                        style={styles.selectedItemIdentity}
+                      />
+                    ) : (
+                      <>
+                        <AisleIcon type={grocery.aisle} />
+                        <View style={styles.selectedItemCopy}>
+                          <Typography variant="body-xs" weight="bold" color={colors.brown[700]}>
+                            Custom grocery entry
+                          </Typography>
+                          <Typography variant="body-base" weight="bold">
+                            {grocery.name}
+                          </Typography>
+                          <Typography variant="body-sm" weight="medium" color={colors.brown[700]}>
+                            Only appears on this grocery list
+                          </Typography>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <form.AppField name="quantity">
+                        {(field) => <field.NumberField ref={feedback.inputRef('quantity')} label="Quantity" placeholder="e.g. 2" />}
+                      </form.AppField>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <form.AppField name="unit">{(field) => (
+                        <field.UnitField ref={feedback.controlRef('unit')} quantity={parseLocaleFloat(grocery.quantity)}
+                          onPress={handleOpenUnitSheet} />
+                      )}</form.AppField>
+                    </View>
+                  </View>
+                  <QuantityShortcuts
+                    unit={grocery.unit}
+                    currentValue={grocery.quantity}
+                    onSelect={(quantity) => form.setFieldValue('quantity', quantity)}
+                  />
+                  <form.AppField name="aisle">{(field) => (
+                    <field.AisleField ref={feedback.controlRef('aisle')} onPress={handleOpenCategorySheet} />
+                  )}</form.AppField>
                 </View>
-              </View>
-            )}
-          </form.Subscribe>
-        )}
-      </form.AppForm>
-    </BaseSheet>
+              )}
+            </form.Subscribe>
+          )}
+          <form.Error message={feedback.error} />
+        </View>
+      </BaseSheet>
+    </form.AppForm>
   );
 };
 
@@ -294,8 +202,8 @@ const styles = StyleSheet.create({
   },
   selectedItem: {
     alignItems: 'center',
-    backgroundColor: '#FEF2DD',
-    borderColor: '#493D34',
+    backgroundColor: colors.cream[100],
+    borderColor: colors.brown[900],
     borderRadius: 8,
     borderWidth: 1,
     borderBottomWidth: 2,
@@ -310,15 +218,5 @@ const styles = StyleSheet.create({
   },
   selectedItemIdentity: {
     flex: 1,
-  },
-  unitButton: {
-    borderRadius: 8,
-    fontSize: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: '#493D34',
-    height: 48,
-    justifyContent: 'center',
   },
 });
