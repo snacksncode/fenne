@@ -28,6 +28,3 @@ export const createProductCatalogSearch = (catalog: ProductCatalog, context: Pro
     },
   };
 };
-
-export const searchProductCatalog = (catalog: ProductCatalog, query: string, context: ProductSearchContext) =>
-  createProductCatalogSearch(catalog, context).search(query);

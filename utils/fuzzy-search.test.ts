@@ -1,35 +1,41 @@
 /// <reference types="jest" />
 import cases from './search-cases.json';
-import { createFuzzySearch, fuzzySearch } from './fuzzy-search';
+import { createFuzzySearch } from './fuzzy-search';
 
 it.each(cases)('matches the search policy for "$query"', ({ names, query, expected }) => {
   const indices = names.map((_, index) => index);
-  expect(fuzzySearch(indices, query, (index) => names[index])).toEqual(expected);
+  const index = createFuzzySearch({ items: indices, getSearchTerms: (index) => [names[index]] });
+  expect(index.search(query).items).toEqual(expected);
 });
 
 it('keeps original objects and supports nested product names without mutating input', () => {
   const entries = [{ product: { name: 'Milk' } }, { product: { name: 'Chicken Breast' } }];
-  expect(fuzzySearch(entries, 'chiken', (entry) => entry.product.name)).toEqual([entries[1]]);
-  expect(fuzzySearch(entries, ' ', (entry) => entry.product.name)).toEqual(entries);
+  const index = createFuzzySearch({ items: entries, getSearchTerms: (entry) => [entry.product.name] });
+  expect(index.search('chiken').items).toEqual([entries[1]]);
+  expect(index.search(' ').items).toEqual(entries);
   expect(entries[0].product.name).toBe('Milk');
 });
 
 
 it('ranks exact matches, word prefixes, substrings, then typos like the web Select', () => {
   const names = ['Milx', 'Buttermilk', 'Milk powder', 'Milk'];
-  expect(fuzzySearch(names, 'milk', (name) => name)).toEqual(['Milk', 'Milk powder', 'Buttermilk', 'Milx']);
+  const index = createFuzzySearch({ items: names, getSearchTerms: (name) => [name] });
+  expect(index.search('milk').items).toEqual(['Milk', 'Milk powder', 'Buttermilk', 'Milx']);
 });
 
 it('keeps short and numeric terms literal while allowing typos in longer words', () => {
   const names = ['Milk 2%', 'Milk 3%', 'Soy Milk'];
-  expect(fuzzySearch(['Chicken 2', 'Chicken 3'], 'chiken 2', (name) => name)).toEqual(['Chicken 2']);
-  expect(fuzzySearch(names, 'mil 2', (name) => name)).toEqual(['Milk 2%']);
-  expect(fuzzySearch(names, 'so', (name) => name)).toEqual(['Soy Milk']);
-  expect(fuzzySearch(names, 'sx', (name) => name)).toEqual([]);
+  const chicken = createFuzzySearch({ items: ['Chicken 2', 'Chicken 3'], getSearchTerms: (name) => [name] });
+  const index = createFuzzySearch({ items: names, getSearchTerms: (name) => [name] });
+  expect(chicken.search('chiken 2').items).toEqual(['Chicken 2']);
+  expect(index.search('mil 2').items).toEqual(['Milk 2%']);
+  expect(index.search('so').items).toEqual(['Soy Milk']);
+  expect(index.search('sx').items).toEqual([]);
 });
 
 it('normalizes Latin letters using the same deburr behavior as the web Select', () => {
-  expect(fuzzySearch(['Łódź', 'Crème fraîche'], 'lodz', (name) => name)).toEqual(['Łódź']);
+  const index = createFuzzySearch({ items: ['Łódź', 'Crème fraîche'], getSearchTerms: (name) => [name] });
+  expect(index.search('lodz').items).toEqual(['Łódź']);
 });
 
 it('matches reordered words and aliases using token search', () => {

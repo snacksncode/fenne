@@ -30,6 +30,3 @@ export const createRecipeSearch = (recipes: RecipeDTO[], opts: RecipeSearchOptio
   });
   return { search: (query: string) => index.search(query).items };
 };
-
-export const filterRecipes = (recipes: RecipeDTO[], opts: RecipeSearchOptions & { search?: string }) =>
-  createRecipeSearch(recipes, opts).search(opts.search ?? '');

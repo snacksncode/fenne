@@ -61,7 +61,3 @@ export const createFuzzySearch = <Item>({
 
   return { search };
 };
-
-/** Uses the same search policy as BetterOff's web Select. */
-export const fuzzySearch = <T>(items: T[], query: string, name: (item: T) => string): T[] =>
-  createFuzzySearch({ items, getSearchTerms: (item) => [name(item)] }).search(query).items;

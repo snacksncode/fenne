@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import type { RecipeDTO, MealType } from '@/api/types';
-import { createRecipeSearch, filterRecipes } from './recipe-utils';
+import { createRecipeSearch } from './recipe-utils';
 
 const recipe = (name: string, meal_types: MealType[]): RecipeDTO => ({
   id: name, name, meal_types, ingredients: [], time_in_minutes: 10, liked: false, notes: '',
@@ -8,25 +8,26 @@ const recipe = (name: string, meal_types: MealType[]): RecipeDTO => ({
 const recipes = [recipe('Roast Chicken', ['dinner']), recipe('Chicken', ['lunch']), recipe('Omelette', ['breakfast'])];
 
 it('keeps exact matches ahead of preferred meal ordering', () => {
-  expect(filterRecipes(recipes, { search: 'chicken', mealType: 'dinner' }).map((r) => r.name))
+  expect(createRecipeSearch(recipes, { mealType: 'dinner' }).search('chicken').map((r) => r.name))
     .toEqual(['Chicken', 'Roast Chicken']);
 });
 it('applies meal filters before matching', () => {
-  expect(filterRecipes(recipes, { search: 'chiken', mealFilter: 'dinner' })).toEqual([recipes[0]]);
+  expect(createRecipeSearch(recipes, { mealFilter: 'dinner' }).search('chiken')).toEqual([recipes[0]]);
 });
 it('retains normal sorting for a whitespace-only query', () => {
-  expect(filterRecipes(recipes, { search: '  ', mealType: 'dinner' }).map((r) => r.name))
+  expect(createRecipeSearch(recipes, { mealType: 'dinner' }).search('  ').map((r) => r.name))
     .toEqual(['Roast Chicken', 'Chicken', 'Omelette']);
 });
 
 it('preserves preferred meal ordering when fuzzy scores tie', () => {
-  expect(filterRecipes(recipes, { search: 'chiken', mealType: 'dinner' }).map((r) => r.name))
+  expect(createRecipeSearch(recipes, { mealType: 'dinner' }).search('chiken').map((r) => r.name))
     .toEqual(['Roast Chicken', 'Chicken']);
 });
 
 it('prepared recipe indexes preserve filters and preferred ordering across queries', () => {
   const index = createRecipeSearch(recipes, { mealType: 'dinner' });
-  for (const search of ['', 'chicken', 'chiken', 'unknown']) {
-    expect(index.search(search)).toEqual(filterRecipes(recipes, { mealType: 'dinner', search }));
-  }
+  expect(index.search('')).toEqual([recipes[0], recipes[1], recipes[2]]);
+  expect(index.search('chicken')).toEqual([recipes[1], recipes[0]]);
+  expect(index.search('chiken')).toEqual([recipes[0], recipes[1]]);
+  expect(index.search('unknown')).toEqual([]);
 });

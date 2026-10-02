@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import type { ProductCatalog, ProductDTO } from '@/api/types';
-import { createProductCatalogSearch, searchProductCatalog } from './product-search';
+import { createProductCatalogSearch } from './product-search';
 
 const product = (name: string, basic = false): ProductDTO => ({
   id: name, name, aisle: 'produce', unit: 'count', is_kitchen_basic: basic,
@@ -16,38 +16,43 @@ const catalog: ProductCatalog = {
 };
 
 it('fuzzily searches products and suggestions, suppressing normalized duplicates', () => {
-  const result = searchProductCatalog(catalog, 'chiken', 'recipe');
+  const result = createProductCatalogSearch(catalog, 'recipe').search('chiken');
   expect(result.results.map((r) => [r.name, r.type])).toEqual([
     ['Chicken Breast', 'product'], ['Chicken Wings', 'suggestion'],
   ]);
   expect(result.add_available).toBe(true);
 });
 it('pantry includes only existing tracked products', () => {
-  expect(searchProductCatalog(catalog, 'chiken', 'pantry').results.map((r) => r.name)).toEqual(['Chicken Breast']);
-  expect(searchProductCatalog(catalog, 'salt', 'pantry')).toEqual({ results: [], add_available: false });
-  expect(searchProductCatalog(catalog, 'salt', 'shopping').results[0].name).toBe('Salt');
+  const pantry = createProductCatalogSearch(catalog, 'pantry');
+  expect(pantry.search('chiken').results.map((r) => r.name)).toEqual(['Chicken Breast']);
+  expect(pantry.search('salt')).toEqual({ results: [], add_available: false });
+  expect(createProductCatalogSearch(catalog, 'shopping').search('salt').results[0].name).toBe('Salt');
 });
 it('exact names block creation but fuzzy matches do not', () => {
-  expect(searchProductCatalog(catalog, ' CHICKEN BREAST ', 'recipe').add_available).toBe(false);
-  expect(searchProductCatalog(catalog, 'CHICKEN WINGS', 'recipe').add_available).toBe(false);
-  expect(searchProductCatalog(catalog, 'chiken', 'recipe').add_available).toBe(true);
+  const index = createProductCatalogSearch(catalog, 'recipe');
+  expect(index.search(' CHICKEN BREAST ').add_available).toBe(false);
+  expect(index.search('CHICKEN WINGS').add_available).toBe(false);
+  expect(index.search('chiken').add_available).toBe(true);
 });
 it('deduplicates before limiting results and prioritizes exact matches', () => {
   const products = Array.from({ length: 15 }, (_, i) => product(`Dragonfruit ${i}`));
   const data: ProductCatalog = { products, suggestions: products.map((p) => ({ ...p })) };
   data.products.push(product('Dragonfruit'));
-  const result = searchProductCatalog(data, 'dragonfruit', 'shopping');
+  const result = createProductCatalogSearch(data, 'shopping').search('dragonfruit');
   expect(result.results).toHaveLength(10);
   expect(result.results[0].name).toBe('Dragonfruit');
   expect(result.results.every((r) => r.type === 'product')).toBe(true);
 });
 it('blank searches remain idle', () => {
-  expect(searchProductCatalog(catalog, '  ', 'recipe')).toEqual({ results: [], add_available: false });
+  expect(createProductCatalogSearch(catalog, 'recipe').search('  ')).toEqual({ results: [], add_available: false });
 });
 
 it('a prepared catalog keeps context and duplicate-name policy across searches', () => {
   const index = createProductCatalogSearch(catalog, 'recipe');
-  expect(index.search('chiken')).toEqual(searchProductCatalog(catalog, 'chiken', 'recipe'));
+  expect(index.search('chiken')).toEqual({
+    results: [{ ...catalog.products[0], type: 'product' }, { ...catalog.suggestions[1], type: 'suggestion' }],
+    add_available: true,
+  });
   expect(index.search('CHICKEN WINGS').add_available).toBe(false);
   expect(index.search('')).toEqual({ results: [], add_available: false });
 });
