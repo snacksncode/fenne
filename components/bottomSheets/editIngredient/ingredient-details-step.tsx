@@ -1,30 +1,18 @@
-import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
 import { Button } from '@/components/button';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { Typography } from '@/components/Typography';
 import { ProductConversionFields } from '@/components/product-conversion-fields';
 import { ShoppingItemIdentity } from '@/components/shopping-item-identity';
 import { productConversionRequirement } from '@/lib/product-conversions';
-import { parseLocaleFloat } from '@/utils';
+import { parseLocaleFloat } from '@/lib/quantity';
 import { X } from 'lucide-react-native';
 import { Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TextInputRef } from '@/components/input';
-import { SelectedProduct } from './ingredient-editor-model';
 import { IngredientEditor } from './use-ingredient-editor';
 
-type IngredientDetailsStepProps = {
-  form: IngredientEditor['ingredientForm'];
-  selectedProduct: SelectedProduct;
-  onClearProduct: () => void;
-  onEditDraftProduct: () => void;
-  onEditExistingProduct: () => void;
-  onSelectUnit: () => void;
-  conversionValues: IngredientEditor['conversionValues'];
-  conversionError: string | null;
-  onConversionChange: IngredientEditor['setConversionValue'];
+type IngredientDetailsStepProps = Omit<Extract<IngredientEditor['step'], { phase: 'ingredient' }>, 'phase'> & {
   displayNameInputRef?: Ref<TextInputRef>;
   quantityInputRef?: Ref<TextInputRef>;
+  unitControlRef?: Ref<View>;
   conversionInputRef?: Ref<TextInputRef>;
 };
 
@@ -32,14 +20,14 @@ export const IngredientDetailsStep = ({
   form,
   selectedProduct,
   onClearProduct,
-  onEditDraftProduct,
-  onEditExistingProduct,
+  onEditProduct,
   onSelectUnit,
   conversionValues,
   conversionError,
   onConversionChange,
   displayNameInputRef,
   quantityInputRef,
+  unitControlRef,
   conversionInputRef,
 }: IngredientDetailsStepProps) => (
   <form.AppForm>
@@ -60,7 +48,7 @@ export const IngredientDetailsStep = ({
                 text="Edit"
                 variant="outlined"
                 size="small"
-                onPress={selectedProduct.type === 'draft' ? onEditDraftProduct : onEditExistingProduct}
+                onPress={onEditProduct}
               />
               <Button
                 accessibilityLabel="Clear selected shopping item"
@@ -91,18 +79,9 @@ export const IngredientDetailsStep = ({
                 </form.AppField>
               </View>
               <View style={{ flex: 1 }}>
-                <Typography variant="body-sm" weight="bold" style={{ marginBottom: 4 }}>
-                  Unit
-                </Typography>
-                <PressableWithHaptics onPress={onSelectUnit}>
-                  <View style={styles.unitButton}>
-                    <Typography variant="body-sm" weight="medium">
-                      {UNITS.find((unit) => unit.value === ingredient.unit)?.label({
-                        count: parseLocaleFloat(ingredient.quantity),
-                      })}
-                    </Typography>
-                  </View>
-                </PressableWithHaptics>
+                <form.AppField name="unit">{(field) => (
+                  <field.UnitField quantity={parseLocaleFloat(ingredient.quantity)} onPress={onSelectUnit} ref={unitControlRef} />
+                )}</form.AppField>
               </View>
             </View>
 
@@ -132,15 +111,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-  },
-  unitButton: {
-    borderRadius: 8,
-    fontSize: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderColor: '#493D34',
-    height: 48,
-    justifyContent: 'center',
   },
 });

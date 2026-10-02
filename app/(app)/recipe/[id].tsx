@@ -11,7 +11,7 @@ import { useRecipe, useEditRecipe } from '@/api/recipes';
 import { isHtmlEmpty } from '@/utils/is-html-empty';
 import { colors } from '@/constants/colors';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { prettyUnit } from '@/utils/unit-formatters';
+import { prettyUnit } from '@/lib/quantity';
 import { DashedDivider } from '@/components/dashed-divider';
 
 const systemFonts = [

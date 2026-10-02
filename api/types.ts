@@ -1,5 +1,5 @@
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
-import { parseLocaleFloat } from '@/utils';
+import { Unit } from '@/lib/quantity';
+import { parseLocaleFloat } from '@/lib/quantity';
 
 export type AisleCategory =
   | 'produce'
@@ -145,16 +145,6 @@ export type GroceryItemInput =
       unit: Unit;
     };
 
-export const groceryItemToFormData = (item: GroceryItemDTO): GroceryItemFormData => ({
-  ...item,
-  quantity: item.quantity.toString(),
-});
-
-export const groceryItemFromFormData = (form: GroceryItemFormData): GroceryItemDTO => ({
-  ...form,
-  quantity: parseLocaleFloat(form.quantity),
-});
-
 export type GroceryPreviewProductRowDTO = {
   product_id: string;
   product: ProductDTO;
@@ -208,43 +198,6 @@ export type IngredientFormData = {
   quantity: string;
 };
 
-export const ingredientToFormData = (ingredient: IngredientDTO): IngredientFormData => ({
-  ...ingredient,
-  selectedProduct: { type: 'existing', product: ingredient.product },
-  quantity: ingredient.quantity.toString(),
-});
-
-export const ingredientFromFormData = (form: IngredientFormData): IngredientDTO => ({
-  id: form.id,
-  product_id: form.selectedProduct.type === 'existing' ? form.selectedProduct.product.id : '',
-  product:
-    form.selectedProduct.type === 'existing'
-      ? form.selectedProduct.product
-      : ({
-          id: '',
-          name: form.selectedProduct.product.name,
-          aisle: form.selectedProduct.product.aisle,
-          unit: form.selectedProduct.product.unit,
-          reminder_frequency_value: form.selectedProduct.product.reminder_frequency_value ?? null,
-          reminder_frequency_unit: form.selectedProduct.product.reminder_frequency_unit ?? null,
-          is_kitchen_basic: form.selectedProduct.product.is_kitchen_basic ?? false,
-          shape: form.selectedProduct.product.is_kitchen_basic
-            ? 'kitchen_basic'
-            : form.selectedProduct.product.reminder_frequency_value
-              ? 'timed'
-              : form.selectedProduct.product.unit === 'count'
-                ? 'counted'
-                : 'measured',
-          conversions: form.selectedProduct.product.conversions ?? {},
-          pack_sizes: form.selectedProduct.product.pack_sizes ?? [],
-        } as ProductDTO),
-  name: form.name,
-  name_override: form.name_override,
-  unit: form.unit,
-  aisle: form.aisle,
-  quantity: parseLocaleFloat(form.quantity),
-});
-
 export type IngredientInput = {
   quantity: number;
   unit: Unit;
@@ -286,29 +239,6 @@ export type RecipeFormData = Omit<RecipeDTO, 'ingredients' | 'time_in_minutes'> 
   ingredients: IngredientFormData[];
   time_in_minutes: string;
 };
-
-export const recipeToFormData = (recipe: RecipeDTO): RecipeFormData => ({
-  ...recipe,
-  ingredients: recipe.ingredients.map(ingredientToFormData),
-  time_in_minutes: recipe.time_in_minutes.toString(),
-});
-
-export const recipeFromFormData = (form: RecipeFormData): RecipeInputDTO => ({
-  name: form.name,
-  meal_types: form.meal_types,
-  ingredients: form.ingredients.map((ingredient) => ({
-    quantity: parseLocaleFloat(ingredient.quantity),
-    unit: ingredient.unit,
-    name_override: ingredient.name_override?.trim() || null,
-    product:
-      ingredient.selectedProduct.type === 'existing'
-        ? { id: ingredient.selectedProduct.product.id }
-        : ingredient.selectedProduct.product,
-  })),
-  time_in_minutes: parseLocaleFloat(form.time_in_minutes),
-  liked: form.liked,
-  notes: form.notes,
-});
 
 // Schedules
 

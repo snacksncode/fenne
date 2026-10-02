@@ -5,8 +5,8 @@ import {
   ProductDraft,
   ProductSuggestionDTO,
 } from '@/api/types';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
-import { parseLocaleFloat } from '@/utils';
+import { Unit } from '@/lib/quantity';
+import { parseLocaleFloat } from '@/lib/quantity';
 import { nanoid } from 'nanoid/non-secure';
 import { z } from 'zod';
 

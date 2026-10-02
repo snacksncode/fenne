@@ -1,25 +1,17 @@
-import { Typography } from '@/components/Typography';
-import { colors } from '@/constants/colors';
-import { PackSizeFields } from '@/components/pack-size-fields';
 import { TextInputRef } from '@/components/input';
-import { formErrorMessage } from '@/components/form/app-form';
-import {
-  ShoppingItemBehaviorField,
-  ShoppingItemBehaviorFields,
-} from '@/components/shopping-item-behavior-fields';
+import { ProductBehaviorFields, productBehaviorFieldNames } from '@/components/form/product-behavior-fields';
+import { ShoppingItemBehaviorField } from '@/components/shopping-item-behavior-fields';
 import { View } from 'react-native';
 import { Ref } from 'react';
 import { IngredientEditor } from './use-ingredient-editor';
 
 type ProductDraftStepProps = {
-  form: IngredientEditor['productForm'];
+  form: Extract<IngredientEditor['step'], { phase: 'product' }>['form'];
   onSelectAisle: () => void;
   onSelectUnit: () => void;
   nameInputRef?: Ref<TextInputRef>;
   registerControl?: (field: ShoppingItemBehaviorField, node: View | null) => void;
 };
-
-const firstError = (errors: unknown[]) => errors.map(formErrorMessage).find((message) => message != null) ?? null;
 
 export const ProductDraftStep = ({
   form,
@@ -33,59 +25,13 @@ export const ProductDraftStep = ({
       <form.AppField name="name">
         {(field) => <field.TextField ref={nameInputRef} label="Name" />}
       </form.AppField>
-      <form.AppField name="mode">
-        {(modeField) => (
-          <form.AppField name="aisle">
-            {(aisleField) => (
-              <form.AppField name="unit">
-                {(unitField) => (
-                  <form.AppField name="reminder_frequency_value">
-                    {(frequencyField) => (
-                      <form.AppField name="reminder_frequency_unit">
-                        {(frequencyUnitField) => (
-                          <ShoppingItemBehaviorFields
-                            mode={modeField.state.value}
-                            aisle={aisleField.state.value}
-                            unit={unitField.state.value}
-                            reminderValue={frequencyField.state.value}
-                            reminderUnit={frequencyUnitField.state.value}
-                            onModeChange={modeField.handleChange}
-                            onAislePress={onSelectAisle}
-                            onUnitPress={onSelectUnit}
-                            onReminderValueChange={frequencyField.handleChange}
-                            onReminderUnitChange={frequencyUnitField.handleChange}
-                            errors={{
-                              aisle: firstError(aisleField.state.meta.errors),
-                              unit: firstError(unitField.state.meta.errors),
-                              reminder_frequency_value: firstError(frequencyField.state.meta.errors),
-                              reminder_frequency_unit: firstError(frequencyUnitField.state.meta.errors),
-                            }}
-                            registerControl={registerControl}
-                          />
-                        )}
-                      </form.AppField>
-                    )}
-                  </form.AppField>
-                )}
-              </form.AppField>
-            )}
-          </form.AppField>
-        )}
-      </form.AppField>
-      <form.Subscribe selector={(state) => ({ mode: state.values.mode, unit: state.values.unit })}>
-        {({ mode, unit }) => mode === 'tracked' && unit !== 'count' ? (
-          <form.AppField name="pack_sizes">
-            {(field) => (
-              <View ref={(node) => registerControl?.('pack_sizes', node)} accessible accessibilityLabel="Pack sizes">
-                <PackSizeFields unit={unit} values={field.state.value} onChange={field.handleChange} />
-                {field.state.meta.errors.map(formErrorMessage).filter(Boolean).map((message, index) => (
-                  <Typography key={index} variant="body-xs" weight="medium" color={colors.red[600]}>{message}</Typography>
-                ))}
-              </View>
-            )}
-          </form.AppField>
-        ) : null}
-      </form.Subscribe>
+      <ProductBehaviorFields
+        form={form}
+        fields={productBehaviorFieldNames}
+        onSelectAisle={onSelectAisle}
+        onSelectUnit={onSelectUnit}
+        registerControl={registerControl}
+      />
     </View>
   </form.AppForm>
 );

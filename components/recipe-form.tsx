@@ -1,357 +1,22 @@
-import { useAddRecipe, useEditRecipe } from '@/api/recipes';
-import { missingRecipeConversionsFromError } from '@/api/errors';
-import Sortable, { useCustomHandleContext, useIsInPortalOutlet, useItemContext } from 'react-native-sortables';
-import {
-  RecipeDTO,
-  RecipeFormData,
-  recipeFromFormData,
-  recipeToFormData,
-  IngredientFormData,
-  MealType,
-  MissingRecipeConversionDTO,
-} from '@/api/types';
+import { RecipeDTO } from '@/api/types';
 import { Button } from '@/components/button';
-import { useAppForm } from '@/components/form/app-form';
-import { TextInputRef } from '@/components/input';
-import { Pancake } from '@/components/svgs/pancake';
-import { useNavigation } from 'expo-router/react-navigation';
-import { ChevronLeft, Ham, Salad, CirclePlus, CookingPot, GripVertical, Trash2, Save } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, Keyboard, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Typography } from '@/components/Typography';
-import { GestureDetector } from 'react-native-gesture-handler';
 import { NotesEditor } from '@/components/notes-editor';
-import { EnrichedTextInputInstance } from 'react-native-enriched-html';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSheets } from '@/lib/sheet-context';
-import Animated, {
-  Extrapolation,
-  FadeOut,
-  FadeIn,
-  interpolate,
-  LinearTransition,
-  runOnUI,
-  useAnimatedStyle,
-  useAnimatedRef,
-  useSharedValue,
-  withSpring,
-  SharedValue,
-} from 'react-native-reanimated';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { scheduleOnUI } from 'react-native-worklets';
-import { isEmpty, isEmptyish } from 'remeda';
+import { RecipeIngredients } from '@/components/recipe-ingredients';
+import { Pancake } from '@/components/svgs/pancake';
+import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { useMount } from '@/hooks/use-mount';
-import { UNITS } from '@/components/bottomSheets/select-unit-sheet';
-import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { parseLocaleFloat } from '@/utils';
-import { tempId } from '@/api/optimistic';
-import { z } from 'zod';
+import { useRecipeEditor } from '@/hooks/use-recipe-editor';
+import { useNavigation } from 'expo-router/react-navigation';
+import { ChevronLeft, Ham, Salad, CirclePlus, Save } from 'lucide-react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SCREEN_TRANSITION_DURATION_MS = 600;
-const INGREDIENT_LIST_VERTICAL_PADDING = 4;
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-const IngredientDragHandle = ({ children }: { children: React.ReactNode }) => {
-  const isTeleported = useIsInPortalOutlet();
-  const customHandleContext = useCustomHandleContext();
-  const { gesture, isActive, itemKey } = useItemContext();
-  const handleRef = useAnimatedRef<View>();
-
-  if (!customHandleContext) {
-    throw new Error('IngredientDragHandle must be rendered inside a sortable with customHandle enabled.');
-  }
-
-  const { registerHandle, updateActiveHandleMeasurements } = customHandleContext;
-
-  useEffect(() => registerHandle(itemKey, handleRef, false), [handleRef, itemKey, registerHandle]);
-
-  const updateMeasurements = useCallback(() => {
-    'worklet';
-    if (isActive.value) updateActiveHandleMeasurements(itemKey);
-  }, [isActive, itemKey, updateActiveHandleMeasurements]);
-
-  const handleLayout = useCallback(() => {
-    runOnUI(updateMeasurements)();
-  }, [updateMeasurements]);
-
-  if (isTeleported) return <View>{children}</View>;
-
-  return (
-    <GestureDetector gesture={gesture.enabled(true)} userSelect="none">
-      <View collapsable={false} ref={handleRef} onLayout={handleLayout}>
-        {children}
-      </View>
-    </GestureDetector>
-  );
-};
-
-const RightActions = (props: { progress: SharedValue<number>; onDelete: () => void }) => {
-  const [width, setWidth] = useState(0);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(props.progress.value, [0, 1], [width, 0], Extrapolation.CLAMP) }],
-  }));
-
-  return (
-    <Animated.View
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={[styles.deleteActionContainer, animatedStyle]}
-    >
-      <Button size="small" variant="red-outlined" onPress={props.onDelete} text="Delete" leftIcon={{ Icon: Trash2 }} />
-    </Animated.View>
-  );
-};
-
-const IngredientItem = ({
-  ingredient,
-  onEdit,
-  onDelete,
-  onLayout,
-  style,
-}: {
-  ingredient: IngredientFormData;
-  style?: StyleProp<ViewStyle>;
-  onEdit: () => void;
-  onDelete: () => void;
-  onLayout?: (event: LayoutChangeEvent) => void;
-}) => {
-  const swipeRef = useRef<SwipeableMethods>(null);
-  const scale = useSharedValue(1);
-  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const displayName = ingredient.name_override?.trim() || ingredient.selectedProduct.product.name || ingredient.name;
-
-  const closeSwipeable = () => swipeRef.current?.close();
-
-  const handleEdit = () => {
-    closeSwipeable();
-    onEdit();
-  };
-
-  return (
-    <Animated.View
-      layout={LinearTransition.springify()}
-      exiting={FadeOut}
-      entering={FadeIn}
-      onLayout={onLayout}
-      style={style}
-    >
-      <ReanimatedSwipeable
-        ref={swipeRef}
-        friction={1.5}
-        rightThreshold={20}
-        renderRightActions={(progress) => <RightActions progress={progress} onDelete={onDelete} />}
-        childrenContainerStyle={{
-          flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <AnimatedPressable
-          onPressIn={() => scheduleOnUI(() => (scale.value = withSpring(0.95)))}
-          onPressOut={() => scheduleOnUI(() => (scale.value = withSpring(1)))}
-          onPress={handleEdit}
-          style={[styles.ingredientContent, scaleStyle]}
-        >
-          <Typography variant="body-base" weight="bold" color={colors.brown[900]}>
-            {displayName}
-          </Typography>
-          {ingredient.selectedProduct.type === 'existing' &&
-            ingredient.selectedProduct.product.name !== displayName && (
-              <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
-                Shopping item: {ingredient.selectedProduct.product.name}
-              </Typography>
-            )}
-          {ingredient.quantity && (
-            <Typography variant="body-xs" weight="medium" color="#867a6e" style={{ marginTop: 2 }}>
-              {ingredient.quantity}{' '}
-              {UNITS.find((u) => u.value === ingredient.unit)?.label({ count: parseLocaleFloat(ingredient.quantity) })}
-            </Typography>
-          )}
-        </AnimatedPressable>
-        <IngredientDragHandle>
-          <View style={styles.dragHandle}>
-            <GripVertical size={24} color={colors.brown[700]} />
-          </View>
-        </IngredientDragHandle>
-      </ReanimatedSwipeable>
-    </Animated.View>
-  );
-};
-
-const EmptyIngredientsList = () => (
-  <View
-    style={{
-      backgroundColor: '#FEF4E2',
-      padding: 16,
-      paddingBottom: 20,
-      borderRadius: 8,
-      borderColor: '#D1C5B3',
-      borderStyle: 'dashed',
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: 125,
-    }}
-  >
-    <CookingPot size={24} color="#4A3E36" />
-    <Typography variant="body-base" weight="black" color={colors.brown[900]} style={{ marginTop: 8 }}>
-      No ingredients
-    </Typography>
-    <Typography variant="body-sm" weight="bold" color={colors.brown[800]}>
-      Tap to add one
-    </Typography>
-  </View>
-);
-
-type IngredientMeasurement = {
-  id: string;
-  height: number;
-};
-
-const useIngredientDividerLayout = (ingredients: IngredientFormData[]) => {
-  const [measurements, setMeasurements] = useState<IngredientMeasurement[]>([]);
-
-  const onIngredientLayout = useCallback((id: string, event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-
-    setMeasurements((current) => {
-      const existingIndex = current.findIndex((measurement) => measurement.id === id);
-      if (existingIndex === -1) return [...current, { id, height }];
-      if (current[existingIndex]?.height === height) return current;
-
-      return current.map((measurement, index) => (index === existingIndex ? { id, height } : measurement));
-    });
-  }, []);
-
-  const dividerOffsets = useMemo(() => {
-    const heightsById = new Map(measurements.map((measurement) => [measurement.id, measurement.height]));
-    if (ingredients.some((ingredient) => heightsById.get(ingredient.id) == null)) return [];
-
-    let offset = INGREDIENT_LIST_VERTICAL_PADDING;
-
-    return ingredients.slice(0, -1).map((ingredient) => {
-      offset += heightsById.get(ingredient.id) ?? 0;
-      return offset;
-    });
-  }, [ingredients, measurements]);
-
-  return { dividerOffsets, onIngredientLayout };
-};
-
-const IngredientsList = ({
-  ingredients,
-  handleAddIngredient,
-  onIngredientEdit,
-  onIngredientDelete,
-  onIngredientsReorder,
-}: {
-  ingredients: IngredientFormData[];
-  handleAddIngredient: () => void;
-  onIngredientEdit: (ingredient: IngredientFormData) => void;
-  onIngredientDelete: (ingredient: IngredientFormData) => void;
-  onIngredientsReorder: (ingredients: IngredientFormData[]) => void;
-}) => {
-  const { dividerOffsets, onIngredientLayout } = useIngredientDividerLayout(ingredients);
-
-  const renderIngredient = useCallback(
-    ({ item: ingredient }: { item: IngredientFormData }) => (
-      <IngredientItem
-        style={styles.ingredientItem}
-        ingredient={ingredient}
-        onEdit={() => onIngredientEdit(ingredient)}
-        onDelete={() => onIngredientDelete(ingredient)}
-        onLayout={(event) => onIngredientLayout(ingredient.id, event)}
-      />
-    ),
-    [onIngredientDelete, onIngredientEdit, onIngredientLayout]
-  );
-
-  if (isEmpty(ingredients)) {
-    return (
-      <PressableWithHaptics onPress={handleAddIngredient}>
-        <EmptyIngredientsList />
-      </PressableWithHaptics>
-    );
-  }
-
-  return (
-    <View>
-      {!isEmpty(ingredients) ? (
-        <Animated.View
-          style={{
-            backgroundColor: '#FEF2DD',
-            borderWidth: 1,
-            borderBottomWidth: 2,
-            borderColor: colors.brown[900],
-            borderRadius: 8,
-            paddingVertical: INGREDIENT_LIST_VERTICAL_PADDING,
-            overflow: 'hidden',
-          }}
-          layout={LinearTransition.springify()}
-          exiting={FadeOut}
-          entering={FadeIn}
-        >
-          <Sortable.Grid
-            columns={1}
-            data={ingredients}
-            keyExtractor={(ingredient) => ingredient.id}
-            renderItem={renderIngredient}
-            customHandle
-            dragActivationDelay={250}
-            overDrag="vertical"
-            activeItemScale={1.02}
-            onDragEnd={({ data }) => onIngredientsReorder(data)}
-          />
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            {dividerOffsets.map((top, index) => (
-              <Animated.View
-                key={`ingredient-divider-${index}`}
-                layout={LinearTransition.springify()}
-                style={[styles.ingredientDivider, { top }]}
-              />
-            ))}
-          </View>
-        </Animated.View>
-      ) : null}
-    </View>
-  );
-};
-
-const emptyRecipeFormData: RecipeFormData = {
-  id: tempId(),
-  name: '',
-  ingredients: [],
-  liked: false,
-  meal_types: [],
-  notes: '',
-  time_in_minutes: '',
-};
-
-const validIngredient = (ingredient: IngredientFormData) => {
-  if (parseLocaleFloat(ingredient.quantity) <= 0) return false;
-  return ingredient.selectedProduct.product.name.trim().length > 0;
-};
-
-const recipeSchema = z.object({
-  id: z.string(),
-  name: z.string().trim().min(1, 'Name is required'),
-  ingredients: z
-    .custom<IngredientFormData[]>()
-    .refine((ingredients) => ingredients.length > 0, 'Add at least one ingredient')
-    .refine((ingredients) => ingredients.every(validIngredient), 'Every ingredient needs a shopping item and quantity'),
-  liked: z.boolean(),
-  meal_types: z.custom<MealType[]>().refine((mealTypes) => mealTypes.length > 0, 'Pick at least one meal type'),
-  notes: z.string(),
-  time_in_minutes: z.string().refine((value) => {
-    const time = parseLocaleFloat(value);
-    return Number.isFinite(time) && time > 0;
-  }, 'Cooking time is required'),
-});
+const mealTypes = [
+  { value: 'breakfast', label: 'Breakfast', Icon: Pancake },
+  { value: 'lunch', label: 'Lunch', Icon: Salad },
+  { value: 'dinner', label: 'Dinner', Icon: Ham },
+] as const;
 
 export function RecipeForm({
   recipe,
@@ -361,160 +26,8 @@ export function RecipeForm({
   mode?: 'create' | 'edit';
 }) {
   const navigation = useNavigation();
-  const sheets = useSheets();
-  const nameInputRef = useRef<TextInputRef>(null);
-  const notesEditorRef = useRef<EnrichedTextInputInstance>(null);
   const insets = useSafeAreaInsets();
-  const editRecipe = useEditRecipe();
-  const addRecipe = useAddRecipe();
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const form = useAppForm({
-    defaultValues: recipe ? recipeToFormData(recipe) : emptyRecipeFormData,
-    validators: {
-      onSubmit: recipeSchema,
-    },
-    onSubmit: async ({ value }) => {
-      setSubmitError(null);
-      Keyboard.dismiss();
-      const notes = ((await notesEditorRef.current?.getHTML()) ?? '')
-        .replaceAll(/<h[456]>/g, '<p>')
-        .replaceAll(/<\/h[456]>/g, '</p>');
-
-      let ingredients = value.ingredients;
-      const maximumSaveAttempts = 4;
-
-      for (let attempt = 0; attempt < maximumSaveAttempts; attempt += 1) {
-        const recipeData = recipeFromFormData({ ...value, ingredients, notes });
-
-        try {
-          if (recipe) {
-            await editRecipe.mutateAsync({ ...recipeData, id: recipe.id });
-          } else {
-            await addRecipe.mutateAsync(recipeData);
-          }
-          navigation.goBack();
-          return;
-        } catch (error) {
-          const missingConversions = missingRecipeConversionsFromError(error);
-          if (!missingConversions) {
-            setSubmitError('Could not save recipe');
-            return;
-          }
-          if (attempt === maximumSaveAttempts - 1) {
-            setSubmitError('Could not resolve every shopping item conversion');
-            return;
-          }
-
-          const resolvedIngredients = await resolveMissingConversions(ingredients, missingConversions);
-          if (!resolvedIngredients) {
-            setSubmitError('Recipe not saved. Resolve the missing shopping item conversions to continue.');
-            return;
-          }
-
-          ingredients = resolvedIngredients;
-          form.setFieldValue('ingredients', ingredients);
-        }
-      }
-    },
-  });
-
-  const resolveMissingConversions = async (
-    ingredients: IngredientFormData[],
-    requirements: MissingRecipeConversionDTO[]
-  ) => {
-    let resolvedIngredients = [...ingredients];
-    const uniqueRequirements = requirements.filter((requirement, index, all) => {
-      const identity = requirement.product_id ?? `ingredient:${requirement.ingredient_index}`;
-      return (
-        all.findIndex(
-          (candidate) =>
-            (candidate.product_id ?? `ingredient:${candidate.ingredient_index}`) === identity &&
-            candidate.ingredient_unit === requirement.ingredient_unit
-        ) === index
-      );
-    });
-
-    for (const requirement of uniqueRequirements) {
-      const ingredient = resolvedIngredients[requirement.ingredient_index];
-      if (!ingredient) return null;
-
-      const updatedIngredient = await sheets.present('edit-ingredient-sheet', {
-        data: { mode, ingredient },
-      });
-      if (!updatedIngredient) return null;
-
-      resolvedIngredients = resolvedIngredients.map((current, index) => {
-        if (index === requirement.ingredient_index) return updatedIngredient;
-        if (
-          updatedIngredient.selectedProduct.type === 'existing' &&
-          current.selectedProduct.type === 'existing' &&
-          current.selectedProduct.product.id === updatedIngredient.selectedProduct.product.id
-        ) {
-          return {
-            ...current,
-            selectedProduct: {
-              type: 'existing' as const,
-              product: updatedIngredient.selectedProduct.product,
-            },
-          };
-        }
-        return current;
-      });
-    }
-
-    return resolvedIngredients;
-  };
-
-  useMount(() => {
-    const id = setTimeout(() => {
-      if (isEmptyish(form.state.values.name)) nameInputRef.current?.focus();
-    }, SCREEN_TRANSITION_DURATION_MS);
-    return () => clearTimeout(id);
-  });
-
-  const handleSaveIngredient = (ingredient: IngredientFormData) => {
-    const { ingredients } = form.state.values;
-    const existingIngredient = ingredients.find((item) => item.id === ingredient.id);
-    form.setFieldValue(
-      'ingredients',
-      existingIngredient
-        ? ingredients.map((item) => (item.id !== ingredient.id ? item : ingredient))
-        : [...ingredients, ingredient]
-    );
-  };
-
-  const handleAddIngredient = async () => {
-    Keyboard.dismiss();
-    notesEditorRef.current?.blur();
-    const ingredient = await sheets.present('edit-ingredient-sheet', { data: { mode } });
-    if (ingredient != null) handleSaveIngredient(ingredient);
-  };
-
-  const handleEditIngredient = async (ingredient: IngredientFormData) => {
-    Keyboard.dismiss();
-    notesEditorRef.current?.blur();
-    const updatedIngredient = await sheets.present('edit-ingredient-sheet', { data: { mode, ingredient } });
-    if (updatedIngredient != null) handleSaveIngredient(updatedIngredient);
-  };
-
-  const handleDeleteIngredient = (ingredient: IngredientFormData) => {
-    form.setFieldValue(
-      'ingredients',
-      form.state.values.ingredients.filter((item) => item.id !== ingredient.id)
-    );
-  };
-
-  const toggleMealType = (mealType: MealType) => {
-    const { meal_types } = form.state.values;
-    form.setFieldValue(
-      'meal_types',
-      meal_types.includes(mealType) ? meal_types.filter((type) => type !== mealType) : [...meal_types, mealType]
-    );
-  };
-
-  const handleSubmit = async () => {
-    await form.handleSubmit();
-  };
+  const { form, feedback, notesRef, editIngredient, removeIngredient } = useRecipeEditor(recipe, mode);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -529,11 +42,12 @@ export function RecipeForm({
         }}
       >
         <ChevronLeft />
-        <Typography variant="heading-sm" weight="bold" color="#4A3E36">
+        <Typography variant="heading-sm" weight="bold" color={colors.brown[900]}>
           {recipe ? 'Edit Recipe' : 'New Recipe'}
         </Typography>
       </Pressable>
       <KeyboardAwareScrollView
+        ref={feedback.scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -541,75 +55,70 @@ export function RecipeForm({
         bottomOffset={150}
       >
         <form.AppForm>
-          <form.AppField name="name">
-            {(field) => <field.TextField ref={nameInputRef} label="Name" placeholder="e.g. Avocado Toast" />}
-          </form.AppField>
-          <form.AppField name="time_in_minutes">
-            {(field) => <field.NumberField label="Cooking time (in minutes)" placeholder="e.g. 30" />}
-          </form.AppField>
-          <form.Subscribe selector={(state) => state.values.meal_types}>
-            {(mealTypes) => (
-              <View>
-                <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-                  Meal type
-                </Typography>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button
-                    onPress={() => toggleMealType('breakfast')}
-                    leftIcon={{ Icon: Pancake }}
-                    text="Breakfast"
-                    variant={mealTypes.includes('breakfast') ? 'primary' : 'outlined'}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    onPress={() => toggleMealType('lunch')}
-                    leftIcon={{ Icon: Salad }}
-                    text="Lunch"
-                    variant={mealTypes.includes('lunch') ? 'primary' : 'outlined'}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    onPress={() => toggleMealType('dinner')}
-                    leftIcon={{ Icon: Ham }}
-                    text="Dinner"
-                    variant={mealTypes.includes('dinner') ? 'primary' : 'outlined'}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
+          <View ref={feedback.contentRef} style={{ gap: 16 }}>
+            <form.AppField name="name">
+              {(field) => <field.TextField ref={feedback.inputRef('name')} autoFocus={!recipe?.name} label="Name" placeholder="e.g. Avocado Toast" />}
+            </form.AppField>
+            <form.AppField name="time_in_minutes">
+              {(field) => <field.NumberField ref={feedback.inputRef('time_in_minutes')} label="Cooking time (in minutes)" placeholder="e.g. 30" />}
+            </form.AppField>
+            <form.AppField name="meal_types">
+              {(field) => (
+                <View>
+                  <Typography variant="body-sm" weight="bold" color={colors.brown[900]} style={{ marginBottom: 4 }}>
+                    Meal type
+                  </Typography>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {mealTypes.map(({ value, label, Icon }) => (
+                      <Button
+                        key={value}
+                        onPress={() => field.handleChange(
+                          field.state.value.includes(value)
+                            ? field.state.value.filter((type) => type !== value)
+                            : [...field.state.value, value]
+                        )}
+                        leftIcon={{ Icon }}
+                        text={label}
+                        variant={field.state.value.includes(value) ? 'primary' : 'outlined'}
+                        size="small"
+                        style={{ flex: 1 }}
+                      />
+                    ))}
+                  </View>
+                  <field.Error ref={feedback.controlRef('meal_types')} />
                 </View>
-              </View>
-            )}
-          </form.Subscribe>
-          <form.Subscribe selector={(state) => state.values.ingredients}>
-            {(ingredients) => (
-              <View>
-                <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-                  Ingredients
-                </Typography>
-                <IngredientsList
-                  ingredients={ingredients}
-                  handleAddIngredient={handleAddIngredient}
-                  onIngredientEdit={handleEditIngredient}
-                  onIngredientDelete={handleDeleteIngredient}
-                  onIngredientsReorder={(orderedIngredients) => form.setFieldValue('ingredients', orderedIngredients)}
-                />
-                <Button
-                  text="Add ingredient"
-                  variant="outlined"
-                  leftIcon={{ Icon: CirclePlus }}
-                  onPress={handleAddIngredient}
-                  style={{ marginTop: 8 }}
-                />
-              </View>
-            )}
-          </form.Subscribe>
-          <View>
-            <Typography variant="body-sm" weight="bold" color="#4A3E36" style={{ marginBottom: 4 }}>
-              Notes
-            </Typography>
-            <NotesEditor ref={notesEditorRef} defaultValue={recipe?.notes} />
+              )}
+            </form.AppField>
+            <form.AppField name="ingredients">
+              {(field) => (
+                <View>
+                  <Typography variant="body-sm" weight="bold" color={colors.brown[900]} style={{ marginBottom: 4 }}>
+                    Ingredients
+                  </Typography>
+                  <RecipeIngredients
+                    ingredients={field.state.value}
+                    handleAddIngredient={() => editIngredient()}
+                    onIngredientEdit={editIngredient}
+                    onIngredientDelete={removeIngredient}
+                    onIngredientsReorder={field.handleChange}
+                  />
+                  <Button
+                    text="Add ingredient"
+                    variant="outlined"
+                    leftIcon={{ Icon: CirclePlus }}
+                    onPress={() => editIngredient()}
+                    style={{ marginTop: 8 }}
+                  />
+                  <field.Error ref={feedback.controlRef('ingredients')} />
+                </View>
+              )}
+            </form.AppField>
+            <View>
+              <Typography variant="body-sm" weight="bold" color={colors.brown[900]} style={{ marginBottom: 4 }}>
+                Notes
+              </Typography>
+              <NotesEditor ref={notesRef} defaultValue={recipe?.notes} />
+            </View>
           </View>
         </form.AppForm>
       </KeyboardAwareScrollView>
@@ -623,56 +132,15 @@ export function RecipeForm({
           borderColor: colors.brown[800],
         }}
       >
-        {submitError ? (
-          <Typography variant="body-xs" weight="bold" color={colors.red[500]} style={{ marginBottom: 8 }}>
-            {submitError}
-          </Typography>
-        ) : null}
-        <Button
-          text="Save recipe"
-          variant="primary"
-          leftIcon={{ Icon: Save }}
-          onPress={handleSubmit}
-          isLoading={addRecipe.isPending || editRecipe.isPending}
-        />
+        <form.AppForm>
+          <form.Error message={feedback.error} />
+          <form.SubmitButton text="Save recipe" variant="primary" leftIcon={{ Icon: Save }} />
+        </form.AppForm>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FEF7EA',
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  deleteActionContainer: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    padding: 8,
-  },
-  dragHandle: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: -12,
-    paddingHorizontal: 4,
-    paddingVertical: 12,
-  },
-  ingredientContent: {
-    flex: 1,
-  },
-  ingredientItem: {
-    width: '100%',
-  },
-  ingredientDivider: {
-    borderColor: colors.brown[900],
-    borderStyle: 'dashed',
-    borderTopWidth: 1,
-    height: 0,
-    left: 0,
-    opacity: 0.25,
-    position: 'absolute',
-    right: 0,
-  },
+  container: { backgroundColor: colors.cream[100], flex: 1, paddingHorizontal: 20 },
 });

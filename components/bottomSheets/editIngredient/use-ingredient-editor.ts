@@ -1,5 +1,7 @@
 import { useEditProduct } from '@/api/products';
 import { ProductDTO } from '@/api/types';
+import { useStore } from '@tanstack/react-form';
+import { useFormFeedback } from '@/components/form/use-form-feedback';
 import { useAppForm } from '@/components/form/app-form';
 import { ProductChoice } from '@/components/product-search-step';
 import {
@@ -8,15 +10,14 @@ import {
   withProductConversion,
 } from '@/lib/product-conversions';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { parseLocaleFloat } from '@/utils';
+import { parseLocaleFloat } from '@/lib/quantity';
 import { Keyboard } from 'react-native';
 import { useState } from 'react';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import {
   emptyIngredientForm,
   emptyProductForm,
   IngredientDetailsFormData,
-  IngredientEditorPhase,
   ingredientFromProduct,
   ingredientSchema,
   productDraftFromForm,
@@ -33,9 +34,6 @@ type EditIngredientSheetData = SheetProps<'edit-ingredient-sheet'>['data'];
 type UseIngredientEditorParams = {
   sheetId: SheetProps<'edit-ingredient-sheet'>['sheetId'];
   data: EditIngredientSheetData;
-  onProductInvalid?: (field: keyof ProductDraftForm) => void;
-  onIngredientInvalid?: (field: keyof IngredientDetailsFormData) => void;
-  onConversionInvalid?: () => void;
 };
 
 const productFieldOrder: (keyof ProductDraftForm)[] = [
@@ -52,18 +50,24 @@ const ingredientFieldOrder: (keyof IngredientDetailsFormData)[] = ['name_overrid
 export const useIngredientEditor = ({
   sheetId,
   data,
-  onProductInvalid,
-  onIngredientInvalid,
-  onConversionInvalid,
 }: UseIngredientEditorParams) => {
   const sheets = useSheets();
   const editProduct = useEditProduct();
   const initialIngredient = data.ingredient;
   const initialSelected = initialIngredient?.selectedProduct ?? null;
+  const [initialIngredientValues] = useState(() =>
+    initialSelected ? ingredientFromProduct(initialSelected, initialIngredient) : emptyIngredientForm()
+  );
 
-  const [phase, setPhase] = useState<IngredientEditorPhase>(initialSelected ? 'ingredient' : 'search');
+  const [step, setStep] = useState<{ phase: 'search' } | { phase: 'product'; preserveIngredient?: boolean } | { phase: 'ingredient'; selectedProduct: SelectedProduct }>(
+    initialSelected ? { phase: 'ingredient', selectedProduct: initialSelected } : { phase: 'search' }
+  );
+  const { phase } = step;
+  const selectedProduct = step.phase === 'ingredient' ? step.selectedProduct : null;
+  const feedback = useFormFeedback<keyof ProductDraftForm | keyof IngredientDetailsFormData | 'conversion'>(
+    phase === 'product' ? productFieldOrder : [...ingredientFieldOrder, 'conversion']
+  );
   const [query, setQuery] = useState(initialIngredient?.name ?? '');
-  const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(initialSelected);
   const [conversionValues, setConversionValues] = useState<Partial<Record<Unit, string>>>({});
   const [conversionError, setConversionError] = useState<string | null>(null);
 
@@ -76,7 +80,7 @@ export const useIngredientEditor = ({
     const conversion = parseLocaleFloat(conversionValues[requirement.ingredientUnit] ?? '');
     if (!Number.isFinite(conversion) || conversion <= 0) {
       setConversionError('Enter a conversion greater than 0');
-      onConversionInvalid?.();
+      feedback.focus('conversion');
       return null;
     }
 
@@ -89,7 +93,7 @@ export const useIngredientEditor = ({
             })
           : withProductConversion(selectedProduct.product, requirement.ingredientUnit, conversion);
       const resolved: SelectedProduct = { type: selectedProduct.type, product } as SelectedProduct;
-      setSelectedProduct(resolved);
+      setStep({ phase: 'ingredient', selectedProduct: resolved });
       setConversionError(null);
       return resolved;
     } catch {
@@ -106,33 +110,23 @@ export const useIngredientEditor = ({
     validators: {
       onSubmit: productDraftSchema,
     },
-    onSubmitInvalid: ({ formApi }) => {
-      const field = productFieldOrder.find(
-        (candidate) => (formApi.getFieldMeta(candidate)?.errors.length ?? 0) > 0
-      );
-      if (field) onProductInvalid?.(field);
-    },
+    onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
     onSubmit: ({ value }) => {
       const selected: SelectedProduct = { type: 'draft', product: productDraftFromForm(value) };
-      setSelectedProduct(selected);
-      setIngredientFormValues(
-        ingredientFromProduct(selected, initialIngredient ? ingredientForm.state.values : undefined)
+      ingredientForm.reset(
+        ingredientFromProduct(selected, initialIngredient || (step.phase === 'product' && step.preserveIngredient) ? ingredientForm.state.values : undefined),
+        { keepDefaultValues: true }
       );
-      setPhase('ingredient');
+      setStep({ phase: 'ingredient', selectedProduct: selected });
     },
   });
 
   const ingredientForm = useAppForm({
-    defaultValues: initialSelected ? ingredientFromProduct(initialSelected, initialIngredient) : emptyIngredientForm(),
+    defaultValues: initialIngredientValues,
     validators: {
       onSubmit: ingredientSchema,
     },
-    onSubmitInvalid: ({ formApi }) => {
-      const field = ingredientFieldOrder.find(
-        (candidate) => (formApi.getFieldMeta(candidate)?.errors.length ?? 0) > 0
-      );
-      if (field) onIngredientInvalid?.(field);
-    },
+    onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
     onSubmit: async ({ value }) => {
       const resolvedProduct = await resolveIngredientProduct(value);
       if (!resolvedProduct) return;
@@ -151,42 +145,23 @@ export const useIngredientEditor = ({
     },
   });
 
-  const setProductFormValues = (form: ProductDraftForm) => {
-    productForm.setFieldValue('name', form.name);
-    productForm.setFieldValue('aisle', form.aisle);
-    productForm.setFieldValue('mode', form.mode);
-    productForm.setFieldValue('unit', form.unit);
-    productForm.setFieldValue('pack_sizes', form.pack_sizes);
-    productForm.setFieldValue('reminder_frequency_value', form.reminder_frequency_value);
-    productForm.setFieldValue('reminder_frequency_unit', form.reminder_frequency_unit);
-  };
-
-  const setIngredientFormValues = (ingredient: IngredientDetailsFormData) => {
-    ingredientForm.setFieldValue('id', ingredient.id);
-    ingredientForm.setFieldValue('name', ingredient.name);
-    ingredientForm.setFieldValue('name_override', ingredient.name_override);
-    ingredientForm.setFieldValue('quantity', ingredient.quantity);
-    ingredientForm.setFieldValue('unit', ingredient.unit);
-    ingredientForm.setFieldValue('aisle', ingredient.aisle);
-  };
-
   const selectExistingProduct = (product: ProductDTO) => {
     const selected: SelectedProduct = { type: 'existing', product };
-    setSelectedProduct(selected);
     setConversionValues({});
     setConversionError(null);
-    setIngredientFormValues(
-      ingredientFromProduct(selected, initialIngredient ? ingredientForm.state.values : undefined)
+    ingredientForm.reset(
+      ingredientFromProduct(selected, initialIngredient ? ingredientForm.state.values : undefined),
+      { keepDefaultValues: true }
     );
-    setPhase('ingredient');
+    setStep({ phase: 'ingredient', selectedProduct: selected });
     Keyboard.dismiss();
   };
 
   const startDraftProduct = (form: ProductDraftForm) => {
-    setProductFormValues(form);
+    productForm.reset(form, { keepDefaultValues: true });
     setConversionValues({});
     setConversionError(null);
-    setPhase('product');
+    setStep({ phase: 'product' });
     Keyboard.dismiss();
   };
 
@@ -202,13 +177,13 @@ export const useIngredientEditor = ({
 
   const back = () => {
     if (phase === 'search') return;
-    setPhase('search');
+    setStep({ phase: 'search' });
   };
 
   const editDraftProduct = () => {
     if (selectedProduct?.type !== 'draft') return;
-    setProductFormValues(productFormFromDraft(selectedProduct.product));
-    setPhase('product');
+    productForm.reset(productFormFromDraft(selectedProduct.product), { keepDefaultValues: true });
+    setStep({ phase: 'product', preserveIngredient: true });
   };
 
   const editExistingProduct = async () => {
@@ -222,12 +197,10 @@ export const useIngredientEditor = ({
     if (updatedProduct == null) return;
 
     const selected: SelectedProduct = { type: 'existing', product: updatedProduct };
-    setSelectedProduct(selected);
     setConversionError(null);
-    setIngredientFormValues(ingredientFromProduct(selected, ingredientForm.state.values));
+    ingredientForm.reset(ingredientFromProduct(selected, ingredientForm.state.values), { keepDefaultValues: true });
+    setStep({ phase: 'ingredient', selectedProduct: selected });
   };
-
-  const clearProduct = () => setPhase('search');
 
   const selectProductUnit = async () => {
     Keyboard.dismiss();
@@ -270,6 +243,9 @@ export const useIngredientEditor = ({
   const submitProduct = () => productForm.handleSubmit();
   const saveIngredient = () => ingredientForm.handleSubmit();
 
+  const saving = useStore(ingredientForm.store, (state) => state.isSubmitting);
+  const ingredientUnit = useStore(ingredientForm.store, (state) => state.values.unit);
+
   const action =
     phase === 'product'
       ? { text: 'Next', onPress: submitProduct }
@@ -277,38 +253,44 @@ export const useIngredientEditor = ({
         ? {
             text:
               selectedProduct &&
-              productConversionRequirement(selectedProduct.product, ingredientForm.state.values.unit)
+              productConversionRequirement(selectedProduct.product, ingredientUnit)
                 ? 'Save conversion & ingredient'
                 : 'Save ingredient',
             onPress: saveIngredient,
-            isLoading: editProduct.isPending,
+            isLoading: saving,
           }
         : null;
 
   const title =
     phase === 'product' ? 'Shopping item details' : initialIngredient ? 'Edit ingredient' : 'Add ingredient';
 
+  const activeStep = step.phase === 'ingredient' ? {
+    phase: 'ingredient' as const,
+    form: ingredientForm,
+    selectedProduct: step.selectedProduct,
+    onClearProduct: back,
+    onEditProduct: step.selectedProduct.type === 'draft' ? editDraftProduct : editExistingProduct,
+    onSelectUnit: selectIngredientUnit,
+    conversionValues,
+    conversionError,
+    onConversionChange: setConversionValue,
+  } : step.phase === 'product' ? {
+    phase: 'product' as const,
+    form: productForm,
+    onSelectAisle: selectAisle,
+    onSelectUnit: selectProductUnit,
+  } : {
+    phase: 'search' as const,
+    query,
+    onQueryChange: setQuery,
+    onSelect: selectProductChoice,
+  };
+
   return {
     action,
-    back,
-    canGoBack: phase !== 'search',
-    clearProduct,
-    conversionError,
-    conversionValues,
-    editDraftProduct,
-    editExistingProduct,
-    ingredientForm,
-    phase,
-    productForm,
-    query,
-    selectAisle,
-    selectIngredientUnit,
-    selectProductChoice,
-    selectProductUnit,
-    selectedProduct,
-    setConversionValue,
-    setQuery,
-    title,
+    header: { title, canGoBack: phase !== 'search', onBack: back },
+    step: activeStep,
+    feedback,
   };
 };
 
