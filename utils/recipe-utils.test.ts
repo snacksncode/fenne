@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import type { RecipeDTO, MealType } from '@/api/types';
-import { filterRecipes } from './recipe-utils';
+import { createRecipeSearch, filterRecipes } from './recipe-utils';
 
 const recipe = (name: string, meal_types: MealType[]): RecipeDTO => ({
   id: name, name, meal_types, ingredients: [], time_in_minutes: 10, liked: false, notes: '',
@@ -22,4 +22,11 @@ it('retains normal sorting for a whitespace-only query', () => {
 it('preserves preferred meal ordering when fuzzy scores tie', () => {
   expect(filterRecipes(recipes, { search: 'chiken', mealType: 'dinner' }).map((r) => r.name))
     .toEqual(['Roast Chicken', 'Chicken']);
+});
+
+it('prepared recipe indexes preserve filters and preferred ordering across queries', () => {
+  const index = createRecipeSearch(recipes, { mealType: 'dinner' });
+  for (const search of ['', 'chicken', 'chiken', 'unknown']) {
+    expect(index.search(search)).toEqual(filterRecipes(recipes, { mealType: 'dinner', search }));
+  }
 });

@@ -1,6 +1,5 @@
-import { fuzzySearch } from '@/utils/fuzzy-search';
-import { ListLayoutView } from '@/components/list-layout-view';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { createFuzzySearch } from '@/utils/fuzzy-search';
+import { AnimatedFlashList, ListLayoutView } from '@/components/animated-list';
 import { useActiveTabPress } from '@/hooks/use-active-tab-press';
 import { BlurTargetView } from 'expo-blur';
 import { usePantry } from '@/api/pantry';
@@ -18,7 +17,7 @@ import { colors } from '@/constants/colors';
 import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useSheets } from '@/lib/sheet-context';
-import { prettyUnit } from '@/utils/unit-formatters';
+import { prettyUnit } from '@/lib/quantity';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import {
   addDays,
@@ -41,7 +40,7 @@ import Svg, { Circle } from 'react-native-svg';
 type PantryAisle = { aisle: AisleCategory; entries: PantryEntryDTO[] };
 
 const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: PantryFilter, search: string) => {
-  return useMemo(() => {
+  const index = useMemo(() => {
     const pantryEntries = entries ?? [];
     const visible = pantryEntries.filter((entry) => !entry.product.is_kitchen_basic);
 
@@ -52,8 +51,9 @@ const useFilteredEntries = (entries: PantryEntryDTO[] | undefined, filter: Pantr
     });
 
     const sorted = filtered.sort((a, b) => a.product.name.localeCompare(b.product.name));
-    return fuzzySearch(sorted, search, (entry) => entry.product.name);
-  }, [entries, filter, search]);
+    return createFuzzySearch({ items: sorted, getSearchTerms: (entry) => [entry.product.name] });
+  }, [entries, filter]);
+  return useMemo(() => index.search(search).items, [index, search]);
 };
 
 const usePantryAisles = (entries: PantryEntryDTO[]) => {

@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import type { ProductCatalog, ProductDTO } from '@/api/types';
-import { searchProductCatalog } from './product-search';
+import { createProductCatalogSearch, searchProductCatalog } from './product-search';
 
 const product = (name: string, basic = false): ProductDTO => ({
   id: name, name, aisle: 'produce', unit: 'count', is_kitchen_basic: basic,
@@ -43,4 +43,11 @@ it('deduplicates before limiting results and prioritizes exact matches', () => {
 });
 it('blank searches remain idle', () => {
   expect(searchProductCatalog(catalog, '  ', 'recipe')).toEqual({ results: [], add_available: false });
+});
+
+it('a prepared catalog keeps context and duplicate-name policy across searches', () => {
+  const index = createProductCatalogSearch(catalog, 'recipe');
+  expect(index.search('chiken')).toEqual(searchProductCatalog(catalog, 'chiken', 'recipe'));
+  expect(index.search('CHICKEN WINGS').add_available).toBe(false);
+  expect(index.search('')).toEqual({ results: [], add_available: false });
 });

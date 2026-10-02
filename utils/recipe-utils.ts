@@ -1,4 +1,4 @@
-import { fuzzySearch } from './fuzzy-search';
+import { createFuzzySearch } from './fuzzy-search';
 import { RecipeDTO, MealType } from '@/api/types';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 
@@ -18,12 +18,18 @@ export const sortRecipes = (recipes: RecipeDTO[], mealType?: MealType): RecipeDT
   });
 };
 
-export const filterRecipes = (
-  recipes: RecipeDTO[],
-  opts: { mealFilter?: MealFilter; search?: string; mealType?: MealType }
-): RecipeDTO[] => {
+type RecipeSearchOptions = { mealFilter?: MealFilter; mealType?: MealType };
+
+export const createRecipeSearch = (recipes: RecipeDTO[], opts: RecipeSearchOptions = {}) => {
   const eligible = recipes.filter(
-    (r) => !opts.mealFilter || opts.mealFilter === 'all' || r.meal_types.includes(opts.mealFilter)
+    (recipe) => !opts.mealFilter || opts.mealFilter === 'all' || recipe.meal_types.includes(opts.mealFilter)
   );
-  return fuzzySearch(sortRecipes(eligible, opts.mealType), opts.search ?? '', (recipe) => recipe.name);
+  const index = createFuzzySearch({
+    items: sortRecipes(eligible, opts.mealType),
+    getSearchTerms: (recipe) => [recipe.name],
+  });
+  return { search: (query: string) => index.search(query).items };
 };
+
+export const filterRecipes = (recipes: RecipeDTO[], opts: RecipeSearchOptions & { search?: string }) =>
+  createRecipeSearch(recipes, opts).search(opts.search ?? '');

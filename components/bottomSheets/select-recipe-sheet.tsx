@@ -1,6 +1,6 @@
-import { recipesOptions, useRecipes } from '@/api/recipes';
+import { useRecipes } from '@/api/recipes';
 import { RecipeDTO } from '@/api/types';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { Button } from '@/components/button';
 import { TextInput } from '@/components/input';
@@ -8,10 +8,8 @@ import { Recipe } from '@/components/recipe';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
-import { useMount } from '@/hooks/use-mount';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { filterRecipes } from '@/utils/recipe-utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useRecipeSearch } from '@/hooks/use-recipe-search';
 import { BookMarked, Check, Funnel } from 'lucide-react-native';
 import { useState } from 'react';
 import { Keyboard, ScrollView, View } from 'react-native';
@@ -20,14 +18,11 @@ import { isEmpty } from 'remeda';
 export const SelectRecipeSheet = (props: SheetProps<'select-recipe-sheet'>) => {
   const sheets = useSheets();
   const recipes = useRecipes();
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [mealFilter, setMealFilter] = useState<MealFilter>('all');
   const { isKeyboardOpen } = useKeyboardOpen();
 
-  useMount(() => void queryClient.prefetchQuery(recipesOptions));
-
-  const filteredRecipes = filterRecipes(recipes.data ?? [], { search, mealFilter });
+  const filteredRecipes = useRecipeSearch(recipes.data, { search, mealFilter });
 
   const openFilterSheet = async () => {
     const filter = await sheets.present('recipe-filter-sheet', { data: { current: mealFilter } });
@@ -43,7 +38,7 @@ export const SelectRecipeSheet = (props: SheetProps<'select-recipe-sheet'>) => {
     <BaseSheet
       id={props.sheetId}
       sizing={{ type: 'scrollable', detents: [0.5, 1] }}
-      footer={sheetFooter.buttonRow(
+      footer={(
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <TextInput
             variant="search"

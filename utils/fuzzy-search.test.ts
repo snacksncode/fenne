@@ -38,3 +38,12 @@ it('matches reordered words and aliases using token search', () => {
   expect(search('britan united 44').items).toEqual([items[0]]);
   expect(search('britan united 48').items).toEqual([]);
 });
+
+it('prepares searchable terms once across successive queries', () => {
+  const getSearchTerms = jest.fn((name: string) => [name]);
+  const search = createFuzzySearch({ items: ['Milk', 'Chicken'], getSearchTerms });
+  expect(search.search('mi').items).toEqual(['Milk']);
+  expect(search.search('chiken').items).toEqual(['Chicken']);
+  expect(search.search('nothing').items).toEqual([]);
+  expect(getSearchTerms).toHaveBeenCalledTimes(2);
+});

@@ -1,5 +1,4 @@
-import { ListLayoutView } from '@/components/list-layout-view';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { AnimatedFlashList, ListLayoutView } from '@/components/animated-list';
 import { useActiveTabPress } from '@/hooks/use-active-tab-press';
 import { BlurTargetView } from 'expo-blur';
 import { Recipe } from '@/components/recipe';
@@ -13,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import Animated, { FadeIn, useAnimatedStyle } from 'react-native-reanimated';
 import { isEmptyish } from 'remeda';
-import { filterRecipes } from '@/utils/recipe-utils';
+import { useRecipeSearch } from '@/hooks/use-recipe-search';
 import { useSheets } from '@/lib/sheet-context';
 import { BookMarked, Check, Funnel, Plus } from 'lucide-react-native';
 import { useRef, useState } from 'react';
@@ -105,9 +104,9 @@ const PageContent = ({ mealFilter, search }: { mealFilter: MealFilter; search: s
   const listRef = useRef<FlashListRef<RecipeDTO>>(null);
   useActiveTabPress(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
 
-  if (!recipes.data) return <RecipesSkeleton />;
+  const filteredRecipes = useRecipeSearch(recipes.data, { mealFilter, search });
 
-  const filteredRecipes = filterRecipes(recipes.data, { mealFilter, search });
+  if (!recipes.data) return <RecipesSkeleton />;
   const isFiltering = search.trim().length > 0 || mealFilter !== 'all';
 
   return (

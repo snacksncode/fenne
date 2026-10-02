@@ -1,4 +1,4 @@
-import { fuzzySearch } from '@/utils/fuzzy-search';
+import { createFuzzySearch } from '@/utils/fuzzy-search';
 import { useProducts } from '@/api/products';
 import { ProductDTO } from '@/api/types';
 import { AISLE_LABELS, AisleIcon } from '@/components/aisle-header';
@@ -8,8 +8,8 @@ import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
-import { prettyUnit } from '@/utils/unit-formatters';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { prettyUnit } from '@/lib/quantity';
+import { AnimatedFlashList } from '@/components/animated-list';
 import { router } from 'expo-router';
 import { ChevronLeft, PackageSearch } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
@@ -77,10 +77,11 @@ const Items = () => {
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const toolbarStyle = useAnimatedStyle(() => ({ bottom: Math.max(insets.bottom, -keyboardHeight.value + 12) }));
 
-  const filteredProducts = useMemo(() => {
-    const sorted = [...(products.data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
-    return fuzzySearch(sorted, search, (product) => product.name);
-  }, [products.data, search]);
+  const searchIndex = useMemo(() => createFuzzySearch({
+    items: [...(products.data ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+    getSearchTerms: (product) => [product.name],
+  }), [products.data]);
+  const filteredProducts = useMemo(() => searchIndex.search(search).items, [searchIndex, search]);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

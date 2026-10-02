@@ -1,16 +1,10 @@
 import type { ProductCatalog, ProductSearchResult, ProductSearchResultItem } from '@/api/types';
 import type { ProductSearchContext } from '@/api/products';
-import { fuzzySearch } from './fuzzy-search';
+import { createFuzzySearch } from './fuzzy-search';
 
 const normalizeName = (name: string) => name.trim().toLowerCase();
 
-export const searchProductCatalog = (
-  catalog: ProductCatalog,
-  query: string,
-  context: ProductSearchContext
-): ProductSearchResult => {
-  if (!query.trim()) return { results: [], add_available: false };
-
+export const createProductCatalogSearch = (catalog: ProductCatalog, context: ProductSearchContext) => {
   const names = new Set(catalog.products.map((product) => normalizeName(product.name)));
   const candidates: ProductSearchResultItem[] = catalog.products
     .filter((product) => context !== 'pantry' || !product.is_kitchen_basic)
@@ -21,9 +15,19 @@ export const searchProductCatalog = (
       .map((suggestion) => ({ ...suggestion, type: 'suggestion' as const })));
   }
 
+  const index = createFuzzySearch({ items: candidates, getSearchTerms: (item) => [item.name] });
+  const suggestionNames = new Set(catalog.suggestions.map((suggestion) => normalizeName(suggestion.name)));
   return {
-    results: fuzzySearch(candidates, query, (item) => item.name).slice(0, 10),
-    add_available: context !== 'pantry' && !names.has(normalizeName(query)) &&
-      !catalog.suggestions.some((suggestion) => normalizeName(suggestion.name) === normalizeName(query)),
+    search: (query: string): ProductSearchResult => {
+      if (!query.trim()) return { results: [], add_available: false };
+      return {
+        results: index.search(query).items.slice(0, 10),
+        add_available: context !== 'pantry' && !names.has(normalizeName(query)) &&
+          !suggestionNames.has(normalizeName(query)),
+      };
+    },
   };
 };
+
+export const searchProductCatalog = (catalog: ProductCatalog, query: string, context: ProductSearchContext) =>
+  createProductCatalogSearch(catalog, context).search(query);
