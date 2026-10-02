@@ -1,12 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { Component, ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Typography } from '@/components/Typography';
 import { Button } from './button';
 import { colors } from '@/constants/colors';
-import * as SecureStore from 'expo-secure-store';
-import { queryClient, TANSTACK_QUERY_CACHE_KEY } from '@/query-client';
-import { TOKEN_KEY } from '@/contexts/session';
+import { signOut } from '@/lib/session';
 
 interface Props {
   children: ReactNode;
@@ -35,9 +32,7 @@ export class QueryErrorBoundary extends Component<Props, State> {
     this.setState({ isRecovering: true });
 
     try {
-      await AsyncStorage.removeItem(TANSTACK_QUERY_CACHE_KEY);
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      queryClient.clear();
+      await signOut();
       this.setState({ hasError: false, isRecovering: false });
     } catch (e) {
       console.error('Failed to clear cache:', e);

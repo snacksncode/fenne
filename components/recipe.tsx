@@ -57,10 +57,13 @@ export const Recipe = ({
   onLongPress,
 }: Props) => {
   const editRecipe = useEditRecipe();
+  const pendingLiked = editRecipe.isPending && editRecipe.variables?.id === id ? editRecipe.variables.liked : undefined;
+  const displayedLiked = pendingLiked ?? liked;
   const formattedDuration = formatRecipeDuration(time_in_minutes);
 
   const handleLike = () => {
-    const newState = !liked;
+    if (editRecipe.isPending) return;
+    const newState = !displayedLiked;
     editRecipe.mutate({ id, liked: newState });
   };
 
@@ -82,11 +85,12 @@ export const Recipe = ({
         scaleTo={0.85}
         style={{ zIndex: 10, position: 'absolute', right: 10, top: 10 }}
         onPress={handleLike}
+        disabled={editRecipe.isPending}
         hitSlop={15}
       >
         <Heart
           size={24}
-          {...(liked ? { color: colors.orange[600], fill: colors.orange[500] } : { color: colors.brown[900] })}
+          {...(displayedLiked ? { color: colors.orange[600], fill: colors.orange[500] } : { color: colors.brown[900] })}
         />
       </PressableWithHaptics>
       <View style={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>

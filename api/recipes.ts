@@ -1,119 +1,120 @@
-import { api } from '@/api';
-import { RecipeDTO } from '@/api/types';
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOptimisticUpdate } from '@/api/optimistic';
-import { isDefined, pickBy } from 'remeda';
 import { queryClient } from '@/query-client';
+import type { MutationFunctionContext } from '@tanstack/react-query';
+import { RecipeInputDTO, RecipeDTO } from '@/api/types';
+import { refreshFamilyData } from '@/lib/family-data';
+import { client } from '@/api/client';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isDefined, pickBy } from 'remeda';
 import { queryKeys } from '@/api/query-keys';
 
-export const recipesOptions = queryOptions({
+const refreshRecipes = (
+  _data: unknown, _error: Error | null, _variables: unknown, _result: unknown,
+  { client }: MutationFunctionContext,
+) => refreshFamilyData(client, { resource: 'recipes' });
+
+export const recipesRequests = {
+  getAll: () => {
+    return client.get<RecipeDTO[]>('/recipes');
+  },
+  get: (id: string) => {
+    return client.get<RecipeDTO>(`/recipes/${id}`);
+  },
+  add: (recipe: RecipeInputDTO) => {
+    return client.post<RecipeDTO>('/recipes', recipe);
+  },
+  edit: (recipe: RecipeInputDTO & { id: string }) => {
+    const { id, ...recipeData } = recipe;
+    return client.patch<RecipeDTO>(`/recipes/${id}`, pickBy(recipeData, isDefined));
+  },
+  delete: (data: { id: string }) => {
+    return client.delete(`/recipes/${data.id}`);
+  },
+};
+
+export const recipesQuery = queryOptions({
   queryKey: queryKeys.recipes.all(),
-  queryFn: api.recipes.getAll,
+  queryFn: recipesRequests.getAll,
   staleTime: Infinity,
 });
 
-export const recipeOptions = (id: string) => {
+export const recipeQuery = (id: string) => {
   return queryOptions({
     queryKey: queryKeys.recipes.detail(id),
-    queryFn: () => api.recipes.get(id),
+    queryFn: () => recipesRequests.get(id),
     staleTime: Infinity,
   });
 };
 
 export const useRecipes = () => {
-  return useQuery(recipesOptions);
+  return useQuery(recipesQuery);
 };
 
 export const useRecipe = ({ id }: { id: string }) => {
-  const recipes = useRecipes();
-
+  const queryClient = useQueryClient();
   return useQuery({
-    ...recipeOptions(id),
-    initialData: recipes.data?.find((recipe) => recipe.id === id),
+    ...recipeQuery(id),
+    initialData: () => queryClient.getQueryState(recipesQuery.queryKey)?.isInvalidated
+      ? undefined
+      : queryClient.getQueryData(recipesQuery.queryKey)?.find((recipe) => recipe.id === id),
+    initialDataUpdatedAt: () => queryClient.getQueryState(recipesQuery.queryKey)?.dataUpdatedAt,
   });
 };
 
-queryClient.setMutationDefaults(['addRecipe'], { mutationFn: api.recipes.add });
-export const useAddRecipe = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ['addRecipe'],
-    mutationFn: api.recipes.add,
-    onSettled: () => Promise.all([
-      queryClient.invalidateQueries(recipesOptions),
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() }),
-    ]),
-  });
+export const addRecipeMutation = {
+  meta: { persist: true },
+  mutationKey: ['addRecipe'],
+  mutationFn: recipesRequests.add,
+  onSettled: refreshRecipes,
 };
 
-queryClient.setMutationDefaults(['editRecipe'], { mutationFn: api.recipes.edit });
+queryClient.setMutationDefaults(addRecipeMutation.mutationKey, addRecipeMutation);
+
+export const useAddRecipe = () => useMutation(addRecipeMutation);
+
+export const editRecipeMutation = {
+  meta: { persist: true },
+  mutationKey: ['editRecipe'],
+  mutationFn: recipesRequests.edit,
+  onSettled: refreshRecipes,
+};
+
+queryClient.setMutationDefaults(editRecipeMutation.mutationKey, editRecipeMutation);
+
 export const useEditRecipe = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['editRecipe'],
-    mutationFn: api.recipes.edit,
-    onMutate: async (newRecipeData) => {
-      const optimisticUpdateRecipe = (recipe: RecipeDTO) => {
-        const { ingredients: _ingredients, ...scalarRecipeData } = newRecipeData;
-        Object.assign(recipe, pickBy(scalarRecipeData, isDefined));
-      };
-
-      const recipesContext = await update({
-        queryKey: recipesOptions.queryKey,
-        updateFn: (draft) => {
-          const recipe = draft.find((r) => r.id === newRecipeData.id);
-          if (recipe) optimisticUpdateRecipe(recipe);
-        },
-      });
-
-      const existingRecipeData = queryClient.getQueryData(recipeOptions(newRecipeData.id).queryKey);
-      let recipeContext;
-      if (existingRecipeData) {
-        recipeContext = await update({
-          queryKey: recipeOptions(newRecipeData.id).queryKey,
-          updateFn: (draft) => optimisticUpdateRecipe(draft),
-        });
-      }
-
-      return {
-        recipesContext: { queryKey: recipesOptions.queryKey, previousData: recipesContext.previousData },
-        ...(recipeContext && {
-          recipeContext: {
-            queryKey: recipeOptions(newRecipeData.id).queryKey,
-            previousData: recipeContext.previousData,
-          },
-        }),
-      };
+    ...editRecipeMutation,
+    onSuccess: (recipe) => {
+      queryClient.setQueryData(recipeQuery(recipe.id).queryKey, recipe);
+      queryClient.setQueryData(recipesQuery.queryKey, (recipes) => recipes?.map((existing) => existing.id === recipe.id ? recipe : existing));
     },
-    onError: (_err, _vars, context) => {
-      if (context?.recipeContext) revert(context.recipeContext);
-      if (context?.recipesContext) revert(context.recipesContext);
-    },
-    onSettled: () => Promise.all([
-      queryClient.invalidateQueries(recipesOptions),
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() }),
-    ]),
   });
 };
 
-queryClient.setMutationDefaults(['deleteRecipe'], { mutationFn: api.recipes.delete });
+export const deleteRecipeMutation = {
+  meta: { persist: true },
+  mutationKey: ['deleteRecipe'],
+  mutationFn: recipesRequests.delete,
+  onSettled: refreshRecipes,
+};
+
+queryClient.setMutationDefaults(deleteRecipeMutation.mutationKey, deleteRecipeMutation);
+
 export const useDeleteRecipe = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['deleteRecipe'],
-    mutationFn: api.recipes.delete,
+    ...deleteRecipeMutation,
     onMutate: async ({ id }) => {
-      const { previousData } = await update({
-        queryKey: recipesOptions.queryKey,
-        updateFn: (state) => state.filter((r) => r.id !== id),
-      });
-      return { previousData, queryKey: recipesOptions.queryKey };
+      await queryClient.cancelQueries(recipesQuery);
+      const query = queryClient.getQueryCache().find({ queryKey: recipesQuery.queryKey, exact: true });
+      const removed = queryClient.getQueryData(recipesQuery.queryKey)?.find((recipe) => recipe.id === id);
+      queryClient.setQueryData(recipesQuery.queryKey, (recipes) => recipes?.filter((recipe) => recipe.id !== id));
+      return { removed, query };
     },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
+    onError: (_error, _variables, context) => {
+      if (!context?.removed || queryClient.getQueryCache().find({ queryKey: recipesQuery.queryKey, exact: true }) !== context.query) return;
+      const removed = context.removed;
+      queryClient.setQueryData(recipesQuery.queryKey, (recipes) => recipes && !recipes.some(({ id }) => id === removed.id) ? [...recipes, removed] : recipes);
     },
-    onSettled: () => queryClient.invalidateQueries(recipesOptions),
   });
 };

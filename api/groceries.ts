@@ -1,9 +1,44 @@
-import { api } from '@/api';
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOptimisticUpdate } from '@/api/optimistic';
 import { queryClient } from '@/query-client';
+import type { MutationFunctionContext } from '@tanstack/react-query';
+import { GroceryItemInput, GroceryPreviewDTO, GroceryItemDTO } from '@/api/types';
+import { refreshFamilyData } from '@/lib/family-data';
+import { client } from '@/api/client';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
-import { GroceryItemDTO } from '@/api/types';
+
+const refreshGroceries = (
+  _data: unknown, _error: Error | null, _variables: unknown, _result: unknown,
+  { client }: MutationFunctionContext,
+) => refreshFamilyData(client, { resource: 'grocery_items' });
+
+export const groceriesRequests = {
+  getAll: () => {
+    return client.get<GroceryItemDTO[]>('/grocery_items');
+  },
+  add: (itemData: GroceryItemInput) => {
+    return client.post<GroceryItemDTO>('/grocery_items', itemData);
+  },
+  addFromRecipe: (data: { recipe_id: string }) => {
+    return client.post('/grocery_items/from_recipe', data);
+  },
+  edit: (data: Pick<GroceryItemDTO, 'id'> & Partial<Pick<GroceryItemDTO, 'quantity' | 'unit' | 'status'>> & { use_suggestion?: boolean }) => {
+    const { id, ...itemData } = data;
+    return client.patch<GroceryItemDTO>(`/grocery_items/${id}`, itemData);
+  },
+  delete: (data: { id: string }) => {
+    return client.delete(`/grocery_items/${data.id}`);
+  },
+  generate: (data: { start: string; end: string; checked_product_ids: string[]; purchase_quantities?: { product_id: string; quantity: number | null }[] }) => {
+    return client.post('/grocery_items/generate', data);
+  },
+  preview: (data: { start: string; end: string }) => {
+    const params = new URLSearchParams({ start: data.start, end: data.end });
+    return client.get<GroceryPreviewDTO>(`/grocery_items/preview?${params}`);
+  },
+  checkout: () => {
+    return client.post('/grocery_items/checkout');
+  },
+};
 
 export type GroceryCheck = Pick<GroceryItemDTO, 'id' | 'status'> & { quantity?: number };
 
@@ -13,180 +48,204 @@ class GroceryCheckError extends Error {
   }
 }
 
-const editGroceryChecks = async (checks: GroceryCheck[]) => {
-  const results = await Promise.allSettled(checks.map((check) => api.groceries.edit(check)));
+export const editGroceryChecks = async (checks: GroceryCheck[]) => {
+  const results = await Promise.allSettled(checks.map((check) => groceriesRequests.edit(check)));
   const failedIds = checks.filter((_, index) => results[index].status === 'rejected').map(({ id }) => id);
   if (failedIds.length) throw new GroceryCheckError(failedIds);
 };
 
-queryClient.setMutationDefaults(['editGroceryChecks'], { mutationFn: editGroceryChecks });
+export const editGroceryChecksMutation = {
+  meta: { persist: true },
+  mutationKey: ['editGroceryChecks'],
+  mutationFn: editGroceryChecks,
+  onSettled: (_data: unknown, _error: Error | null, _variables: unknown, _result: unknown, { client }: MutationFunctionContext) => {
+    if (client.isMutating({ mutationKey: ['editGroceryChecks'] }) === 1) {
+      void refreshFamilyData(client, { resource: 'grocery_items' });
+    }
+  },
+};
+
+queryClient.setMutationDefaults(editGroceryChecksMutation.mutationKey, editGroceryChecksMutation);
 
 export const useEditGroceryChecks = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationKey: ['editGroceryChecks'],
-    mutationFn: editGroceryChecks,
+    ...editGroceryChecksMutation,
     onMutate: async (checks) => {
-      await client.cancelQueries(groceriesOptions);
-      const previous = client.getQueryData(groceriesOptions.queryKey);
+      await client.cancelQueries(groceriesQuery);
+      const previous = client.getQueryData(groceriesQuery.queryKey);
       // Publish the entire burst in one cache update so the rows move together.
-      client.setQueryData(groceriesOptions.queryKey, (items) => items?.map((item) => {
+      client.setQueryData(groceriesQuery.queryKey, (items) => items?.map((item) => {
         const check = checks.find(({ id }) => id === item.id);
         return check ? { ...item, ...check } : item;
       }));
-      return { previous };
+      return { previous, query: client.getQueryCache().find(groceriesQuery) };
     },
     onError: (error, checks, context) => {
+      if (client.getQueryCache().find(groceriesQuery) !== context?.query) return;
       const failedIds = error instanceof GroceryCheckError ? error.failedIds : checks.map(({ id }) => id);
-      client.setQueryData(groceriesOptions.queryKey, (items) => items?.map((item) => {
+      client.setQueryData(groceriesQuery.queryKey, (items) => items?.map((item) => {
         const previous = context?.previous?.find(({ id }) => id === item.id);
-        return previous && failedIds.includes(item.id)
-          ? { ...item, status: previous.status, quantity: previous.quantity }
-          : item;
+        const check = checks.find(({ id }) => id === item.id);
+        if (!previous || !check || !failedIds.includes(item.id)) return item;
+        return {
+          ...item,
+          ...(item.status === check.status && { status: previous.status }),
+          ...(check.quantity !== undefined && item.quantity === check.quantity && { quantity: previous.quantity }),
+        };
       }));
-    },
-    onSettled: () => {
-      if (client.isMutating({ mutationKey: ['editGroceryChecks'] }) === 1) {
-        void client.invalidateQueries(groceriesOptions);
-        void client.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-      }
     },
   });
 };
 
-export const groceriesOptions = queryOptions({
+export const groceriesQuery = queryOptions({
   queryKey: queryKeys.groceries.all(),
-  queryFn: api.groceries.getAll,
+  queryFn: groceriesRequests.getAll,
   staleTime: Infinity,
 });
 
 export const useGroceries = () => {
-  return useQuery(groceriesOptions);
+  return useQuery(groceriesQuery);
 };
 
-export const groceryPreviewOptions = (start: string, end: string) =>
+export const groceryPreviewQuery = (start: string, end: string) =>
   queryOptions({
     queryKey: queryKeys.groceries.preview(start, end),
-    queryFn: () => api.groceries.preview({ start, end }),
+    queryFn: () => groceriesRequests.preview({ start, end }),
   });
 
 export const useGroceryPreview = ({ start, end, enabled }: { start?: string; end?: string; enabled?: boolean }) => {
   return useQuery({
-    ...groceryPreviewOptions(start ?? '', end ?? ''),
+    ...groceryPreviewQuery(start ?? '', end ?? ''),
     enabled: enabled !== false && start != null && end != null,
   });
 };
 
-queryClient.setMutationDefaults(['editGroceryItem'], { mutationFn: api.groceries.edit });
+export const editGroceryItemMutation = {
+  meta: { persist: true },
+  mutationKey: ['editGroceryItem'],
+  mutationFn: groceriesRequests.edit,
+  onSettled: refreshGroceries,
+};
+
+queryClient.setMutationDefaults(editGroceryItemMutation.mutationKey, editGroceryItemMutation);
+
 export const useEditGroceryItem = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['editGroceryItem'],
-    mutationFn: api.groceries.edit,
-    onMutate: async (newItemData) => {
-      const { previousData } = await update({
-        queryKey: groceriesOptions.queryKey,
-        updateFn: (state) => {
-          const item = state.find((i) => i.id === newItemData.id);
-          if (item) Object.assign(item, newItemData);
-        },
-      });
-      return { previousData, queryKey: groceriesOptions.queryKey };
+    ...editGroceryItemMutation,
+    onMutate: async (change) => {
+      await queryClient.cancelQueries(groceriesQuery);
+      const query = queryClient.getQueryCache().find(groceriesQuery);
+      const previous = queryClient.getQueryData(groceriesQuery.queryKey)?.find(({ id }) => id === change.id);
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items?.map((item) => item.id === change.id ? { ...item, ...change } : item));
+      return { previous, query };
     },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries(groceriesOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+    onError: (_error, change, context) => {
+      if (!context?.previous || queryClient.getQueryCache().find(groceriesQuery) !== context.query) return;
+      const previous = context.previous;
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items?.map((item) => {
+        if (item.id !== change.id) return item;
+        // A failed edit only restores fields it still owns, never another entry's newer write.
+        return {
+          ...item,
+          ...(change.quantity !== undefined && item.quantity === change.quantity && { quantity: previous.quantity }),
+          ...(change.unit !== undefined && item.unit === change.unit && { unit: previous.unit }),
+          ...(change.status !== undefined && item.status === change.status && { status: previous.status }),
+        };
+      }));
     },
   });
 };
 
-queryClient.setMutationDefaults(['addGroceryItem'], { mutationFn: api.groceries.add });
-export const useAddGroceryItem = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationKey: ['addGroceryItem'],
-    mutationFn: api.groceries.add,
-    onSettled: () => {
-      queryClient.invalidateQueries(groceriesOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-    },
-  });
+export const addGroceryItemMutation = {
+  meta: { persist: true },
+  mutationKey: ['addGroceryItem'],
+  mutationFn: groceriesRequests.add,
+  onSettled: refreshGroceries,
 };
 
-export const useAddRecipeToGroceries = () => {
-  const queryClient = useQueryClient();
+queryClient.setMutationDefaults(addGroceryItemMutation.mutationKey, addGroceryItemMutation);
 
-  return useMutation({
-    mutationFn: api.groceries.addFromRecipe,
-    onSuccess: () => {
-      queryClient.invalidateQueries(groceriesOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-    },
-  });
+export const useAddGroceryItem = () => useMutation(addGroceryItemMutation);
+
+export const addRecipeToGroceriesMutation = {
+  meta: { persist: true },
+  mutationKey: ['addRecipeToGroceries'],
+  mutationFn: groceriesRequests.addFromRecipe,
+  onSettled: refreshGroceries,
 };
 
-queryClient.setMutationDefaults(['generateGroceryItems'], { mutationFn: api.groceries.generate });
-export const useGenerateGroceryItems = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ['generateGroceryItems'],
-    mutationFn: api.groceries.generate,
-    onSettled: () => {
-      queryClient.invalidateQueries(groceriesOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-    },
-  });
+queryClient.setMutationDefaults(addRecipeToGroceriesMutation.mutationKey, addRecipeToGroceriesMutation);
+
+export const useAddRecipeToGroceries = () => useMutation(addRecipeToGroceriesMutation);
+
+export const generateGroceryItemsMutation = {
+  meta: { persist: true },
+  mutationKey: ['generateGroceryItems'],
+  mutationFn: groceriesRequests.generate,
+  onSettled: refreshGroceries,
 };
 
-queryClient.setMutationDefaults(['deleteGroceryItem'], { mutationFn: api.groceries.delete });
+queryClient.setMutationDefaults(generateGroceryItemsMutation.mutationKey, generateGroceryItemsMutation);
+
+export const useGenerateGroceryItems = () => useMutation(generateGroceryItemsMutation);
+
+export const deleteGroceryItemMutation = {
+  meta: { persist: true },
+  mutationKey: ['deleteGroceryItem'],
+  mutationFn: groceriesRequests.delete,
+  onSettled: refreshGroceries,
+};
+
+queryClient.setMutationDefaults(deleteGroceryItemMutation.mutationKey, deleteGroceryItemMutation);
+
 export const useDeleteGroceryItem = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['deleteGroceryItem'],
-    mutationFn: api.groceries.delete,
+    ...deleteGroceryItemMutation,
     onMutate: async ({ id }) => {
-      const { previousData } = await update({
-        queryKey: groceriesOptions.queryKey,
-        updateFn: (state) => state.filter((i) => i.id !== id),
-      });
-      return { previousData, queryKey: groceriesOptions.queryKey };
+      await queryClient.cancelQueries(groceriesQuery);
+      const query = queryClient.getQueryCache().find(groceriesQuery);
+      const removed = queryClient.getQueryData(groceriesQuery.queryKey)?.find((item) => item.id === id);
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items?.filter((item) => item.id !== id));
+      return { removed, query };
     },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+    onError: (_error, _variables, context) => {
+      if (!context?.removed || queryClient.getQueryCache().find(groceriesQuery) !== context.query) return;
+      const removed = context.removed;
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items && !items.some(({ id }) => id === removed.id) ? [...items, removed] : items);
     },
   });
 };
 
-queryClient.setMutationDefaults(['checkout'], { mutationFn: api.groceries.checkout });
+export const groceryCheckoutMutation = {
+  meta: { persist: true },
+  mutationKey: ['checkout'],
+  mutationFn: groceriesRequests.checkout,
+  onSettled: (_data: unknown, _error: Error | null, _variables: void, _result: unknown, { client }: MutationFunctionContext) =>
+    refreshFamilyData(client, { resource: 'checkout' }),
+};
+
+queryClient.setMutationDefaults(groceryCheckoutMutation.mutationKey, groceryCheckoutMutation);
+
 export const useGroceryCheckout = () => {
-  const { update, revert } = useOptimisticUpdate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['checkout'],
-    mutationFn: api.groceries.checkout,
+    ...groceryCheckoutMutation,
     onMutate: async () => {
-      const { previousData } = await update({
-        queryKey: groceriesOptions.queryKey,
-        updateFn: (state) => state.filter((item) => item.status !== 'completed'),
-      });
-      return { previousData, queryKey: groceriesOptions.queryKey };
+      await queryClient.cancelQueries(groceriesQuery);
+      const query = queryClient.getQueryCache().find(groceriesQuery);
+      const removed = queryClient.getQueryData(groceriesQuery.queryKey)?.filter((item) => item.status === 'completed') ?? [];
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items?.filter((item) => item.status !== 'completed'));
+      return { removed, query };
     },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
+    onError: (_error, _variables, context) => {
+      if (!context || queryClient.getQueryCache().find(groceriesQuery) !== context.query) return;
+      queryClient.setQueryData(groceriesQuery.queryKey, (items) => items && [
+        ...items,
+        ...context.removed.filter((removed) => !items.some(({ id }) => id === removed.id)),
+      ]);
     },
   });
 };

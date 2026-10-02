@@ -1,22 +1,27 @@
+// Load domain defaults before persisted mutations are hydrated, including unopened screens.
+import '@/api/groceries';
+import '@/api/recipes';
+import '@/api/pantry';
+import '@/api/products';
+import '@/api/schedules';
+import '@/api/consumption-logs';
+import '@/api/invitations';
+import { createSessionPersister } from '@/lib/session';
 import { SheetHost } from '@/lib/sheet-context';
 import { Sheets } from '@/sheets';
 import { DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { colors } from '@/constants/colors';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { useEffect, useState } from 'react';
-import { atom, useAtomValue, useSetAtom } from 'jotai';
+import { useEffect, useMemo } from 'react';
+import { focusManager, useIsRestoring } from '@tanstack/react-query';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
-import { SessionProvider, useSession } from '@/contexts/session';
+import { useSession } from '@/contexts/session';
 import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
-import { asyncStoragePersister, queryClient, WEEK_IN_MS } from '@/query-client';
-import { useOnAppActive } from '@/hooks/use-on-app-active';
-import { useQueryClient } from '@tanstack/react-query';
-import { useLogout } from '@/hooks/use-logout';
-import { authSignal } from '@/api/auth-event';
+import { queryClient, shouldPersistMutation, WEEK_IN_MS } from '@/query-client';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { refreshFamilyData } from '@/lib/family-data';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,83 +38,70 @@ const navigationTheme = {
   },
 };
 
-export const splashScreenRequirementsAtom = atom({
-  queriesRestored: false,
-  sessionLoaded: false,
-});
-
-const InvalidationChannel = () => {
-  useInvalidationChannel();
-  return null;
-};
-
 export default function Layout() {
-  const splashScreenRequirements = useAtomValue(splashScreenRequirementsAtom);
-  const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
-
-  useEffect(() => {
-    const checks = Object.values({ ...splashScreenRequirements });
-    const allCompleted = checks.every((value) => value === true);
-    if (!allCompleted) return;
-    SplashScreen.hide();
-  }, [splashScreenRequirements]);
-
   return (
     <ThemeProvider value={navigationTheme}>
       <QueryErrorBoundary>
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={{
-            persister: asyncStoragePersister,
-            maxAge: WEEK_IN_MS,
-          }}
-          onSuccess={() => {
-            setSplashScreenRequirements((r) => ({ ...r, queriesRestored: true }));
-            queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
-          }}
-        >
-          <SessionProvider>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <SheetHost>
-                  <Sheets />
-                  <InvalidationChannel />
-                  <RootLayout />
-                </SheetHost>
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </SessionProvider>
-        </PersistQueryClientProvider>
+        <SessionLayout />
         <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       </QueryErrorBoundary>
     </ThemeProvider>
   );
 }
 
-const RootLayout = () => {
-  const queryClient = useQueryClient();
-  const [animationsEnabled, setAnimationsEnabled] = useState(false);
-  const setSplashScreenRequirements = useSetAtom(splashScreenRequirementsAtom);
-  const { token, isLoading } = useSession();
+function SessionLayout() {
+  const { token, cacheScope, isLoading } = useSession();
+  const persister = useMemo(() => createSessionPersister(cacheScope), [cacheScope]);
+  // Secure credentials determine which persisted cache may be restored.
+  if (isLoading) return null;
+  return (
+    <PersistQueryClientProvider
+      key={cacheScope}
+      client={queryClient}
+      persistOptions={{
+        persister,
+        buster: cacheScope,
+        maxAge: WEEK_IN_MS,
+        dehydrateOptions: { shouldDehydrateMutation: shouldPersistMutation },
+      }}
+      onSuccess={() => {
+        if (!token) { queryClient.clear(); return; }
+        // Offline replay can wait for connectivity; it must not hold the splash screen open.
+        void queryClient.resumePausedMutations().then(() => refreshFamilyData(queryClient, { resource: 'reconnect' }));
+      }}
+    >
+      <GestureHandlerRootView>
+        <KeyboardProvider>
+          <SheetHost>
+            <Sheets />
+            <RootLayout />
+          </SheetHost>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </PersistQueryClientProvider>
+  );
+}
 
-  // connect react-less API layer to react context via this "ping"
-  const { logOut } = useLogout();
+function RootLayout() {
+  const { token } = useSession();
+  const isRestoring = useIsRestoring();
+  useInvalidationChannel();
 
   useEffect(() => {
-    authSignal.handleUnauthorized = logOut;
-  }, [logOut]);
-
-  useOnAppActive(() => {
-    queryClient.invalidateQueries();
-  });
+    if (!isRestoring) SplashScreen.hide();
+  }, [isRestoring]);
 
   useEffect(() => {
-    if (!isLoading) setSplashScreenRequirements((r) => ({ ...r, sessionLoaded: true }));
-    setTimeout(() => setAnimationsEnabled(true), 1000);
-  }, [isLoading, setSplashScreenRequirements]);
+    focusManager.setFocused(AppState.currentState === 'active');
+    const subscription = AppState.addEventListener('change', (state) => {
+      focusManager.setFocused(state === 'active');
+      if (state === 'active' && token) void refreshFamilyData(queryClient, { resource: 'reconnect' });
+    });
+    return () => subscription.remove();
+  }, [token]);
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: animationsEnabled ? 'default' : 'none' }}>
+    <Stack screenOptions={{ headerShown: false, animation: isRestoring ? 'none' : 'default' }}>
       <Stack.Protected guard={!!token}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
@@ -118,4 +110,4 @@ const RootLayout = () => {
       </Stack.Protected>
     </Stack>
   );
-};
+}

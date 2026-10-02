@@ -1,8 +1,17 @@
 import { APIError } from '@/api/client';
 import { MissingRecipeConversionDTO, ProductDeleteBlockersDTO, RecipeDTO } from '@/api/types';
-import { isUnit, Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { isUnit, Unit } from '@/lib/quantity';
 
 const apiErrorData = (error: unknown) => (error instanceof APIError ? error.data : null);
+
+/** Non-form commands still show the server's actionable messages. */
+export const requestErrorMessage = (error: unknown, fallback: string): string => {
+  const data = apiErrorData(error);
+  if (typeof data === 'string' && data.trim()) return data;
+  if (!data || typeof data !== 'object') return fallback;
+  const messages = Object.values(data).flat().filter((message): message is string => typeof message === 'string' && message.trim().length > 0);
+  return messages.length ? messages.join('\n') : fallback;
+};
 
 export const productImpactFromError = (error: unknown): string[] | null => {
   const data = apiErrorData(error);

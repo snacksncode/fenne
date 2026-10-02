@@ -1,10 +1,42 @@
-import { api } from '@/api';
+import type { MutationFunctionContext } from '@tanstack/react-query';
+import { resetFamilyData } from '@/lib/session';
+import { refreshFamilyData } from '@/lib/family-data';
+import { client } from '@/api/client';
 import { useSession } from '@/contexts/session';
 import { useLogout } from '@/hooks/use-logout';
-import { useOptimisticUpdate } from '@/api/optimistic';
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { useEffect } from 'react';
+
+export const familyRequests = {
+  updatePreferences: (data: { timezone?: string | null }) => {
+    return client.patch('/family/preferences', data);
+  },
+};
+
+export const authRequests = {
+  login: (data: { email: string; password: string }) => {
+    return client.post<AuthResponse>('/login', data);
+  },
+  loginAsGuest: () => {
+    return client.post<AuthResponse>('/guest');
+  },
+  convertGuest: (data: { name: string; email: string; password: string }) => {
+    return client.post('/convert_guest', data);
+  },
+  getCurrentUser: () => {
+    return client.get<CurrentUserDTO>('/me');
+  },
+  changePassword: (data: { current_password: string; new_password: string }) => {
+    return client.post('/change_password', data);
+  },
+  changeDetails: (data: { name?: string; email?: string }) => {
+    return client.post('/change_details', data);
+  },
+  deleteAccount: () => {
+    return client.delete('/delete_account');
+  },
+};
 
 export type UserDTO = {
   email: string;
@@ -25,96 +57,106 @@ export type CurrentUserDTO = {
 
 export type AuthResponse = { session_token: string };
 
+export const loginMutation = {
+  mutationKey: ['logIn'],
+  mutationFn: authRequests.login,
+  networkMode: 'always' as const,
+};
+
 export const useLogin = () => {
   const { setSessionToken } = useSession();
   return useMutation({
-    mutationKey: ['logIn'],
-    mutationFn: api.auth.login,
+    ...loginMutation,
     onSuccess: (response) => {
-      setSessionToken(response.session_token);
+      return setSessionToken(response.session_token);
     },
   });
+};
+
+export const deleteAccountMutation = {
+  mutationKey: ['deleteAccount'],
+  mutationFn: authRequests.deleteAccount,
+  networkMode: 'always' as const,
 };
 
 export const useDeleteAccount = () => {
   const { logOut } = useLogout();
   return useMutation({
-    mutationKey: ['deleteAccount'],
-    mutationFn: api.auth.deleteAccount,
+    ...deleteAccountMutation,
     onSuccess: logOut,
   });
+};
+
+export const loginAsGuestMutation = {
+  mutationKey: ['logInAsGuest'],
+  mutationFn: authRequests.loginAsGuest,
+  networkMode: 'always' as const,
 };
 
 export const useLoginAsGuest = () => {
   const { setSessionToken } = useSession();
   return useMutation({
-    mutationKey: ['logInAsGuest'],
-    mutationFn: api.auth.loginAsGuest,
+    ...loginAsGuestMutation,
     onSuccess: (response) => {
-      setSessionToken(response.session_token);
+      return setSessionToken(response.session_token);
     },
   });
 };
 
-export const useConvertGuest = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ['convertGuest'],
-    mutationFn: api.auth.convertGuest,
-    onSuccess: () => queryClient.invalidateQueries(currentUserOptions),
-  });
+const refreshCurrentUser = (
+  _data: unknown, _variables: unknown, _result: unknown, { client }: MutationFunctionContext,
+) => client.invalidateQueries(currentUserQuery);
+
+export const convertGuestMutation = {
+  mutationKey: ['convertGuest'],
+  mutationFn: authRequests.convertGuest,
+  networkMode: 'always' as const,
+  onSuccess: refreshCurrentUser,
 };
 
-export const useChangePassword = () => {
-  return useMutation({
-    mutationKey: ['changePassword'],
-    mutationFn: api.auth.changePassword,
-  });
+export const useConvertGuest = () => useMutation(convertGuestMutation);
+
+export const changePasswordMutation = {
+  mutationKey: ['changePassword'],
+  mutationFn: authRequests.changePassword,
+  networkMode: 'always' as const,
 };
 
-export const useChangeDetails = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ['changeDetails'],
-    mutationFn: api.auth.changeDetails,
-    onSuccess: () => queryClient.invalidateQueries(currentUserOptions),
-  });
+export const useChangePassword = () => useMutation(changePasswordMutation);
+
+export const changeDetailsMutation = {
+  mutationKey: ['changeDetails'],
+  mutationFn: authRequests.changeDetails,
+  networkMode: 'always' as const,
+  onSuccess: refreshCurrentUser,
 };
 
-export const currentUserOptions = queryOptions({
+export const useChangeDetails = () => useMutation(changeDetailsMutation);
+
+export const currentUserQuery = queryOptions({
   queryKey: queryKeys.auth.currentUser(),
-  queryFn: api.auth.getCurrentUser,
+  queryFn: async ({ client }) => {
+    const previous = client.getQueryData<CurrentUserDTO>(queryKeys.auth.currentUser());
+    const current = await authRequests.getCurrentUser();
+    if (previous && previous.family.id !== current.family.id) await resetFamilyData(client, current);
+    return current;
+  },
   staleTime: Infinity,
 });
 
 export const useCurrentUser = () => {
   const { token } = useSession();
-  return useQuery({ ...currentUserOptions, enabled: !!token });
+  return useQuery({ ...currentUserQuery, enabled: !!token });
 };
 
-export const useUpdateFamilyPreferences = () => {
-  const { update, revert } = useOptimisticUpdate();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ['updateFamilyPreferences'],
-    mutationFn: api.family.updatePreferences,
-    onMutate: async (newPrefs) => {
-      const { previousData } = await update({
-        queryKey: currentUserOptions.queryKey,
-        updateFn: (state) => {
-          if (state && 'timezone' in newPrefs) state.family.timezone = newPrefs.timezone ?? null;
-        },
-      });
-      return { previousData, queryKey: currentUserOptions.queryKey };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) revert(context);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries(currentUserOptions);
-    },
-  });
+export const updateFamilyPreferencesMutation = {
+  mutationKey: ['updateFamilyPreferences'],
+  mutationFn: familyRequests.updatePreferences,
+  networkMode: 'always' as const,
+  onSuccess: (_data: unknown, _variables: unknown, _result: unknown, { client }: MutationFunctionContext) => refreshFamilyData(client, { resource: 'family' }),
 };
+
+export const useUpdateFamilyPreferences = () => useMutation(updateFamilyPreferencesMutation);
 
 const deviceTimezone = () => {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -126,7 +168,7 @@ export const useEnsureFamilyTimezone = () => {
   const updatePreferences = useUpdateFamilyPreferences();
 
   useEffect(() => {
-    if (!currentUser.data || currentUser.data.family.timezone || updatePreferences.isPending) return;
+    if (!currentUser.data || currentUser.data.family.timezone || updatePreferences.isPending || updatePreferences.isError) return;
 
     const timezone = deviceTimezone();
     if (!timezone) return;

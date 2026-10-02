@@ -1,37 +1,18 @@
+import { refreshFamilyData, FamilyChange } from '@/lib/family-data';
 import { useEffect } from 'react';
 import { getBaseUrl } from '@/api/client';
 import { createConsumer } from '@rails/actioncable';
 import { useQueryClient } from '@tanstack/react-query';
 import { isPlainObject } from 'remeda';
-import { getISOWeekString } from '@/date-tools';
-import { recipesOptions } from '@/api/recipes';
-import { scheduleOptions } from '@/api/schedules';
-import { groceriesOptions } from '@/api/groceries';
-import { invitationsOptions } from '@/api/invitations';
-import { currentUserOptions, useCurrentUser } from '@/api/auth';
+import { useCurrentUser } from '@/api/auth';
 import { useSession } from '@/contexts/session';
 import { atom, useSetAtom } from 'jotai';
-import { productsOptions } from '@/api/products';
-import { queryKeys } from '@/api/query-keys';
-import { pantryOptions } from '@/api/pantry';
-import { consumptionLogsOptions } from '@/api/consumption-logs';
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 export const connectionStatusAtom = atom<ConnectionStatus>('disconnected');
 
-type Data =
-  | { resource: 'schedules'; data?: { dates?: string[] } | null }
-  | { resource: 'recipes' }
-  | { resource: 'grocery_items' }
-  | { resource: 'invitations' }
-  | { resource: 'products' }
-  | { resource: 'pantry_entries' }
-  | { resource: 'consumption_logs' }
-  | { resource: 'family' }
-  | { resource: 'family_members' };
-
-globalThis.addEventListener = () => {};
-globalThis.removeEventListener = () => {};
+if (typeof globalThis.addEventListener !== 'function') globalThis.addEventListener = () => {};
+if (typeof globalThis.removeEventListener !== 'function') globalThis.removeEventListener = () => {};
 
 export const useInvalidationChannel = () => {
   const { data: user } = useCurrentUser();
@@ -43,66 +24,19 @@ export const useInvalidationChannel = () => {
     if (!token) return setConnectionStatus('disconnected');
 
     const websocketBaseUrl = getBaseUrl().replace(/^http/, 'ws');
-    const cable = createConsumer(`${websocketBaseUrl}/v2/cable?token=${token}`);
+    const cable = createConsumer(`${websocketBaseUrl}/v2/cable?token=${encodeURIComponent(token)}`);
     setConnectionStatus('connecting');
 
     cable.subscriptions.create(
       { channel: 'InvalidationChannel' },
       {
-        received: (data: Data) => {
-          if (!isPlainObject(data)) return;
-
-          if (data.resource === 'schedules') {
-            const dates = data.data?.dates;
-            if (dates == null) {
-              queryClient.invalidateQueries({ queryKey: queryKeys.schedules.all() });
-              return;
-            }
-
-            const weekKeys = dates.map(getISOWeekString);
-            weekKeys.forEach((weekKey) => {
-              if (queryClient.isFetching(scheduleOptions(weekKey))) return;
-              queryClient.invalidateQueries(scheduleOptions(weekKey));
-            });
-          }
-
-          if (data.resource === 'recipes') {
-            if (queryClient.isFetching(recipesOptions)) return;
-            queryClient.invalidateQueries(recipesOptions);
-          }
-
-          if (data.resource === 'grocery_items') {
-            if (!queryClient.isFetching(groceriesOptions)) queryClient.invalidateQueries(groceriesOptions);
-            queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-          }
-
-          if (data.resource === 'products') {
-            queryClient.invalidateQueries(productsOptions);
-          }
-
-          if (data.resource === 'pantry_entries' || data.resource === 'consumption_logs') {
-            queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-            if (!queryClient.isFetching(groceriesOptions)) queryClient.invalidateQueries(groceriesOptions);
-            if (!queryClient.isFetching(pantryOptions)) queryClient.invalidateQueries(pantryOptions);
-            if (!queryClient.isFetching(consumptionLogsOptions)) {
-              queryClient.invalidateQueries(consumptionLogsOptions);
-            }
-          }
-
-          if (data.resource === 'invitations') {
-            if (queryClient.isFetching(invitationsOptions)) return;
-            queryClient.invalidateQueries(invitationsOptions);
-          }
-
-          if (data.resource === 'family' || data.resource === 'family_members') {
-            if (queryClient.isFetching(currentUserOptions)) return;
-            queryClient.invalidateQueries(currentUserOptions);
-          }
+        received: (data: FamilyChange) => {
+          if (!isPlainObject(data) || !('resource' in data)) return;
+          void refreshFamilyData(queryClient, data);
         },
         connected: () => {
           setConnectionStatus('connected');
-          // Refresh changes missed while this device was disconnected.
-          queryClient.invalidateQueries({ queryKey: queryKeys.products.catalogs() });
+          void refreshFamilyData(queryClient, { resource: 'reconnect' });
         },
         disconnected: () => {
           setConnectionStatus('disconnected');

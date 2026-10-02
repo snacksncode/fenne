@@ -1,58 +1,78 @@
-import { api } from '@/api';
-import { groceriesOptions } from '@/api/groceries';
+import { queryClient } from '@/query-client';
+import type { MutationFunctionContext } from '@tanstack/react-query';
+import { refreshFamilyData } from '@/lib/family-data';
+import { client } from '@/api/client';
+import { PantryEntryDTO } from '@/api/types';
 import { queryKeys } from '@/api/query-keys';
-import { useMutation, useQuery, useQueryClient, queryOptions } from '@tanstack/react-query';
+import { useMutation, useQuery, queryOptions } from '@tanstack/react-query';
 
-export const pantryOptions = queryOptions({
+const refreshPantry = (
+  _data: unknown, _error: Error | null, _variables: unknown, _result: unknown,
+  { client }: MutationFunctionContext,
+) => refreshFamilyData(client, { resource: 'pantry_entries' });
+
+export const pantryRequests = {
+  getAll: () => {
+    return client.get<PantryEntryDTO[]>('/pantry_entries');
+  },
+  add: (data: {
+    product_id: string;
+    quantity_remaining?: number | null;
+    last_acquired?: string | null;
+  }) => {
+    return client.post<PantryEntryDTO>('/pantry_entries', data);
+  },
+  edit: (
+    data: Pick<PantryEntryDTO, 'id'> &
+      Partial<Pick<PantryEntryDTO, 'quantity_remaining' | 'last_acquired'>>
+  ) => {
+    const { id, ...entryData } = data;
+    return client.patch<PantryEntryDTO>(`/pantry_entries/${id}`, entryData);
+  },
+  delete: (data: { id: string }) => {
+    return client.delete(`/pantry_entries/${data.id}`);
+  },
+};
+
+export const pantryQuery = queryOptions({
   queryKey: queryKeys.pantry.all(),
-  queryFn: api.pantry.getAll,
+  queryFn: pantryRequests.getAll,
   staleTime: Infinity,
 });
 
 export const usePantry = () => {
-  return useQuery(pantryOptions);
+  return useQuery(pantryQuery);
 };
 
-export const useAddPantryEntry = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationKey: ['addPantryEntry'],
-    mutationFn: api.pantry.add,
-    onSettled: () => {
-      queryClient.invalidateQueries(pantryOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-      queryClient.invalidateQueries(groceriesOptions);
-    },
-  });
+export const addPantryEntryMutation = {
+  meta: { persist: true },
+  mutationKey: ['addPantryEntry'],
+  mutationFn: pantryRequests.add,
+  onSettled: refreshPantry,
 };
 
-export const useEditPantryEntry = () => {
-  const queryClient = useQueryClient();
+queryClient.setMutationDefaults(addPantryEntryMutation.mutationKey, addPantryEntryMutation);
 
-  return useMutation({
-    mutationKey: ['editPantryEntry'],
-    mutationFn: api.pantry.edit,
-    onSettled: () => {
-      queryClient.invalidateQueries(pantryOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-      queryClient.invalidateQueries(groceriesOptions);
-    },
-  });
+export const useAddPantryEntry = () => useMutation(addPantryEntryMutation);
+
+export const editPantryEntryMutation = {
+  meta: { persist: true },
+  mutationKey: ['editPantryEntry'],
+  mutationFn: pantryRequests.edit,
+  onSettled: refreshPantry,
 };
 
-export const useDeletePantryEntry = () => {
-  const queryClient = useQueryClient();
+queryClient.setMutationDefaults(editPantryEntryMutation.mutationKey, editPantryEntryMutation);
 
-  return useMutation({
-    mutationKey: ['deletePantryEntry'],
-    mutationFn: api.pantry.delete,
-    onSettled: () => {
-      queryClient.invalidateQueries(pantryOptions);
-      queryClient.invalidateQueries({ queryKey: queryKeys.groceries.previews() });
-      queryClient.invalidateQueries(groceriesOptions);
-    },
-  });
+export const useEditPantryEntry = () => useMutation(editPantryEntryMutation);
+
+export const deletePantryEntryMutation = {
+  meta: { persist: true },
+  mutationKey: ['deletePantryEntry'],
+  mutationFn: pantryRequests.delete,
+  onSettled: refreshPantry,
 };
+
+queryClient.setMutationDefaults(deletePantryEntryMutation.mutationKey, deletePantryEntryMutation);
+
+export const useDeletePantryEntry = () => useMutation(deletePantryEntryMutation);
