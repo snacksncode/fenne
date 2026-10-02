@@ -39,7 +39,9 @@ describe('Ingredient editor transitions', () => {
 
   it('carries the selected Product with the Ingredient phase and resets validation when selecting another', async () => {
     selectProduct();
-    expect(details().selectedProduct.product.id).toBe('p1');
+    const selected = details().selectedProduct;
+    if (selected.type !== 'existing') throw new Error('Expected an existing Product');
+    expect(selected.product.id).toBe('p1');
     act(() => details().form.setFieldValue('quantity', '0'));
     await act(async () => { await editor.action?.onPress(); });
     expect(details().form.getFieldMeta('quantity')?.errors.length).toBeGreaterThan(0);

@@ -26,9 +26,13 @@ const repaired = () => ({ ...ingredient(), selectedProduct: { type: 'existing' a
 describe('Recipe draft and save workflow', () => {
   let renderer: ReactTestRenderer;
   let editor: ReturnType<typeof useRecipeEditor>;
+  let changeName: (name: string) => void;
   const Harness = () => {
     editor = useRecipeEditor();
-    return <>{(['name', 'ingredients', 'meal_types', 'time_in_minutes', 'notes'] as const).map((name) => <editor.form.Field key={name} name={name}>{() => null}</editor.form.Field>)}</>;
+    return <>
+      <editor.form.Field name="name">{(field) => { changeName = field.handleChange; return null; }}</editor.form.Field>
+      {(['ingredients', 'meal_types', 'time_in_minutes', 'notes'] as const).map((name) => <editor.form.Field key={name} name={name}>{() => null}</editor.form.Field>)}
+    </>;
   };
   beforeEach(async () => {
     jest.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => { callback(0); return 0; });
@@ -86,7 +90,7 @@ describe('Recipe draft and save workflow', () => {
     await save();
     expect(editor.form.getFieldMeta('name')?.errorMap.onServer).toBe('Already exists');
     expect(editor.feedback.error).toBe('Try another name');
-    act(() => editor.form.getFieldInfo('name').instance?.handleChange('Different soup'));
+    act(() => changeName('Different soup'));
     await save();
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(editor.feedback.error).toBeNull();

@@ -92,11 +92,11 @@ export const AddFromRecipeSheet = (props: SheetProps<'add-from-recipe-sheet'>) =
       </View>
       {error && (
         <View accessible accessibilityRole="alert" style={{ marginBottom: 12 }}>
-          <Typography variant="body-sm" color={colors.red[500]}>{error}</Typography>
+          <Typography variant="body-sm" weight="medium" color={colors.red[500]}>{error}</Typography>
         </View>
       )}
       {addRecipeToGroceries.isPending && (
-        <Typography variant="body-sm" accessibilityLiveRegion="polite" style={{ marginBottom: 12 }}>Adding ingredients…</Typography>
+        <Typography variant="body-sm" weight="medium" accessibilityLiveRegion="polite" style={{ marginBottom: 12 }}>Adding ingredients…</Typography>
       )}
       <ScrollView
         showsVerticalScrollIndicator={false}

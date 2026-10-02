@@ -251,11 +251,11 @@ export const ScheduleMealSheet = ({ sheetId, data: sheetData }: SheetProps<'sche
 
       {mode === 'meal' && selectionError && (
         <View accessible accessibilityRole="alert" style={{ marginBottom: 12 }}>
-          <Typography variant="body-sm" color={colors.red[500]}>{selectionError}</Typography>
+          <Typography variant="body-sm" weight="medium" color={colors.red[500]}>{selectionError}</Typography>
         </View>
       )}
       {updateScheduleDay.isPending && (
-        <Typography variant="body-sm" accessibilityLiveRegion="polite" style={{ marginBottom: 12 }}>Saving meal…</Typography>
+        <Typography variant="body-sm" weight="medium" accessibilityLiveRegion="polite" style={{ marginBottom: 12 }}>Saving meal…</Typography>
       )}
 
       {/* Step 1: Meal type selection */}

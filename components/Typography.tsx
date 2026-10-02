@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, StyleSheet, TextStyle, StyleProp } from 'react-native';
+import { Text, StyleSheet, TextStyle, StyleProp, TextProps } from 'react-native';
 import { colors } from '@/constants/colors';
 
 export type TypographyVariant =
@@ -37,11 +37,12 @@ type TypographyProps = {
   weight: TypographyWeight;
   color?: string;
   numberOfLines?: number;
+  accessibilityLiveRegion?: TextProps['accessibilityLiveRegion'];
   style?: StyleProp<TextStyle>;
   children: React.ReactNode;
 };
 
-export function Typography({ variant, weight, color, numberOfLines, style, children }: TypographyProps) {
+export function Typography({ variant, weight, color, numberOfLines, accessibilityLiveRegion, style, children }: TypographyProps) {
   return (
     <Text
       style={[
@@ -51,6 +52,7 @@ export function Typography({ variant, weight, color, numberOfLines, style, child
         style,
       ]}
       numberOfLines={numberOfLines}
+      accessibilityLiveRegion={accessibilityLiveRegion}
     >
       {children}
     </Text>
