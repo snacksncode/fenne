@@ -1,10 +1,10 @@
 import { NumberInput } from '@/components/input';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import { colors } from '@/constants/colors';
 import { View } from 'react-native';
-import { prettyUnit } from '@/utils/unit-formatters';
+import { prettyUnit } from '@/lib/quantity';
 
 export const PackSizeFields = ({ unit, values, onChange }: {
   unit: Unit; values: string[]; onChange: (values: string[]) => void;

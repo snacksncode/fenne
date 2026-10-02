@@ -1,8 +1,8 @@
 import { ScrollView } from 'react-native';
 import { Button } from '@/components/button';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
-import { unitFormatters } from '@/utils/unit-formatters';
-import { parseLocaleFloat } from '@/utils';
+import { Unit } from '@/lib/quantity';
+import { prettyUnit } from '@/lib/quantity';
+import { parseLocaleFloat } from '@/lib/quantity';
 
 type Preset = { label: string; value: string };
 
@@ -95,7 +95,7 @@ export const QuantityShortcuts = ({ unit, currentValue, onSelect }: QuantityShor
       {presets.map((preset) => (
         <Button
           key={preset.label}
-          text={`${preset.label} ${unitFormatters[unit]({ count: parseLocaleFloat(preset.value) })}`}
+          text={`${preset.label} ${prettyUnit({ quantity: parseLocaleFloat(preset.value), unit })}`}
           size="small"
           variant={currentValue === preset.value ? 'primary' : 'outlined'}
           onPress={() => onSelect(preset.value)}

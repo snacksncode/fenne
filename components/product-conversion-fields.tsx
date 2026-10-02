@@ -1,4 +1,4 @@
-import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit, UNITS } from '@/lib/quantity';
 import { NumberInput, TextInputRef } from '@/components/input';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';

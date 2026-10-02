@@ -1,4 +1,4 @@
-import { Unit, UNITS } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit, UNITS } from '@/lib/quantity';
 import { ProductBehaviorHelpModal } from '@/components/product-behavior-help-modal';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';

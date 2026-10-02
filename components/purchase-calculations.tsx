@@ -1,5 +1,5 @@
 import { PurchaseSuggestionDTO } from '@/api/types';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import { formatGroceryQuantity } from '@/components/grocery-quantity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';

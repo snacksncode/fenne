@@ -1,5 +1,5 @@
 import { ProductDTO, ProductDraft } from '@/api/types';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 
 type ConvertibleProduct = ProductDTO | ProductDraft;
 

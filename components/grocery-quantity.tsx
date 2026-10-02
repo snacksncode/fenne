@@ -1,7 +1,7 @@
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { prettyUnit } from '@/utils/unit-formatters';
+import { prettyUnit } from '@/lib/quantity';
 import { StyleSheet, View } from 'react-native';
 
 export const formatGroceryQuantity = (quantity: number, unit: Unit) =>

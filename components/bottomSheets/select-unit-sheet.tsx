@@ -1,3 +1,4 @@
+import { Unit, UNITS } from '@/lib/quantity';
 import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
@@ -5,24 +6,6 @@ import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/button';
 import { LucideIcon, Ruler, Shapes, Weight } from 'lucide-react-native';
-
-export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'fl_oz' | 'cup' | 'tbsp' | 'tsp' | 'qt' | 'oz' | 'lb' | 'count';
-
-type LabelFn = (data: { count: number }) => string;
-export const UNITS: { value: Unit; label: LabelFn }[] = [
-  { value: 'count', label: ({ count }) => (count === 1 ? 'Piece' : 'Pieces') },
-  { value: 'g', label: () => 'Grams' },
-  { value: 'kg', label: () => 'Kilograms' },
-  { value: 'ml', label: () => 'Milliliters' },
-  { value: 'l', label: () => 'Liters' },
-  { value: 'fl_oz', label: () => 'Fluid ounces' },
-  { value: 'cup', label: ({ count }) => (count === 1 ? 'Cup' : 'Cups') },
-  { value: 'tbsp', label: ({ count }) => (count === 1 ? 'Tablespoon' : 'Tablespoons') },
-  { value: 'tsp', label: ({ count }) => (count === 1 ? 'Teaspoon' : 'Teaspoons') },
-  { value: 'qt', label: ({ count }) => (count === 1 ? 'Quart' : 'Quarts') },
-  { value: 'oz', label: () => 'Ounces' },
-  { value: 'lb', label: () => 'Pounds' },
-];
 
 type UnitGroup = {
   icon: LucideIcon;
@@ -36,18 +19,7 @@ const UNIT_GROUPS: UnitGroup[] = [
   { label: 'Other', icon: Shapes, units: ['count', 'tbsp', 'tsp'] },
 ];
 
-export const isUnit = (value: unknown): value is Unit =>
-  typeof value === 'string' && UNITS.some((unit) => unit.value === value);
-
-type SelectUnitSheetData = SheetProps<'select-unit-sheet'>['data'];
-
-const SelectUnitSheetContent = ({
-  sheetId,
-  data,
-}: {
-  sheetId: SheetProps<'select-unit-sheet'>['sheetId'];
-  data: SelectUnitSheetData;
-}) => {
+export const SelectUnitSheet = ({ sheetId, data }: SheetProps<'select-unit-sheet'>) => {
   const sheets = useSheets();
   const selectedUnit = data.unit;
 
@@ -96,9 +68,7 @@ const SelectUnitSheetContent = ({
   );
 };
 
-export const SelectUnitSheet = (props: SheetProps<'select-unit-sheet'>) => {
-  return <SelectUnitSheetContent sheetId={props.sheetId} data={props.data} />;
-};
+
 
 const styles = StyleSheet.create({
   group: {

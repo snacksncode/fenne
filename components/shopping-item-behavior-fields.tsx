@@ -1,6 +1,6 @@
 import { AisleCategory } from '@/api/types';
 import { AisleHeader } from '@/components/aisle-header';
-import { Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import { ProductBehavior, ProductBehaviorSelector, TrackingUnitSelect } from '@/components/product-behavior-selector';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ReminderFrequencyFields, ReminderFrequencyUnit } from '@/components/reminder-frequency-fields';
