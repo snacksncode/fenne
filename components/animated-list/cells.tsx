@@ -1,3 +1,5 @@
+// Private rendering adapter for FlashList's recycled cells. Context, cancellation,
+// and frame-flush workarounds stay behind the animated-list module's public seam.
 import { createContext, Ref, useContext, useEffect, useMemo } from 'react';
 import { View, ViewProps } from 'react-native';
 import Animated, {

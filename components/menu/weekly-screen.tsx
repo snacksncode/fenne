@@ -1,38 +1,28 @@
-import { ListLayoutView } from '@/components/list-layout-view';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
-import { useActiveTabPress } from '@/hooks/use-active-tab-press';
+import { AnimatedFlashList, ListLayoutView } from '@/components/animated-list';
 import { Typography } from '@/components/Typography';
-import { atom, useAtom } from 'jotai';
-import React, { useCallback, useRef, useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   addDays,
-  addWeeks,
   eachDayOfInterval,
-  eachWeekOfInterval,
-  endOfWeek,
   format,
   startOfToday,
-  startOfWeek,
 } from 'date-fns';
 
 import Animated from 'react-native-reanimated';
 
-import { difference, first, isEmpty, isTruthy } from 'remeda';
-import { FlashListRef, ViewToken } from '@shopify/flash-list';
+import { isTruthy } from 'remeda';
 import { Button } from '@/components/button';
-import { formatDateToISO, getDatesFromISOWeek, getISOWeekString, parseISO } from '@/date-tools';
-import { useBackToToday } from '@/components/menu/shared';
+import { formatDateToISO, parseISO } from '@/date-tools';
+import { useScheduleViewport } from '@/hooks/use-schedule-viewport';
+export { hasWeeklyScreenLoadedAtom } from '@/hooks/use-schedule-viewport';
 import { useSheets } from '@/lib/sheet-context';
 import { MealEntry } from '@/components/menu/meal-entry';
 import { Plus, Soup } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { MealType, ScheduleDayDTO } from '@/api/types';
-import { useSchedule } from '@/api/schedules';
+import { ScheduleDayDTO } from '@/api/types';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
-import { useMount } from '@/hooks/use-mount';
-import { useOnAppActive } from '@/hooks/use-on-app-active';
 import { useToday } from '@/hooks/use-today';
 
 const GAP_SIZE = 16;
@@ -119,32 +109,6 @@ const WeeklyScreenSkeleton = () => {
       ))}
     </View>
   );
-};
-
-export function getThreeWeekSlice(today: Date) {
-  const MONDAY = 1;
-  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: MONDAY });
-  const startOfPrevWeek = addWeeks(startOfCurrentWeek, -1);
-  const startOfNextWeek = addWeeks(startOfCurrentWeek, 1);
-
-  const weekdays = (start: Date) => {
-    return eachDayOfInterval({
-      start,
-      end: endOfWeek(start, { weekStartsOn: MONDAY }),
-    });
-  };
-
-  return [...weekdays(startOfPrevWeek), ...weekdays(startOfCurrentWeek), ...weekdays(startOfNextWeek)];
-}
-
-
-export const getFirstMissingMealType = ({ breakfast, lunch, dinner }: ScheduleDayDTO) => {
-  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
-  const alreadyAddedMealTypes: MealType[] = [];
-  if (breakfast) alreadyAddedMealTypes.push('breakfast');
-  if (lunch) alreadyAddedMealTypes.push('lunch');
-  if (dinner) alreadyAddedMealTypes.push('dinner');
-  return first(difference(mealTypes, alreadyAddedMealTypes));
 };
 
 const DayCard = ({ data }: { data: ScheduleDayDTO }) => {
@@ -303,98 +267,9 @@ const Item = ({ dateString, data }: { dateString: string; data: ScheduleDayDTO |
   );
 };
 
-const useDateRange = () => {
-  const [dateRange, setDateRange] = useState({
-    start: formatDateToISO(addWeeks(startOfWeek(startOfToday(), { weekStartsOn: 1 }), -1)),
-    end: formatDateToISO(addWeeks(endOfWeek(startOfToday(), { weekStartsOn: 1 }), 1)),
-  });
-
-  const expandWeekIntoPast = () => {
-    setDateRange((prev) => {
-      const newStart = addWeeks(parseISO(prev.start), -1);
-      return { ...prev, start: formatDateToISO(newStart) };
-    });
-  };
-
-  const expandWeekIntoFuture = () => {
-    setDateRange((prev) => {
-      const newEnd = addWeeks(parseISO(prev.end), 1);
-      return { ...prev, end: formatDateToISO(newEnd) };
-    });
-  };
-
-  const weeks = eachWeekOfInterval(dateRange, { weekStartsOn: 1 }).map(formatDateToISO).map(getISOWeekString);
-
-  return {
-    weeks,
-    expandWeekIntoPast,
-    expandWeekIntoFuture,
-  };
-};
-
-export const hasWeeklyScreenLoadedAtom = atom(false);
-
-type MenuDay = { date: string; schedule: ScheduleDayDTO | undefined };
-
 export const WeeklyScreen = () => {
-  const [hasLoaded, setHasWeeklyScreenLoaded] = useAtom(hasWeeklyScreenLoadedAtom);
-  const [, setFocusCount] = useState(0);
-  const weeklyListRef = useRef<FlashListRef<MenuDay>>(null);
   const insets = useSafeAreaInsets();
-  const hasScrolledRef = useRef(false);
-  const { weeks, expandWeekIntoFuture, expandWeekIntoPast } = useDateRange();
-  const backToToday = useBackToToday();
-  const { scheduleMap, isInitialLoading } = useSchedule({ weeks });
-  const days = weeks.flatMap(getDatesFromISOWeek).map((date) => ({ date, schedule: scheduleMap[date] }));
-
-  useOnAppActive(() => setFocusCount((c) => c + 1));
-
-  useMount(() => {
-    // unmount happens during logout
-    return () => setHasWeeklyScreenLoaded(false);
-  });
-
-  const scrollToDate = useCallback(
-    ({ dateString, animated }: { dateString: string; animated: boolean }) => {
-      setImmediate(() => {
-        const index = days.findIndex((day) => day.date === dateString);
-        if (index < 0) return;
-        weeklyListRef.current?.scrollToIndex({
-          index,
-          viewOffset: -1 * (insets.top + HEADER_SIZE + GAP_SIZE),
-          animated,
-        });
-      });
-    },
-    [days, insets.top]
-  );
-
-  const scrollToToday = useCallback(
-    ({ animated }: { animated: boolean }) => {
-      scrollToDate({ dateString: formatDateToISO(startOfToday()), animated });
-    },
-    [scrollToDate]
-  );
-
-  const { setShow } = backToToday;
-  const returnToToday = useCallback(() => {
-    setShow({ state: false, lock: Date.now() });
-    scrollToToday({ animated: true });
-  }, [setShow, scrollToToday]);
-
-  useActiveTabPress(returnToToday);
-
-  const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<MenuDay>[] }) => {
-    if (isEmpty(viewableItems) || isInitialLoading) return;
-
-    const today = formatDateToISO(startOfToday());
-    if (viewableItems.find(({ item }) => item.date === today)) setHasWeeklyScreenLoaded(true);
-
-    backToToday.handleViewableItemsChanged({
-      viewableItems: viewableItems.map((token) => ({ ...token, item: token.item.date })),
-      todayItem: formatDateToISO(startOfToday()),
-    });
-  };
+  const viewport = useScheduleViewport(insets.top + HEADER_SIZE + GAP_SIZE);
 
   return (
     <>
@@ -407,25 +282,25 @@ export const WeeklyScreen = () => {
             zIndex: 10,
             top: insets.top + HEADER_SIZE + 16,
           },
-          backToToday.style,
+          viewport.backToTodayStyle,
         ]}
       >
         <Button
           variant="primary"
           text="Back to today"
           size="small"
-          onPress={returnToToday}
+          onPress={viewport.returnToToday}
         />
       </Animated.View>
-      {!hasLoaded && (
+      {!viewport.hasLoaded && (
         <View style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundColor: '#FEF7EA' }}>
           <WeeklyScreenSkeleton />
         </View>
       )}
-      {!isEmpty(scheduleMap) && (
+      {viewport.hasSchedule && (
         <AnimatedFlashList
-          ref={weeklyListRef}
-          data={days}
+          ref={viewport.listRef}
+          data={viewport.days}
           renderItem={({ item }) => <Item dateString={item.date} data={item.schedule} />}
           style={{ backgroundColor: colors.cream[100], flex: 1 }}
           keyExtractor={(item) => item.date}
@@ -435,20 +310,7 @@ export const WeeklyScreen = () => {
             marginTop: insets.top + HEADER_SIZE,
             paddingBottom: insets.bottom + 88,
           }}
-          {...(hasLoaded && {
-            onStartReached: expandWeekIntoPast,
-            onStartReachedThreshold: 0.2,
-            onEndReachedThreshold: 0.2,
-            onEndReached: expandWeekIntoFuture,
-          })}
-          onCommitLayoutEffect={() => {
-            if (!isInitialLoading) {
-              if (hasScrolledRef.current) return;
-              scrollToToday({ animated: false });
-              hasScrolledRef.current = true;
-            }
-          }}
-          onViewableItemsChanged={handleViewableItemsChanged}
+          {...viewport.listProps}
         />
       )}
     </>

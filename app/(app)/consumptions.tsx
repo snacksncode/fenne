@@ -1,12 +1,12 @@
-import { ListLayoutView } from '@/components/list-layout-view';
+import { ListLayoutView } from '@/components/animated-list';
 import { ConsumptionLogDTO, MealType } from '@/api/types';
 import { useAddConsumptionLog, useConsumptionLogs } from '@/api/consumption-logs';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { useSheets } from '@/lib/sheet-context';
-import { prettyUnit } from '@/utils/unit-formatters';
-import { AnimatedFlashList } from '@/components/animated-flash-list';
+import { prettyUnit } from '@/lib/quantity';
+import { AnimatedFlashList } from '@/components/animated-list';
 import { addDays, format, parseISO, startOfToday, subDays } from 'date-fns';
 import { router } from 'expo-router';
 import { ChevronLeft, CookingPot, Croissant, Drumstick } from 'lucide-react-native';

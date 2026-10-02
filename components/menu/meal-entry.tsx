@@ -1,5 +1,5 @@
 import { MealEntryDTO, MealType } from '@/api/types';
-import { ListLayoutView } from '@/components/list-layout-view';
+import { ListLayoutView } from '@/components/animated-list';
 import { MealTypeKicker } from '@/components/menu/meal-type-kicker';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';

@@ -52,3 +52,34 @@ export const getDefaultGroceryDateRange = (today: Date) => ({
   startDateString: formatDateToISO(addDays(today, 1)),
   endDateString: formatDateToISO(addDays(today, 7)),
 });
+
+// Calendar selections represent a date, not a local instant. Reject rollover dates.
+export const calendarDateToTimestamp = (value: string): string | null => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date.toISOString();
+};
+
+export type ScheduleDateRange = { start: string; end: string };
+
+export const getScheduleDateRange = (today: string): ScheduleDateRange => ({
+  start: formatDateToISO(addDays(startOfISOWeek(parseISO(today)), -7)),
+  end: formatDateToISO(addDays(endOfISOWeek(parseISO(today)), 7)),
+});
+
+export const getWeeksInDateRange = (range: ScheduleDateRange) =>
+  eachWeekOfInterval(range, { weekStartsOn: 1 }).map((week) => format(week, YEAR_WEEK));
+
+export const expandScheduleDateRange = (range: ScheduleDateRange, direction: 'past' | 'future'): ScheduleDateRange =>
+  direction === 'past'
+    ? { ...range, start: formatDateToISO(addDays(parseISO(range.start), -7)) }
+    : { ...range, end: formatDateToISO(addDays(parseISO(range.end), 7)) };
+
+export const includeDateInScheduleRange = (range: ScheduleDateRange, date: string): ScheduleDateRange => {
+  if (date >= range.start && date <= range.end) return range;
+  const surrounding = getScheduleDateRange(date);
+  return {
+    start: range.start < surrounding.start ? range.start : surrounding.start,
+    end: range.end > surrounding.end ? range.end : surrounding.end,
+  };
+};

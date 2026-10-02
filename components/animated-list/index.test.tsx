@@ -1,8 +1,8 @@
 /// <reference types="jest" />
 import React from 'react';
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ListAnimationContext, AnimatedListCell } from './list-layout-view';
-import { AnimatedFlashList } from './animated-flash-list';
+import { ListAnimationContext, AnimatedListCell } from './cells';
+import { AnimatedFlashList } from './index';
 import { colors } from '@/constants/colors';
 
 let mockFocused = true;
@@ -43,7 +43,7 @@ jest.mock('@shopify/flash-list', () => ({
     React.useImperativeHandle(props.ref, () => ({ prepareForLayoutAnimationRender: mockPrepare }));
     mockListProps = props;
     mockCommits.push({ data: props.data, style: props.contentContainerStyle });
-    mockAnimationContext = React.useContext(jest.requireActual('./list-layout-view').ListAnimationContext);
+    mockAnimationContext = React.useContext(jest.requireActual('./cells').ListAnimationContext);
     mockEvents.push(`render:${props.data?.map((row: any) => row.id).join(',')}`);
     return null;
   },

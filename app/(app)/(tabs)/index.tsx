@@ -3,10 +3,11 @@ import { BlurTargetView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteTitle } from '@/components/RouteTitle';
 import { Button } from '@/components/button';
-import { useSheets } from '@/lib/sheet-context';
+import { useSheets, useSheetsIdle } from '@/lib/sheet-context';
 import { hasWeeklyScreenLoadedAtom, WeeklyScreen } from '@/components/menu/weekly-screen';
 import { CalendarPlus, Utensils } from 'lucide-react-native';
 import { useTutorialProgress } from '@/hooks/use-tutorial-progress';
+import { useIsFocused } from 'expo-router/react-navigation';
 import { useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import Animated from 'react-native-reanimated';
@@ -14,22 +15,24 @@ import { useTabFocusAnimation } from '@/hooks/use-tab-focus-animation';
 
 const usePopupTutorialSheet = () => {
   const sheets = useSheets();
+  const isFocused = useIsFocused();
+  const sheetsIdle = useSheetsIdle();
   const hasWeeklyScreenLoaded = useAtomValue(hasWeeklyScreenLoadedAtom);
   const { isGuest, isComplete } = useTutorialProgress();
   const preComplete = useRef(false);
   const postComplete = useRef(false);
 
   useEffect(() => {
-    if (!hasWeeklyScreenLoaded || !isGuest) return;
+    if (!hasWeeklyScreenLoaded || !isGuest || !isFocused || !sheetsIdle) return;
     if (!isComplete && !preComplete.current) {
       preComplete.current = true;
       sheets.present('tutorial-sheet');
     }
     if (isComplete && !postComplete.current) {
       postComplete.current = true;
-      setTimeout(() => sheets.present('convert-guest-sheet'), 500);
+      sheets.present('convert-guest-sheet');
     }
-  }, [hasWeeklyScreenLoaded, isComplete, isGuest, sheets]);
+  }, [hasWeeklyScreenLoaded, isComplete, isGuest, isFocused, sheetsIdle, sheets]);
 };
 
 const Index = () => {

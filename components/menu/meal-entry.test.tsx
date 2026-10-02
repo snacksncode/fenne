@@ -17,7 +17,7 @@ jest.mock('react-native-reanimated', () => ({
     return <mockSkipContext.Provider value={value.current}>{children}</mockSkipContext.Provider>;
   },
 }));
-jest.mock('@/components/list-layout-view', () => ({
+jest.mock('@/components/animated-list', () => ({
   ListLayoutView: ({ children }: any) => {
     const React = jest.requireActual('react');
     const skip = React.useContext(mockSkipContext);
