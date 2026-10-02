@@ -1,6 +1,5 @@
 import { TextInputRef } from '@/components/input';
-import { ProductBehaviorFields, productBehaviorFieldNames } from '@/components/form/product-behavior-fields';
-import { ShoppingItemBehaviorField } from '@/components/shopping-item-behavior-fields';
+import { ProductBehaviorFields, productBehaviorFieldNames, ShoppingItemBehaviorField } from '@/components/form/product-behavior-fields';
 import { View } from 'react-native';
 import { Ref } from 'react';
 import { IngredientEditor } from './use-ingredient-editor';

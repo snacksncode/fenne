@@ -1,7 +1,13 @@
 import { emptyProductForm } from '@/components/bottomSheets/editIngredient/ingredient-editor-model';
 import { withFieldGroup } from '@/components/form/app-form';
-import { ShoppingItemBehaviorField } from '@/components/shopping-item-behavior-fields';
 import { View } from 'react-native';
+
+export type ShoppingItemBehaviorField =
+  | 'pack_sizes'
+  | 'aisle'
+  | 'unit'
+  | 'reminder_frequency_value'
+  | 'reminder_frequency_unit';
 
 export const productBehaviorFieldNames = {
   mode: 'mode',

@@ -234,7 +234,7 @@ const SubmitButton = (props: Omit<ComponentProps<typeof Button>, 'onPress'>) => 
   );
 };
 
-export const { useAppForm, withForm, withFieldGroup } = createFormHook({
+export const { useAppForm, withFieldGroup } = createFormHook({
   fieldComponents: {
     NumberField,
     TextField,

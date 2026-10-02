@@ -1,4 +1,3 @@
-import { GroceryRecipesSheet } from '@/components/bottomSheets/grocery-recipes-sheet';
 import { GroceryEntrySheet } from '@/components/bottomSheets/grocery-entry-sheet';
 import { GenerationAmountsSheet } from '@/components/bottomSheets/generation-amounts-sheet';
 import { SheetRegister } from '@/lib/sheet-context';
@@ -58,9 +57,6 @@ declare module '@/lib/sheet-context' {
     };
     'grocery-entry-sheet': {
       data: { grocery: GroceryItemDTO };
-    };
-    'grocery-recipes-sheet': {
-      data: { name: string; recipes: { id: string; name: string }[]; reason?: string };
     };
     'select-unit-sheet': {
       data: { unit: Unit };
@@ -154,7 +150,6 @@ export const Sheets = () => (
     sheets={{
       'generation-amounts-sheet': GenerationAmountsSheet,
       'grocery-entry-sheet': GroceryEntrySheet,
-      'grocery-recipes-sheet': GroceryRecipesSheet,
       'select-unit-sheet': SelectUnitSheet,
       'select-category-sheet': SelectCategorySheet,
       'edit-ingredient-sheet': EditIngredientSheet,

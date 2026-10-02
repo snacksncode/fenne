@@ -12,7 +12,7 @@ import { Button } from '@/components/button';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
-import { useLogout } from '@/hooks/use-logout';
+import { signOut } from '@/lib/session';
 import { getDeviceTimezone, getTimezoneDisplayName } from '@/utils/timezone';
 
 import Constants from 'expo-constants';
@@ -195,7 +195,6 @@ const Settings = () => {
   const sheets = useSheets();
   const invitations = useInvitations();
 
-  const { logOut } = useLogout();
   const { data: { user, family } = {} } = useCurrentUser();
 
   const sortMembers = (members: UserDTO[]) => {
@@ -359,7 +358,7 @@ const Settings = () => {
             ACTIONS
           </Typography>
           <View style={{ gap: 12, marginTop: 12 }}>
-            <Action icon={LogOut} text="Log out" onPress={() => logOut()} />
+            <Action icon={LogOut} text="Log out" onPress={() => signOut()} />
             <Action icon={Trash2} text="Delete account" onPress={() => sheets.present('delete-account-sheet')} />
           </View>
         </View>

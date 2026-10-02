@@ -1,9 +1,8 @@
 import type { MutationFunctionContext } from '@tanstack/react-query';
-import { resetFamilyData } from '@/lib/session';
+import { resetFamilyData, signOut } from '@/lib/session';
 import { refreshFamilyData } from '@/lib/family-data';
 import { client } from '@/api/client';
 import { useSession } from '@/contexts/session';
-import { useLogout } from '@/hooks/use-logout';
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { useEffect } from 'react';
@@ -80,10 +79,9 @@ export const deleteAccountMutation = {
 };
 
 export const useDeleteAccount = () => {
-  const { logOut } = useLogout();
   return useMutation({
     ...deleteAccountMutation,
-    onSuccess: logOut,
+    onSuccess: () => signOut(),
   });
 };
 

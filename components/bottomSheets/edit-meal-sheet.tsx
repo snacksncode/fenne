@@ -5,10 +5,7 @@ import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { ArrowLeftRight, MapPin, Trash2 } from 'lucide-react-native';
 import { View } from 'react-native';
-import { MealType, MealEntryDTO } from '@/api/types';
 import { useDeleteScheduleEntry } from '@/api/schedules';
-
-export type EditMealSheetData = MealEntryDTO & { mealType: MealType; dateString: string };
 
 export const EditMealSheet = ({ sheetId, data: { entry: scheduledEntry } }: SheetProps<'edit-meal-sheet'>) => {
   const sheets = useSheets();
