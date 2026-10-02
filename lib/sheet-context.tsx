@@ -1,5 +1,7 @@
-import { TrueSheet, TrueSheetProvider } from '@lodev09/react-native-true-sheet';
-import { ComponentType, ReactNode, createContext, useContext, useRef, useState } from 'react';
+import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
+import { ComponentType, ReactNode, createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+
+import { createSheetSessions, SheetSession } from './sheet-sessions';
 
 export interface Sheets {}
 
@@ -33,12 +35,6 @@ export type SheetProps<T extends SheetId> = [SheetData<T>] extends [never]
     ? OptionalDataSheetProps<T>
     : RequiredDataSheetProps<T>;
 
-type ActiveSheet = {
-  id: SheetId;
-  data?: unknown;
-};
-type ActiveSheetMap = Partial<Record<SheetId, ActiveSheet>>;
-type PendingResultMap = Partial<Record<SheetId, (result: unknown) => void>>;
 type PresentArgs<T extends SheetId> = [SheetData<T>] extends [never]
   ? [options?: { data?: never }]
   : undefined extends SheetData<T>
@@ -52,101 +48,64 @@ type SheetContextValue = {
   present: <T extends SheetId>(id: T, ...args: PresentArgs<T>) => Promise<SheetResult<T> | undefined>;
   dismiss: <T extends SheetId>(...args: DismissArgs<T>) => Promise<void>;
   dismissAll: () => Promise<void>;
-  active: ActiveSheetMap;
-  handleDidDismiss: (id: SheetId) => void;
 };
 
 type RegisteredSheets = {
   [T in SheetId]: ComponentType<SheetProps<T>>;
 };
 
-const SheetContext = createContext<SheetContextValue | null>(null);
+type SessionHost = ReturnType<typeof createSheetSessions>;
+const SheetContext = createContext<SessionHost | null>(null);
+const SessionContext = createContext<SheetSession | null>(null);
 
-export const useSheets = () => {
-  const context = useContext(SheetContext);
-  if (!context) throw new Error('Sheet components must be rendered inside SheetHost');
-  return {
-    present: context.present,
-    dismiss: context.dismiss,
-    dismissAll: context.dismissAll,
-  };
-};
-
-export const useSheetInternal = () => {
+const useSheetHost = () => {
   const context = useContext(SheetContext);
   if (!context) throw new Error('Sheet components must be rendered inside SheetHost');
   return context;
 };
 
-const SheetHostContent = ({ children }: { children: ReactNode }) => {
-  const [active, setActive] = useState<ActiveSheetMap>({});
-  const pendingResults = useRef<PendingResultMap>({});
+export const useSheets = (): SheetContextValue => {
+  const host = useSheetHost();
+  const [actions] = useState<SheetContextValue>(() => ({
+    present: <T extends SheetId>(id: T, ...[options]: PresentArgs<T>) =>
+      host.present(id, options?.data) as Promise<SheetResult<T> | undefined>,
+    dismiss: (...[id, result]) => host.dismiss(id, result),
+    dismissAll: host.dismissAll,
+  }));
+  return actions;
+};
 
-  const unmountSheet = (id: SheetId) => {
-    setActive((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-  };
+/** Used for prompts that must wait until the current native sheet has dismissed. */
+export const useSheetsIdle = () => {
+  const host = useSheetHost();
+  return useSyncExternalStore(host.subscribe, host.isIdle);
+};
 
-  const resetSheet = (id: SheetId) => {
-    const resolve = pendingResults.current[id];
-
-    delete pendingResults.current[id];
-    unmountSheet(id);
-    resolve?.(undefined);
-  };
-
-  const value: SheetContextValue = {
-    active,
-    present: (id, ...args) => {
-      const [options] = args;
-      const previousResolve = pendingResults.current[id];
-      delete pendingResults.current[id];
-      previousResolve?.(undefined);
-
-      setActive((current) => ({
-        ...current,
-        [id]: { id, data: options?.data },
-      }));
-      requestAnimationFrame(() => {
-        TrueSheet.present(id);
-      });
-      return new Promise((resolve) => {
-        pendingResults.current[id] = resolve as (result: unknown) => void;
-      });
-    },
-    dismiss: async (...args) => {
-      const [id, result] = args;
-      const resolve = pendingResults.current[id];
-      delete pendingResults.current[id];
-      resolve?.(result);
-      await TrueSheet.dismiss(id);
-    },
-    dismissAll: () => TrueSheet.dismissAll(),
-    handleDidDismiss: resetSheet,
-  };
-
-  return <SheetContext.Provider value={value}>{children}</SheetContext.Provider>;
+export const useSheetSession = () => {
+  const session = useContext(SessionContext);
+  if (!session) throw new Error('BaseSheet must be rendered by SheetRegister');
+  return session;
 };
 
 export const SheetHost = ({ children }: { children: ReactNode }) => {
+  const [host] = useState(() => createSheetSessions((error) => console.error('Sheet lifecycle failed', error)));
+  useEffect(() => () => host.dispose(), [host]);
   return (
     <TrueSheetProvider>
-      <SheetHostContent>{children}</SheetHostContent>
+      <SheetContext.Provider value={host}>{children}</SheetContext.Provider>
     </TrueSheetProvider>
   );
 };
 
 export const SheetRegister = ({ sheets }: { sheets: RegisteredSheets }) => {
-  const { active } = useSheetInternal();
-
-  const renderSheet = (entry: ActiveSheet) => {
-    const Sheet = sheets[entry.id] as ComponentType<{ sheetId: SheetId; data?: unknown }>;
-    const props = entry.data === undefined ? { sheetId: entry.id } : { sheetId: entry.id, data: entry.data };
-    return <Sheet key={entry.id} {...props} />;
-  };
-
-  return <>{Object.values(active).map((entry) => (entry ? renderSheet(entry) : null))}</>;
+  const host = useSheetHost();
+  const active = useSyncExternalStore(host.subscribe, host.getSnapshot);
+  return <>{active.map((session) => {
+    const Sheet = sheets[session.id as SheetId] as ComponentType<{ sheetId: SheetId; data?: unknown }>;
+    return (
+      <SessionContext.Provider key={session.key} value={session}>
+        <Sheet sheetId={session.id as SheetId} data={session.data} />
+      </SessionContext.Provider>
+    );
+  })}</>;
 };

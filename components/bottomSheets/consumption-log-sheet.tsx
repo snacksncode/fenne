@@ -1,11 +1,11 @@
 import { useDeleteConsumptionLog } from '@/api/consumption-logs';
 import { ConsumptionDeductionDTO, ConsumptionLogDTO } from '@/api/types';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
-import { prettyUnit } from '@/utils/unit-formatters';
+import { prettyUnit } from '@/lib/quantity';
 import { format, parseISO } from 'date-fns';
 import { RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
@@ -31,12 +31,7 @@ const warningFromMeta = (meta: unknown) => {
   return null;
 };
 
-type ConsumptionLogSheetContentProps = {
-  sheetId: SheetProps<'consumption-log-sheet'>['sheetId'];
-  log: ConsumptionLogDTO;
-};
-
-const ConsumptionLogSheetContent = ({ sheetId, log }: ConsumptionLogSheetContentProps) => {
+export const ConsumptionLogSheet = ({ sheetId, data: { log } }: SheetProps<'consumption-log-sheet'>) => {
   const sheets = useSheets();
   const deleteConsumptionLog = useDeleteConsumptionLog();
   const [warning, setWarning] = useState<string | null>(null);
@@ -63,7 +58,7 @@ const ConsumptionLogSheetContent = ({ sheetId, log }: ConsumptionLogSheetContent
   return (
     <BaseSheet
       id={sheetId}
-      footer={sheetFooter.buttonRow(
+      footer={(
         <Button
           text="Undo consumption"
           variant="outlined"
@@ -125,9 +120,7 @@ const ConsumptionLogSheetContent = ({ sheetId, log }: ConsumptionLogSheetContent
   );
 };
 
-export const ConsumptionLogSheet = (props: SheetProps<'consumption-log-sheet'>) => {
-  return <ConsumptionLogSheetContent sheetId={props.sheetId} log={props.data.log} />;
-};
+
 
 const styles = StyleSheet.create({
   header: {

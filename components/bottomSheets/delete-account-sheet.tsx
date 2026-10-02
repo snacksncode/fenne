@@ -1,5 +1,5 @@
 import { useDeleteAccount } from '@/api/auth';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
 import { colors } from '@/constants/colors';
@@ -30,7 +30,7 @@ export const DeleteAccountSheet = (props: SheetProps<'delete-account-sheet'>) =>
   return (
     <BaseSheet
       id={props.sheetId}
-      footer={sheetFooter.buttonRow(
+      footer={(
         <Button
           text={buttonText}
           variant="red-outlined"

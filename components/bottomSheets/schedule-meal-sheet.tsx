@@ -1,4 +1,4 @@
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Pancake } from '@/components/svgs/pancake';
 import { Typography } from '@/components/Typography';
 import { parseISO } from '@/date-tools';
@@ -8,24 +8,24 @@ import { BookMarked, CalendarClock, Check, ChefHat, ChevronLeft, Funnel, Ham, Pl
 import { FunctionComponent, useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
-import { recipesOptions, useRecipes } from '@/api/recipes';
-import { useQueryClient } from '@tanstack/react-query';
-import { useMount } from '@/hooks/use-mount';
+import { useRecipes } from '@/api/recipes';
 import { Recipe } from '@/components/recipe';
 import { colors } from '@/constants/colors';
-import { RecipeDTO, MealType } from '@/api/types';
+import { RecipeDTO, MealType, ScheduleMealEntry } from '@/api/types';
 import { useUpdateScheduleDay } from '@/api/schedules';
 import { isEmpty } from 'remeda';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { ensure } from '@/utils';
 import { useRouter } from 'expo-router';
 import { Button } from '@/components/button';
-import { filterRecipes } from '@/utils/recipe-utils';
+import { useRecipeSearch } from '@/hooks/use-recipe-search';
 import { TextInput } from '@/components/input';
 import { MealFilter } from '@/components/bottomSheets/recipe-filter-sheet';
 import { useKeyboardOpen } from '@/hooks/use-keyboard-open';
 import { useAppForm } from '@/components/form/app-form';
 import { z } from 'zod';
+import { useFormFeedback } from '@/components/form/use-form-feedback';
+import { requestErrorMessage } from '@/api/errors';
 
 type MealTypeOption = {
   value: MealType;
@@ -65,23 +65,17 @@ const MealTypeButton = ({
   );
 };
 
-type ScheduleMealSheetContentProps = {
-  sheetId: SheetProps<'schedule-meal-sheet'>['sheetId'];
-  data: SheetProps<'schedule-meal-sheet'>['data'];
-};
-
-const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealSheetContentProps) => {
+export const ScheduleMealSheet = ({ sheetId, data: sheetData }: SheetProps<'schedule-meal-sheet'>) => {
   const sheets = useSheets();
   const recipes = useRecipes();
-  const queryClient = useQueryClient();
   const updateScheduleDay = useUpdateScheduleDay();
   const router = useRouter();
   const [mode, setMode] = useState<'meal' | 'restaurant'>(sheetData.type);
+  const feedback = useFormFeedback(['restaurant'] as const);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const saving = useRef(false);
 
-  const initialMealType = (() => {
-    if (sheetData.type === 'meal') return sheetData.mealType;
-    return sheetData.defaultMealType;
-  })();
+  const initialMealType = sheetData.type === 'meal' ? sheetData.mealType : sheetData.defaultMealType;
 
   const [mealType, setMealType] = useState(initialMealType);
   const originalMealType = useRef(initialMealType);
@@ -95,44 +89,49 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
   const [mealFilter, setMealFilter] = useState<MealFilter>('all');
   const { isKeyboardOpen } = useKeyboardOpen();
 
+  const saveMeal = async (entry: ScheduleMealEntry) => {
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const type = ensure(mealType);
+      await updateScheduleDay.mutateAsync({
+        dateString: sheetData.dateString,
+        [type]: entry,
+        ...(originalMealType.current && originalMealType.current !== type && { [originalMealType.current]: null }),
+      });
+      Keyboard.dismiss();
+      await sheets.dismissAll();
+    } finally {
+      saving.current = false;
+    }
+  };
+
   const restaurantForm = useAppForm({
     defaultValues: {
       restaurant: sheetData.type === 'restaurant' ? (sheetData.defaultRestaurant ?? '') : '',
     },
-    validators: {
-      onSubmit: diningOutSchema,
-    },
-    onSubmit: ({ value }) => {
-      const type = ensure(mealType);
-      updateScheduleDay.mutate({
-        dateString: sheetData.dateString,
-        [type]: { type: 'dining_out', name: value.restaurant.trim() },
-        ...getSwapCleanup(),
-      });
-      Keyboard.dismiss();
-      sheets.dismissAll();
+    validators: { onSubmit: diningOutSchema },
+    listeners: { onChange: ({ formApi }) => feedback.clearServerErrors(formApi) },
+    onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
+    onSubmit: async ({ value, formApi }) => {
+      feedback.clearServerErrors(formApi);
+      try {
+        await saveMeal({ type: 'dining_out', name: value.restaurant.trim() });
+      } catch (error) {
+        feedback.reportError(formApi, error, 'Could not save this meal. Try again.', { name: 'restaurant', breakfast: 'restaurant', lunch: 'restaurant', dinner: 'restaurant' });
+      }
     },
   });
 
-  useMount(() => void queryClient.prefetchQuery(recipesOptions));
-
   const isEditingRestaurant = sheetData.type === 'restaurant' && !!sheetData.defaultRestaurant;
 
-  const getSwapCleanup = () => {
-    if (originalMealType.current && originalMealType.current !== mealType) {
-      return { [originalMealType.current]: null };
+  const handleMealSelect = async (meal: RecipeDTO) => {
+    setSelectionError(null);
+    try {
+      await saveMeal({ type: 'recipe', recipe_id: meal.id });
+    } catch (error) {
+      setSelectionError(requestErrorMessage(error, 'Could not schedule this recipe. Try again.'));
     }
-    return {};
-  };
-
-  const handleMealSelect = (meal: RecipeDTO) => {
-    const type = ensure(mealType);
-    updateScheduleDay.mutate({
-      dateString: sheetData.dateString,
-      [type]: { type: 'recipe', recipe_id: meal.id },
-      ...getSwapCleanup(),
-    });
-    sheets.dismissAll();
   };
 
   const handleGoToRecipes = async () => {
@@ -162,20 +161,23 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
     setStep('select-meal');
   };
 
-  const sortedRecipes = filterRecipes(recipes.data ?? [], { search, mealFilter, mealType: mealType ?? undefined });
+  const sortedRecipes = useRecipeSearch(recipes.data, { search, mealFilter, mealType: mealType ?? undefined });
   const hasRecipes = !isEmpty(recipes.data ?? []);
   const isRecipeListStep = step === 'select-meal' && mode === 'meal' && hasRecipes;
 
   return (
     <BaseSheet
       id={sheetId}
+      dismissible={!updateScheduleDay.isPending}
+      draggable={!updateScheduleDay.isPending}
       sizing={isRecipeListStep ? { type: 'scrollable', detents: [0.5, 1] } : { type: 'auto' }}
       footer={
         isRecipeListStep
-          ? sheetFooter.buttonRow(
+          ? (
               <View style={styles.toolbar}>
                 <TextInput
                   variant="search"
+                  editable={!updateScheduleDay.isPending}
                   value={search}
                   onChangeText={setSearch}
                   placeholder="Search recipes..."
@@ -183,6 +185,7 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
                 />
                 <Button
                   accessibilityLabel="Filter recipes"
+                  disabled={updateScheduleDay.isPending}
                   onPress={openFilterSheet}
                   variant={mealFilter !== 'all' ? 'primary' : 'outlined'}
                   leftIcon={{ Icon: Funnel }}
@@ -198,6 +201,7 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
                 ) : (
                   <Button
                     accessibilityLabel="Add recipe"
+                    disabled={updateScheduleDay.isPending}
                     onPress={handleNewRecipe}
                     variant="primary"
                     leftIcon={{ Icon: Plus }}
@@ -211,6 +215,7 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         {step === 'select-meal' && (
           <PressableWithHaptics
+            disabled={updateScheduleDay.isPending}
             onPress={() => {
               setStep('select-type');
               setSearch('');
@@ -223,26 +228,35 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
         )}
         {mode === 'meal' ? (
           <>
-            <CalendarClock color="#4A3E36" size={20} strokeWidth={2.5} />
+            <CalendarClock color={colors.brown[900]} size={20} strokeWidth={2.5} />
             <Typography variant="heading-sm" weight="bold">
               {format(parseISO(sheetData.dateString), 'EEEE, MMM d')}
             </Typography>
-            <PressableWithHaptics onPress={() => setMode('restaurant')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
+            <PressableWithHaptics disabled={updateScheduleDay.isPending} onPress={() => setMode('restaurant')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
               <ChefHat color={colors.brown[900]} />
             </PressableWithHaptics>
           </>
         ) : (
           <>
-            <ChefHat color="#4A3E36" size={20} strokeWidth={2.5} />
+            <ChefHat color={colors.brown[900]} size={20} strokeWidth={2.5} />
             <Typography variant="heading-sm" weight="bold">
               {isEditingRestaurant ? 'Edit dining out?' : 'Dining out?'}
             </Typography>
-            <PressableWithHaptics onPress={() => setMode('meal')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
+            <PressableWithHaptics disabled={updateScheduleDay.isPending} onPress={() => setMode('meal')} style={{ marginLeft: 'auto' }} scaleTo={0.9}>
               <BookMarked color={colors.brown[900]} />
             </PressableWithHaptics>
           </>
         )}
       </View>
+
+      {mode === 'meal' && selectionError && (
+        <View accessible accessibilityRole="alert" style={{ marginBottom: 12 }}>
+          <Typography variant="body-sm" color={colors.red[500]}>{selectionError}</Typography>
+        </View>
+      )}
+      {updateScheduleDay.isPending && (
+        <Typography variant="body-sm" accessibilityLiveRegion="polite" style={{ marginBottom: 12 }}>Saving meal…</Typography>
+      )}
 
       {/* Step 1: Meal type selection */}
       {step === 'select-type' && (
@@ -267,7 +281,7 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-            <View style={{ gap: 8, paddingBottom: hasRecipes ? 88 : 0 }}>
+            <View style={{ gap: 8, paddingBottom: hasRecipes ? 88 : 0 }} pointerEvents={updateScheduleDay.isPending ? 'none' : 'auto'}>
               {isEmpty(sortedRecipes) ? (
                 <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
                   <BookMarked size={48} color={colors.brown[900]} strokeWidth={1.5} />
@@ -297,25 +311,17 @@ const ScheduleMealSheetContent = ({ sheetId, data: sheetData }: ScheduleMealShee
           </ScrollView>
         ) : (
           <restaurantForm.AppForm>
-            <View>
+            <View style={{ gap: 16 }}>
               <restaurantForm.AppField name="restaurant">
-                {(field) => <field.TextField placeholder="What's the place?" />}
+                {(field) => <field.TextField ref={feedback.inputRef('restaurant')} editable={!updateScheduleDay.isPending} placeholder="What's the place?" accessibilityLabel="Place" />}
               </restaurantForm.AppField>
-              <Button
-                variant="primary"
-                text={isEditingRestaurant ? 'Update' : 'Confirm'}
-                style={{ marginTop: 16 }}
-                onPress={() => restaurantForm.handleSubmit()}
-              />
+              <restaurantForm.Error message={feedback.error} />
+              <restaurantForm.SubmitButton variant="primary" text={isEditingRestaurant ? 'Update' : 'Confirm'} />
             </View>
           </restaurantForm.AppForm>
         ))}
     </BaseSheet>
   );
-};
-
-export const ScheduleMealSheet = (props: SheetProps<'schedule-meal-sheet'>) => {
-  return <ScheduleMealSheetContent sheetId={props.sheetId} data={props.data} />;
 };
 
 const styles = StyleSheet.create({

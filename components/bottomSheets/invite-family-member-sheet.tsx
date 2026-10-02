@@ -1,73 +1,47 @@
-import { APIError } from '@/api/client';
 import { usePostInvite } from '@/api/invitations';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
-import { Button } from '@/components/button';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { useAppForm } from '@/components/form/app-form';
+import { useFormFeedback } from '@/components/form/use-form-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { MailPlus } from 'lucide-react-native';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const inviteFamilyMemberSchema = z.object({
-  email: z.email('Enter a valid email address'),
-});
+const schema = z.object({ email: z.email('Enter a valid email address') });
 
-export const InviteFamilyMemberSheet = (props: SheetProps<'invite-family-member-sheet'>) => {
+export const InviteFamilyMemberSheet = ({ sheetId }: SheetProps<'invite-family-member-sheet'>) => {
   const sheets = useSheets();
   const postInvite = usePostInvite();
+  const feedback = useFormFeedback(['email'] as const);
   const form = useAppForm({
-    defaultValues: {
-      email: '',
-    },
-    validators: {
-      onSubmit: inviteFamilyMemberSchema,
-    },
-    onSubmit: ({ value }) => {
-      postInvite.mutate(
-        { email: value.email.trim() },
-        {
-          onSuccess: () => sheets.dismiss(props.sheetId),
-          onError: (error) => {
-            // @ts-expect-error - temporary logging of error instead of custom field error
-            if (error instanceof APIError) alert(error.data.error);
-          },
-        }
-      );
+    defaultValues: { email: '' },
+    validators: { onSubmit: schema },
+    listeners: { onChange: ({ formApi }) => feedback.clearServerErrors(formApi) },
+    onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
+    onSubmit: async ({ value, formApi }) => {
+      feedback.clearServerErrors(formApi);
+      try {
+        await postInvite.mutateAsync({ email: value.email.trim() });
+        await sheets.dismiss(sheetId);
+      } catch (error) {
+        feedback.reportError(formApi, error, 'Could not send invitation');
+      }
     },
   });
 
   return (
-    <BaseSheet
-      id={props.sheetId}
-      footer={sheetFooter.buttonRow(
-        <Button
-          text="Invite"
-          variant="primary"
-          rightIcon={{ Icon: MailPlus }}
-          onPress={() => form.handleSubmit()}
-          isLoading={postInvite.isPending}
-        />
-      )}
-    >
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        Expand your family
-      </Typography>
-      <form.AppForm>
-        <View style={{ gap: 16 }}>
-          <form.AppField name="email">
-            {(field) => (
-              <field.TextField
-                label="Email"
-                placeholder="e.g. partner@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-              />
-            )}
-          </form.AppField>
-        </View>
-      </form.AppForm>
-    </BaseSheet>
+    <form.AppForm>
+      <BaseSheet id={sheetId}
+        footer={<form.SubmitButton text="Invite" variant="primary" rightIcon={{ Icon: MailPlus }} />}>
+          <View ref={feedback.contentRef} style={{ gap: 16 }}>
+            <Typography variant="heading-sm" weight="bold">Expand your family</Typography>
+            <form.AppField name="email">{(field) => (
+              <field.TextField ref={feedback.inputRef('email')} label="Email" placeholder="e.g. partner@example.com" keyboardType="email-address" autoComplete="email" autoCapitalize="none" />
+            )}</form.AppField>
+            <form.Error message={feedback.error} />
+          </View>
+      </BaseSheet>
+    </form.AppForm>
   );
 };

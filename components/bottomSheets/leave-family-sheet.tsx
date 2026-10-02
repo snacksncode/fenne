@@ -1,5 +1,5 @@
 import { useLeaveFamily } from '@/api/invitations';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/Typography';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
@@ -12,7 +12,7 @@ export const LeaveFamilySheet = (props: SheetProps<'leave-family-sheet'>) => {
   return (
     <BaseSheet
       id={props.sheetId}
-      footer={sheetFooter.buttonRow(
+      footer={(
         <Button
           text="Leave"
           variant="red-outlined"

@@ -8,18 +8,13 @@ import { useRouter } from 'expo-router';
 import { Edit2, Trash2 } from 'lucide-react-native';
 import { View } from 'react-native';
 
-type RecipeOptionsSheetContentProps = {
-  sheetId: SheetProps<'recipe-options-sheet'>['sheetId'];
-  recipe: SheetProps<'recipe-options-sheet'>['data']['recipe'];
-};
-
-const RecipeOptionsSheetContent = ({ sheetId, recipe }: RecipeOptionsSheetContentProps) => {
+export const RecipeOptionsSheet = ({ sheetId, data: { recipe } }: SheetProps<'recipe-options-sheet'>) => {
   const sheets = useSheets();
   const router = useRouter();
   const deleteRecipe = useDeleteRecipe();
 
   return (
-    <>
+    <BaseSheet id={sheetId}>
       <View style={{ marginBottom: 24 }}>
         <Typography variant="heading-sm" weight="bold">
           What to do with{' '}
@@ -52,14 +47,6 @@ const RecipeOptionsSheetContent = ({ sheetId, recipe }: RecipeOptionsSheetConten
           }}
         />
       </View>
-    </>
-  );
-};
-
-export const RecipeOptionsSheet = (props: SheetProps<'recipe-options-sheet'>) => {
-  return (
-    <BaseSheet id={props.sheetId}>
-      <RecipeOptionsSheetContent sheetId={props.sheetId} recipe={props.data.recipe} />
     </BaseSheet>
   );
 };

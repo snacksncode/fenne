@@ -1,9 +1,9 @@
 import { TrueSheet, TrueSheetProps } from '@lodev09/react-native-true-sheet';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { StyleSheet, StyleProp, View, ViewStyle } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sheets, useSheetInternal } from '@/lib/sheet-context';
+import { Sheets, useSheetSession } from '@/lib/sheet-context';
 
 type SheetDetents = NonNullable<TrueSheetProps['detents']>;
 type BaseSheetSizing = { type?: 'auto' } | { type: 'scrollable'; detents: SheetDetents };
@@ -19,10 +19,6 @@ type BaseSheetProps = Partial<Omit<TrueSheetProps, 'name' | 'children' | 'footer
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-export const sheetFooter = {
-  buttonRow: (node: ReactNode) => node,
-};
-
 export const BaseSheet = ({
   children,
   containerStyle,
@@ -35,7 +31,11 @@ export const BaseSheet = ({
   onDidDismiss,
   ...props
 }: BaseSheetProps) => {
-  const { handleDidDismiss } = useSheetInternal();
+  const session = useSheetSession();
+  const nativeRef = useRef<TrueSheet>(null);
+  useEffect(() => {
+    if (nativeRef.current) session.attach(nativeRef.current);
+  }, [session]);
   const insets = useSafeAreaInsets();
   const isScrollable = sizing.type === 'scrollable';
   const contentBottomPadding =
@@ -43,17 +43,16 @@ export const BaseSheet = ({
 
   return (
     <TrueSheet
+      ref={nativeRef}
       name={id}
-      backgroundColor="#FEF7EA"
+      backgroundColor={colors.cream[100]}
       insetAdjustment="never"
       detents={isScrollable ? sizing.detents : ['auto']}
       scrollable={isScrollable}
       dimmed
-      onDidPresent={(e) => {
-        onDidPresent?.(e);
-      }}
+      onDidPresent={onDidPresent}
       onDidDismiss={(event) => {
-        handleDidDismiss(id);
+        session.didDismiss();
         onDidDismiss?.(event);
       }}
       dismissible={dismissible ?? true}

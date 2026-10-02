@@ -1,80 +1,57 @@
 import { useChangePassword } from '@/api/auth';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
-import { Button } from '@/components/button';
+import { BaseSheet, SHEET_FOOTER_HEIGHT } from '@/components/bottomSheets/base-sheet';
 import { useAppForm } from '@/components/form/app-form';
+import { useFormFeedback } from '@/components/form/use-form-feedback';
 import { Typography } from '@/components/Typography';
 import { SheetProps, useSheets } from '@/lib/sheet-context';
 import { RotateCcwKey } from 'lucide-react-native';
 import { View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'Use at least 8 characters'),
-});
+const schema = z.object({ currentPassword: z.string().min(1, 'Current password is required'), newPassword: z.string().min(8, 'Use at least 8 characters') });
 
-export const ChangePasswordSheet = (props: SheetProps<'change-password-sheet'>) => {
+export const ChangePasswordSheet = ({ sheetId }: SheetProps<'change-password-sheet'>) => {
   const sheets = useSheets();
   const changePassword = useChangePassword();
+  const feedback = useFormFeedback(['currentPassword', 'newPassword'] as const);
+  const insets = useSafeAreaInsets();
+  const footerHeight = SHEET_FOOTER_HEIGHT + insets.bottom;
   const form = useAppForm({
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-    },
-    validators: {
-      onSubmit: changePasswordSchema,
-    },
-    onSubmit: ({ value }) => {
-      changePassword.mutate(
-        { new_password: value.newPassword, current_password: value.currentPassword },
-        {
-          onSuccess: () => sheets.dismiss(props.sheetId),
-          onError: () => alert('Please check your credentials'),
-        }
-      );
+    defaultValues: { currentPassword: '', newPassword: '' },
+    validators: { onSubmit: schema },
+    listeners: { onChange: ({ formApi }) => feedback.clearServerErrors(formApi) },
+    onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
+    onSubmit: async ({ value, formApi }) => {
+      feedback.clearServerErrors(formApi);
+      try {
+        await changePassword.mutateAsync({ new_password: value.newPassword, current_password: value.currentPassword });
+        await sheets.dismiss(sheetId);
+      } catch (error) {
+        feedback.reportError(formApi, error, 'Please check your credentials', { current_password: 'currentPassword', new_password: 'newPassword', password: 'newPassword' });
+      }
     },
   });
 
   return (
-    <BaseSheet
-      id={props.sheetId}
-      footer={sheetFooter.buttonRow(
-        <Button
-          text="Change password"
-          variant="primary"
-          rightIcon={{ Icon: RotateCcwKey }}
-          onPress={() => form.handleSubmit()}
-          isLoading={changePassword.isPending}
-        />
-      )}
-    >
-      <Typography variant="heading-sm" weight="bold" style={{ marginBottom: 12 }}>
-        Change password
-      </Typography>
-      <form.AppForm>
-        <View style={{ gap: 16 }}>
-          <form.AppField name="currentPassword">
-            {(field) => (
-              <field.TextField
-                label="Current password"
-                autoCapitalize="none"
-                placeholder="••••••••••••••••"
-                secureTextEntry
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="newPassword">
-            {(field) => (
-              <field.TextField
-                label="New password"
-                autoCapitalize="none"
-                placeholder="••••••••••••••••"
-                secureTextEntry
-              />
-            )}
-          </form.AppField>
-        </View>
-      </form.AppForm>
-    </BaseSheet>
+    <form.AppForm>
+      <BaseSheet id={sheetId} sizing={{ type: 'scrollable', detents: ['auto', 1] }}
+        footer={<form.SubmitButton text="Change password" variant="primary" rightIcon={{ Icon: RotateCcwKey }} />}>
+        <KeyboardAwareScrollView ref={feedback.scrollRef} keyboardShouldPersistTaps="handled"
+          bottomOffset={footerHeight} contentContainerStyle={{ paddingBottom: footerHeight + 24 }}>
+          <View ref={feedback.contentRef} style={{ gap: 16 }}>
+            <Typography variant="heading-sm" weight="bold">Change password</Typography>
+            <form.AppField name="currentPassword">{(field) => (
+              <field.TextField ref={feedback.inputRef('currentPassword')} label="Current password" autoCapitalize="none" placeholder="••••••••••••••••" secureTextEntry />
+            )}</form.AppField>
+            <form.AppField name="newPassword">{(field) => (
+              <field.TextField ref={feedback.inputRef('newPassword')} label="New password" autoCapitalize="none" placeholder="••••••••••••••••" secureTextEntry />
+            )}</form.AppField>
+            <form.Error message={feedback.error} />
+          </View>
+        </KeyboardAwareScrollView>
+      </BaseSheet>
+    </form.AppForm>
   );
 };

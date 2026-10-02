@@ -17,7 +17,8 @@ import {
   ProductDeleteBlockersDTO,
 } from '@/api/types';
 
-import { SelectUnitSheet, Unit } from '@/components/bottomSheets/select-unit-sheet';
+import { SelectUnitSheet } from '@/components/bottomSheets/select-unit-sheet';
+import { Unit } from '@/lib/quantity';
 import { SelectCategorySheet } from '@/components/bottomSheets/select-category-sheet';
 import { EditIngredientSheet } from '@/components/bottomSheets/edit-ingredient-sheet';
 import { GroceryItemSheet } from '@/components/bottomSheets/grocery-item-sheet';

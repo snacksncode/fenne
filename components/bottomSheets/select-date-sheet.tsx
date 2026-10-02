@@ -1,5 +1,5 @@
 import { useSchedule } from '@/api/schedules';
-import { BaseSheet, sheetFooter } from '@/components/bottomSheets/base-sheet';
+import { BaseSheet } from '@/components/bottomSheets/base-sheet';
 import { Button } from '@/components/button';
 import { Month } from '@/components/menu/month';
 import { Typography } from '@/components/Typography';
@@ -83,7 +83,7 @@ export const SelectDateSheet = (props: SheetProps<'select-date-sheet'>) => {
     <BaseSheet
       id={props.sheetId}
       onDidPresent={() => setAnimationsEnabled(true)}
-      footer={sheetFooter.buttonRow(
+      footer={(
         <Button onPress={() => sheets.dismiss(props.sheetId, undefined)} variant="outlined" text="Cancel" />
       )}
     >

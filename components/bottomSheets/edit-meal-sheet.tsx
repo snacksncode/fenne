@@ -10,12 +10,7 @@ import { useDeleteScheduleEntry } from '@/api/schedules';
 
 export type EditMealSheetData = MealEntryDTO & { mealType: MealType; dateString: string };
 
-type EditMealSheetContentProps = {
-  sheetId: SheetProps<'edit-meal-sheet'>['sheetId'];
-  scheduledEntry: SheetProps<'edit-meal-sheet'>['data']['entry'];
-};
-
-const EditMealSheetContent = ({ sheetId, scheduledEntry }: EditMealSheetContentProps) => {
+export const EditMealSheet = ({ sheetId, data: { entry: scheduledEntry } }: SheetProps<'edit-meal-sheet'>) => {
   const sheets = useSheets();
   const deleteScheduleEntry = useDeleteScheduleEntry();
   const { dateString, mealType, ...entry } = scheduledEntry;
@@ -23,7 +18,7 @@ const EditMealSheetContent = ({ sheetId, scheduledEntry }: EditMealSheetContentP
   const isDiningOut = entry.type === 'dining_out';
 
   return (
-    <>
+    <BaseSheet id={sheetId}>
       <View style={{ marginBottom: 24 }}>
         <Typography variant="heading-sm" weight="bold">
           What to do with{' '}
@@ -75,14 +70,6 @@ const EditMealSheetContent = ({ sheetId, scheduledEntry }: EditMealSheetContentP
             }}
           />
       </View>
-    </>
-  );
-};
-
-export const EditMealSheet = (props: SheetProps<'edit-meal-sheet'>) => {
-  return (
-    <BaseSheet id={props.sheetId}>
-      <EditMealSheetContent sheetId={props.sheetId} scheduledEntry={props.data.entry} />
     </BaseSheet>
   );
 };
