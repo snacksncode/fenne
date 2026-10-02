@@ -70,7 +70,7 @@ declare module '@/lib/sheet-context' {
       result: AisleCategory;
     };
     'edit-ingredient-sheet': {
-      data: { mode: 'create' | 'edit'; ingredient?: IngredientFormData };
+      data: { ingredient?: IngredientFormData };
       result: IngredientFormData;
     };
     'grocery-item-sheet': {

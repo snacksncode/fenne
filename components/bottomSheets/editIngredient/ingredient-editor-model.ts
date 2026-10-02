@@ -13,7 +13,6 @@ import { z } from 'zod';
 export type SelectedProduct = IngredientProductSelection;
 export type IngredientDetailsFormData = Omit<IngredientFormData, 'selectedProduct'>;
 
-export type IngredientEditorPhase = 'search' | 'product' | 'ingredient';
 export type ProductMode = 'tracked' | 'timed' | 'kitchen_basic';
 
 export type ProductDraftForm = {

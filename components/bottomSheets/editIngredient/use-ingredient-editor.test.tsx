@@ -17,7 +17,7 @@ describe('Ingredient editor transitions', () => {
   let renderer: ReactTestRenderer;
   let editor: ReturnType<typeof useIngredientEditor>;
   const Harness = () => {
-    editor = useIngredientEditor({ sheetId: 'edit-ingredient-sheet', data: { mode: 'create' } });
+    editor = useIngredientEditor({ sheetId: 'edit-ingredient-sheet', data: {} });
     if (editor.step.phase === 'product') return <editor.step.form.Field name="name">{() => null}</editor.step.form.Field>;
     if (editor.step.phase === 'ingredient') return <editor.step.form.Field name="quantity">{() => null}</editor.step.form.Field>;
     return null;

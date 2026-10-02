@@ -59,7 +59,7 @@ const recipeSchema = z.object({
 });
 
 /** Owns the Recipe draft and bounded, user-driven Conversion recovery. */
-export const useRecipeEditor = (recipe?: RecipeDTO, mode: 'create' | 'edit' = recipe ? 'edit' : 'create') => {
+export const useRecipeEditor = (recipe?: RecipeDTO) => {
   const navigation = useNavigation();
   const sheets = useSheets();
   const addRecipe = useAddRecipe();
@@ -106,7 +106,7 @@ export const useRecipeEditor = (recipe?: RecipeDTO, mode: 'create' | 'edit' = re
               if (resolved.has(key)) continue;
               resolved.add(key);
               const ingredient = ingredients[requirement.ingredient_index];
-              const updated = ingredient && await sheets.present('edit-ingredient-sheet', { data: { mode, ingredient } });
+              const updated = ingredient && await sheets.present('edit-ingredient-sheet', { data: { ingredient } });
               if (!updated) {
                 feedback.setError('Recipe not saved. Resolve the missing shopping item conversions to continue.');
                 return;
@@ -133,7 +133,7 @@ export const useRecipeEditor = (recipe?: RecipeDTO, mode: 'create' | 'edit' = re
   const editIngredient = async (ingredient?: IngredientFormData) => {
     Keyboard.dismiss();
     notesRef.current?.blur();
-    const updated = await sheets.present('edit-ingredient-sheet', { data: { mode, ingredient } });
+    const updated = await sheets.present('edit-ingredient-sheet', { data: { ingredient } });
     if (!updated) return;
     feedback.clearServerErrors(form);
     const current = form.state.values.ingredients;

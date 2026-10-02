@@ -18,16 +18,10 @@ const mealTypes = [
   { value: 'dinner', label: 'Dinner', Icon: Ham },
 ] as const;
 
-export function RecipeForm({
-  recipe,
-  mode = recipe ? 'edit' : 'create',
-}: {
-  recipe?: RecipeDTO;
-  mode?: 'create' | 'edit';
-}) {
+export function RecipeForm({ recipe }: { recipe?: RecipeDTO }) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { form, feedback, notesRef, editIngredient, removeIngredient } = useRecipeEditor(recipe, mode);
+  const { form, feedback, notesRef, editIngredient, removeIngredient } = useRecipeEditor(recipe);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
