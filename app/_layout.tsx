@@ -18,6 +18,7 @@ import { useEffect, useMemo } from 'react';
 import { focusManager, useIsRestoring } from '@tanstack/react-query';
 import { useInvalidationChannel } from '@/hooks/useInvalidationChannel';
 import { useSession } from '@/contexts/session';
+import { useBackendUrl } from '@/lib/backend-url';
 import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
 import { queryClient, shouldPersistMutation, WEEK_IN_MS } from '@/query-client';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -51,9 +52,10 @@ export default function Layout() {
 
 function SessionLayout() {
   const { token, cacheScope, isLoading } = useSession();
+  const { isLoading: isBackendUrlLoading } = useBackendUrl();
   const persister = useMemo(() => createSessionPersister(cacheScope), [cacheScope]);
-  // Secure credentials determine which persisted cache may be restored.
-  if (isLoading) return null;
+  // Secure credentials and the configured backend determine which persisted cache may be restored.
+  if (isLoading || isBackendUrlLoading) return null;
   return (
     <PersistQueryClientProvider
       key={cacheScope}
@@ -107,6 +109,7 @@ function RootLayout() {
       </Stack.Protected>
       <Stack.Protected guard={!token}>
         <Stack.Screen name="(auth)/index" options={{ animationTypeForReplace: 'pop' }} />
+        <Stack.Screen name="(auth)/server-url" />
       </Stack.Protected>
     </Stack>
   );

@@ -24,6 +24,7 @@ import {
   Lock,
   LogOut,
   MailQuestionMark,
+  Server,
   Trash2,
   User,
   UserRoundCheck,
@@ -352,6 +353,15 @@ const Settings = () => {
             </View>
           </>
         ) : null}
+
+        <View style={{ marginTop: 24 }}>
+          <Typography variant="body-base" weight="bold">
+            SERVER
+          </Typography>
+          <View style={{ gap: 12, marginTop: 12 }}>
+            <Action icon={Server} text="Backend URL" onPress={() => router.push('/(app)/server-url')} />
+          </View>
+        </View>
 
         <View style={{ marginTop: 24 }}>
           <Typography variant="body-base" weight="bold">

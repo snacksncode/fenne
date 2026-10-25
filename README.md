@@ -13,7 +13,7 @@ bun run start
 
 The app uses native modules and a development build. If the development app and Metro are already running, use those processes. Native builds are separate, explicit operations through `bun run ios` or `bun run android`; source-only changes normally use the existing development session.
 
-[api/client.ts](api/client.ts) selects `http://127.0.0.1:4000` in development and the hosted API in release builds, then adds `/v2` to request paths. Run the local Rails API on port 4000. A physical phone or Android emulator may need a different reachable host; the API address is currently a source setting, not an environment variable. ActionCable derives its address from the same host.
+The backend address is configured in the app, not in source. On first run, "Get Started" opens a required screen where the user enters the full backend URL including the port (for example `http://192.168.1.10:4000` on a physical phone, or `http://10.0.2.2:4000` on an Android emulator); it is stored in [lib/backend-url.ts](lib/backend-url.ts) and can be changed later from Settings → Backend URL. [api/client.ts](api/client.ts) adds `/v2` to request paths, and ActionCable derives its address from the same host. Installs from before this screen existed fall back to the hosted API.
 
 ## Checks
 
@@ -32,6 +32,7 @@ Tests use the existing Jest/Expo configuration. For a focused run, append the te
 - `components/form/`: shared TanStack Form controls and structured validation feedback.
 - `components/bottomSheets/`, `sheets.tsx`, `lib/sheet-context.tsx`: sheet content, registration and presentation.
 - `lib/session.ts`, `contexts/session.tsx`, `lib/family-data.ts`: session changes and scoped data refresh.
+- `lib/backend-url.ts`: the configured backend address used by every request.
 - `hooks/`, `utils/`: workflow state and domain calculations/search.
 - `date-tools.ts`, `constants/colors.ts`: shared date behavior and color tokens.
 

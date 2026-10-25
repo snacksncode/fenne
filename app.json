@@ -19,6 +19,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-cleartext-traffic",
       [
         "expo-splash-screen",
         {

@@ -1,6 +1,7 @@
+import { DEFAULT_BACKEND_BASE_URL, getConfiguredBackendUrl } from '@/lib/backend-url';
 import { getSession, hydrateSession, signOut } from '@/lib/session';
 
-export const getBaseUrl = () => (__DEV__ ? 'http://127.0.0.1:4000' : 'https://api.fenneplanner.com');
+export const getBaseUrl = () => getConfiguredBackendUrl() ?? DEFAULT_BACKEND_BASE_URL;
 export class APIError extends Error {
   data: unknown;
   constructor(data: unknown) {

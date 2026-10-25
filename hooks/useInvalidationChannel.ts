@@ -1,6 +1,6 @@
 import { refreshFamilyData, FamilyChange } from '@/lib/family-data';
 import { useEffect } from 'react';
-import { getBaseUrl } from '@/api/client';
+import { useBackendUrl } from '@/lib/backend-url';
 import { createConsumer } from '@rails/actioncable';
 import { useQueryClient } from '@tanstack/react-query';
 import { isPlainObject } from 'remeda';
@@ -13,12 +13,13 @@ if (typeof globalThis.removeEventListener !== 'function') globalThis.removeEvent
 export const useInvalidationChannel = () => {
   const { data: user } = useCurrentUser();
   const { token } = useSession();
+  const { baseUrl } = useBackendUrl();
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!token) return;
 
-    const websocketBaseUrl = getBaseUrl().replace(/^http/, 'ws');
+    const websocketBaseUrl = baseUrl.replace(/^http/, 'ws');
     const cable = createConsumer(`${websocketBaseUrl}/v2/cable?token=${encodeURIComponent(token)}`);
 
     cable.subscriptions.create(
@@ -35,5 +36,5 @@ export const useInvalidationChannel = () => {
     );
 
     return () => cable.disconnect();
-  }, [token, user?.family?.id, queryClient]);
+  }, [token, baseUrl, user?.family?.id, queryClient]);
 };

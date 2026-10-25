@@ -11,7 +11,10 @@
     "lint": "expo lint"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ]
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",

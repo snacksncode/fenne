@@ -7,10 +7,12 @@ import { colors } from '@/constants/colors';
 import { useAppForm } from '@/components/form/app-form';
 import { useEffect, useRef, useState } from 'react';
 import { useFormFeedback } from '@/components/form/use-form-feedback';
-import { useLogin, useLoginAsGuest } from '@/api/auth';
+import { useLogin } from '@/api/auth';
+import { useBackendUrl } from '@/lib/backend-url';
 import Animated, { FadeIn, LayoutAnimationsValues, LinearTransition, withSpring } from 'react-native-reanimated';
 import { PressableWithHaptics } from '@/components/pressable-with-feedback';
 import { useSession } from '@/contexts/session';
+import { router } from 'expo-router';
 import { z } from 'zod';
 
 type Mode = 'log-in' | 'landing';
@@ -49,7 +51,7 @@ const WelcomeScreen = () => {
   const [mode, setMode] = useState<Mode>(() => (hasEverLoggedIn ? 'log-in' : 'landing'));
 
   const login = useLogin();
-  const guestLogin = useLoginAsGuest();
+  const { isConfigured } = useBackendUrl();
   const feedback = useFormFeedback(['email', 'password'] as const);
   const form = useAppForm({
     defaultValues: { email: '', password: '' },
@@ -57,16 +59,13 @@ const WelcomeScreen = () => {
     listeners: { onChange: ({ formApi }) => feedback.clearServerErrors(formApi) },
     onSubmitInvalid: ({ formApi }) => feedback.focusInvalid(formApi),
     onSubmit: async ({ value, formApi }) => {
+      // The backend must be known before credentials are sent anywhere.
+      if (!isConfigured) { router.push({ pathname: '/(auth)/server-url', params: { next: 'login' } }); return; }
       feedback.clearServerErrors(formApi);
       try { await login.mutateAsync({ email: value.email.trim(), password: value.password }); }
       catch (error) { feedback.reportError(formApi, error, 'Please check your credentials'); }
     },
   });
-  const startGuestSession = async () => {
-    feedback.setError(null);
-    try { await guestLogin.mutateAsync(); }
-    catch { feedback.setError('Something went wrong starting guest session'); }
-  };
   const switchMode = (next: Mode) => { feedback.clearServerErrors(form); setMode(next); };
 
   return (
@@ -145,7 +144,7 @@ const WelcomeScreen = () => {
               <form.Error message={feedback.error} />
               {mode === 'landing' ? (
                 <Button style={{ marginTop: 24, marginBottom: 16 }} text="Get Started" variant="primary"
-                  onPress={startGuestSession} isLoading={guestLogin.isPending} />
+                  onPress={() => router.push('/(auth)/server-url')} />
               ) : (
                 <form.SubmitButton style={{ marginTop: 24, marginBottom: 16 }} text="Log in!" variant="primary" />
               )}
